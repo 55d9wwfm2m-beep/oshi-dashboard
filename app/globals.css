@@ -1,0 +1,185 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --accent: 196, 164, 160;
+  --accent-hex: #C4A4A0;
+}
+
+/* ──── Keyframes ──── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0);     }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1);    }
+}
+@keyframes slideRight {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: translateX(0);      }
+}
+@keyframes progressFill {
+  from { width: 0; }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+/* ──── Animation utilities ──── */
+.anim-fadeInUp  { animation: fadeInUp  0.5s cubic-bezier(0.16,1,0.3,1) both; }
+.anim-fadeIn    { animation: fadeIn    0.4s ease both; }
+.anim-scaleIn   { animation: scaleIn   0.4s cubic-bezier(0.16,1,0.3,1) both; }
+.anim-slideRight{ animation: slideRight 0.4s cubic-bezier(0.16,1,0.3,1) both; }
+
+.stagger-1 { animation-delay:  60ms; }
+.stagger-2 { animation-delay: 120ms; }
+.stagger-3 { animation-delay: 180ms; }
+.stagger-4 { animation-delay: 240ms; }
+.stagger-5 { animation-delay: 300ms; }
+
+/* ──── Base ──── */
+* {
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+body {
+  background-color: #FAF8F6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
+  color: #1C1917;
+}
+::-webkit-scrollbar { display: none; }
+* { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ──── Card surfaces ──── */
+.card {
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 2px 16px rgba(28,18,12,0.06);
+  border: 1px solid rgba(28,18,12,0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card:active { transform: scale(0.985); }
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(28,18,12,0.1);
+}
+
+/* ──── Glass surface ──── */
+.glass {
+  background: rgba(255,255,255,0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.5);
+}
+.glass-dark {
+  background: rgba(28,18,12,0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+/* ──── Accent helpers ──── */
+.accent-text   { color: rgb(var(--accent)); }
+.accent-bg     { background-color: rgb(var(--accent)); }
+.accent-bg-10  { background-color: rgba(var(--accent),0.10); }
+.accent-bg-15  { background-color: rgba(var(--accent),0.15); }
+.accent-border { border-color: rgba(var(--accent),0.30); }
+
+/* ──── Progress bar ──── */
+.progress-track {
+  background: #F0EBE6;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgb(var(--accent)), rgba(var(--accent),0.6));
+  animation: progressFill 1s cubic-bezier(0.16,1,0.3,1) both;
+  transition: width 0.8s cubic-bezier(0.16,1,0.3,1);
+}
+
+/* ──── Serif font for numbers ──── */
+.font-serif-num {
+  font-family: var(--font-serif), 'Georgia', serif;
+  font-style: italic;
+  letter-spacing: -0.02em;
+}
+
+/* ──── Ticket dashed line ──── */
+.ticket-divider {
+  position: relative;
+  border-top: 1.5px dashed rgba(28,18,12,0.10);
+  margin: 0 -20px;
+}
+.ticket-hole {
+  position: absolute;
+  top: -8px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #FAF8F6;
+}
+
+/* ──── Input base ──── */
+.input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(28,18,12,0.09);
+  background: #FAF8F6;
+  font-size: 15px;
+  color: #1C1917;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.input:focus { border-color: rgba(var(--accent),0.5); }
+.input::placeholder { color: #A8A29E; }
+
+/* ──── Bottom modal ──── */
+.bottom-sheet {
+  width: 100%;
+  max-width: 512px;
+  margin: 0 auto;
+  background: #ffffff;
+  border-radius: 28px 28px 0 0;
+  padding: 24px 20px 36px;
+}
+
+/* ──── Label ──── */
+.field-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: #A8A29E;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+/* ──── Horizontal timeline ──── */
+.timeline-scroll {
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 8px;
+}
+.timeline-item {
+  scroll-snap-align: start;
+  flex-shrink: 0;
+  width: 160px;
+}
+
+/* ──── Page transitions ──── */
+main > * {
+  animation: fadeIn 0.3s ease both;
+}

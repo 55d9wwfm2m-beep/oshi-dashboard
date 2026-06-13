@@ -1,0 +1,33 @@
+# Next.js
+.next/
+out/
+
+# Dependencies
+node_modules/
+
+# Build artifacts
+tsconfig.tsbuildinfo
+
+# Logs
+dev.log
+dev-err.log
+*.log
+
+# Local env files (add if needed in the future)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Development / debug files
+take-shots.mjs
+verify-screenshot.mjs
+
+# Screenshots and temporary SVGs used during development
+*.png
+avatar-*.svg
+
+# OS
+.DS_Store
+Thumbs.db

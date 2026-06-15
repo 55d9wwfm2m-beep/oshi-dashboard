@@ -132,7 +132,7 @@ export default function LogsPage() {
           style={{ background: 'rgba(28,18,12,0.5)' }}
           onClick={() => setExpanded(null)}
         >
-          <div className="bottom-sheet max-h-[75vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="bottom-sheet" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 rounded-full mx-auto mb-6" style={{ background: '#E0D8D2' }} />
 
             {/* Accent strip */}

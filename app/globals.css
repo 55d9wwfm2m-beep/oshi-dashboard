@@ -153,6 +153,18 @@ body {
   background: #ffffff;
   border-radius: 28px 28px 0 0;
   padding: 24px 20px 36px;
+  /* 画面高の90%までに制限し、超過分はシート内のみスクロール（iOS Safari対応）。
+     iOS のツールバー伸縮に追従する dvh を使用 */
+  max-height: 90dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch; /* iOS の慣性スクロール */
+  overscroll-behavior: contain;       /* 背景へのスクロール波及を防ぐ */
+  /* ホームバー/下部ツールバーに保存ボタンが隠れないようセーフエリア分を加算 */
+  padding-bottom: calc(36px + env(safe-area-inset-bottom));
+}
+/* dvh 非対応ブラウザ向けフォールバック */
+@supports not (height: 90dvh) {
+  .bottom-sheet { max-height: 90vh; }
 }
 
 /* ──── Label ──── */

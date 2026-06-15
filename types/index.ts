@@ -5,6 +5,8 @@ export interface OshiProfile {
   birthday: string;
   photoUrl: string;
   themeColor: string;
+  /** ホーム画像の表示位置（CSS object-position）。未設定時は 'center 35%' */
+  photoPosition?: string;
 }
 
 export interface OshiEvent {
@@ -136,9 +138,9 @@ export interface AvatarConfig {
 
 export const DEFAULT_AVATAR_CONFIG: AvatarConfig = {
   sex:       'woman',
-  hairStyle: 'womanLong',
+  hairStyle: 'long01',   // DiceBear Adventurer の hair 値
   hairColor: '#2A1832',
-  eyeStyle:  'oval',
+  eyeStyle:  'variant01', // DiceBear Adventurer の eyes 値
   faceColor: '#F9C9B6',
   oshiColor: '#E91E8C',
 };
@@ -173,11 +175,12 @@ export const SKIN_TONES = [
   { name: 'ブラウン',   hex: '#A0714F' },
 ];
 
+// DiceBear Adventurer の hair 値にマッピング
 export const HAIR_STYLES: { id: string; label: string }[] = [
-  { id: 'womanLong',  label: 'ロングヘア' },
-  { id: 'womanShort', label: 'ショートボブ' },
-  { id: 'normal',     label: 'ミディアム' },
-  { id: 'thick',      label: 'ウェーブ' },
-  { id: 'boy',        label: 'ショート' },
-  { id: 'mohawk',     label: 'モヒカン' },
+  { id: 'long01',  label: 'ロング' },
+  { id: 'long03',  label: 'ストレート' },
+  { id: 'long13',  label: 'ふわボブ' },
+  { id: 'long07',  label: 'ウェーブ' },
+  { id: 'short01', label: 'ショート' },
+  { id: 'short04', label: 'ベリショ' },
 ];

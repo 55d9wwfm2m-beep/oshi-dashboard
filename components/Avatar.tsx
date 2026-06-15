@@ -1,9 +1,14 @@
 'use client';
 
-import ReactNiceAvatar from 'react-nice-avatar';
+import { useMemo } from 'react';
+import { createAvatar } from '@dicebear/core';
+import { adventurer } from '@dicebear/collection';
 import { AVATAR_ITEMS, getLevelTier } from '@/lib/game';
 import type { AvatarConfig } from '@/types';
 import { DEFAULT_AVATAR_CONFIG } from '@/types';
+
+/** '#RRGGBB' → 'rrggbb'（DiceBear は # 無しの6桁hexを要求） */
+const hex = (c: string) => c.replace('#', '').toLowerCase();
 
 interface Props {
   level:      number;
@@ -31,8 +36,20 @@ export default function Avatar({ level, size = 'md', showItems = true, config: c
   const total = dim + pad * 2;
   const efs   = { sm: 12, md: 15, lg: 19 }[size];
 
-  // neutral maps to 'man' with the chosen hair style (androgynous)
-  const sex: 'man' | 'woman' = cfg.sex === 'woman' ? 'woman' : 'man';
+  // DiceBear「Adventurer」イラストを生成（高品質・一目で人物とわかる）
+  const avatarUri = useMemo(() => createAvatar(adventurer, {
+    size:               dim,
+    // AvatarConfig は string 保持。DiceBear のリテラル union 型へキャスト（値は有効）
+    hair:               [cfg.hairStyle] as ('long01')[],
+    hairColor:          [hex(cfg.hairColor)],
+    skinColor:          [hex(cfg.faceColor)],
+    eyes:               [cfg.eyeStyle] as ('variant01')[],
+    backgroundColor:    [hex(tier.solidBg)],
+    backgroundType:     ['solid'] as ('solid')[],
+    glassesProbability: 0,
+    earringsProbability: 0,
+    featuresProbability: 0,
+  }).toDataUri(), [dim, cfg.hairStyle, cfg.hairColor, cfg.faceColor, cfg.eyeStyle, tier.solidBg]);
 
   // Penlight geometry
   const tipR   = Math.max(4, Math.round(dim * 0.07));
@@ -57,21 +74,13 @@ export default function Avatar({ level, size = 'md', showItems = true, config: c
           `0 0 0 4.5px ${cfg.oshiColor}35`,
         ].join(', '),
       }}>
-        <ReactNiceAvatar
-          style={{ width: dim, height: dim }}
-          sex={sex}
-          faceColor={cfg.faceColor}
-          hairStyle={cfg.hairStyle as never}
-          hairColor={cfg.hairColor}
-          eyeStyle={cfg.eyeStyle as never}
-          noseStyle="short"
-          earSize="small"
-          mouthStyle="smile"
-          glassesStyle="none"
-          shirtStyle="short"
-          shirtColor={hasShirt ? cfg.oshiColor : '#E8E0DC'}
-          bgColor={tier.solidBg}
-          isGradient={false}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={avatarUri}
+          alt="アバター"
+          width={dim}
+          height={dim}
+          style={{ width: dim, height: dim, display: 'block' }}
         />
       </div>
 
@@ -135,6 +144,22 @@ export default function Avatar({ level, size = 'md', showItems = true, config: c
           userSelect:  'none',
           zIndex:      2,
         }}>🎒</span>
+      )}
+
+      {/* 👕 ライブTシャツ Lv10 – 下中央 */}
+      {hasShirt && (
+        <span style={{
+          position:    'absolute',
+          bottom:      pad - 6,
+          left:        '50%',
+          transform:   'translateX(-50%)',
+          fontSize:    efs * 0.9,
+          lineHeight:  1,
+          filter:      'drop-shadow(0 1px 3px rgba(0,0,0,0.22))',
+          pointerEvents: 'none',
+          userSelect:  'none',
+          zIndex:      2,
+        }}>👕</span>
       )}
 
       {/* 🪄 ペンライト Lv5 – 右サイド（発光） */}

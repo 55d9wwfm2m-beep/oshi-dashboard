@@ -15,16 +15,11 @@ import {
 } from '@/types';
 import Avatar from '@/components/Avatar';
 
-const SEX_OPTIONS: { value: AvatarConfig['sex']; label: string; emoji: string }[] = [
-  { value: 'woman',   label: '女の子',  emoji: '👧' },
-  { value: 'man',     label: '男の子',  emoji: '👦' },
-  { value: 'neutral', label: '中性的',  emoji: '🧑' },
-];
-
+// DiceBear Adventurer の eyes 値にマッピング
 const EYE_OPTIONS: { id: string; label: string }[] = [
-  { id: 'oval',   label: 'アーモンド' },
-  { id: 'circle', label: 'まん丸' },
-  { id: 'smile',  label: 'たれ目' },
+  { id: 'variant01', label: 'ぱっちり' },
+  { id: 'variant12', label: 'やさしい' },
+  { id: 'variant22', label: 'クール' },
 ];
 
 export default function AvatarPage() {
@@ -98,28 +93,6 @@ export default function AvatarPage() {
       </div>
 
       <div className="px-4 space-y-4 mt-2">
-
-        {/* 性別 */}
-        <Section title="性別・体型">
-          <div className="flex gap-3">
-            {SEX_OPTIONS.map(opt => (
-              <button
-                key={opt.value}
-                onClick={() => set('sex', opt.value)}
-                className="flex-1 py-3 rounded-2xl text-sm font-medium transition-all active:scale-95"
-                style={{
-                  background:  cfg.sex === opt.value ? cfg.oshiColor : '#F5F0EC',
-                  color:       cfg.sex === opt.value ? 'white' : '#78716C',
-                  border:      cfg.sex === opt.value ? 'none' : '1px solid #EAE4DF',
-                  boxShadow:   cfg.sex === opt.value ? `0 4px 12px ${cfg.oshiColor}40` : 'none',
-                }}
-              >
-                <div className="text-xl mb-0.5">{opt.emoji}</div>
-                <div className="text-[11px]">{opt.label}</div>
-              </button>
-            ))}
-          </div>
-        </Section>
 
         {/* 髪型 */}
         <Section title="髪型">

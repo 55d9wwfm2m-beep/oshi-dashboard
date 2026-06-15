@@ -25,6 +25,18 @@ export default function ProfilePage() {
   const cur = form ?? profile;
   const set = (f: keyof OshiProfile, v: string) => setForm(prev => ({ ...(prev ?? profile), [f]: v }));
 
+  // ホーム画像の表示位置（object-position）。'50% 35%' 形式で保存
+  const parsePos = (s?: string) => {
+    const def = { x: 50, y: 35 };
+    if (!s) return def;
+    const kw: Record<string, number> = { center: 50, top: 0, left: 0, bottom: 100, right: 100 };
+    const toNum = (v: string, fb: number) => (v in kw ? kw[v] : (isNaN(parseFloat(v)) ? fb : parseFloat(v)));
+    const p = s.trim().split(/\s+/);
+    return p.length === 1 ? { x: toNum(p[0], 50), y: 35 } : { x: toNum(p[0], 50), y: toNum(p[1], 35) };
+  };
+  const pos = parsePos(cur.photoPosition);
+  const setPos = (x: number, y: number) => set('photoPosition', `${x}% ${y}%`);
+
   const onPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -101,6 +113,48 @@ export default function ProfilePage() {
         <p className="text-xs mt-2" style={{ color: '#B8B0A8' }}>タップして写真を変更</p>
         <input ref={fileRef} type="file" accept="image/*" onChange={onPhoto} className="hidden" />
       </div>
+
+      {/* ホーム画像の表示位置調整 */}
+      {cur.photoUrl && (
+        <div className="mx-4 mb-4 card p-5 anim-fadeInUp">
+          <p className="text-sm font-medium mb-1" style={{ color: '#1C1917' }}>ホーム画像の表示位置</p>
+          <p className="text-xs mb-3" style={{ color: '#A8A29E' }}>顔や被写体が中央に来るように調整できます（ホーム画面の見え方プレビュー）</p>
+
+          {/* ホーム表示と同じ object-position でクロップ確認 */}
+          <div style={{ width: '100%', height: 150, borderRadius: 16, overflow: 'hidden', marginBottom: 16, background: '#F0EBE6' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={cur.photoUrl}
+              alt="プレビュー"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${pos.x}% ${pos.y}%` }}
+            />
+          </div>
+
+          <label className="field-label">上下位置</label>
+          <input
+            type="range" min={0} max={100} step={1} value={pos.y}
+            onChange={e => setPos(pos.x, Number(e.target.value))}
+            className="w-full mb-4"
+            style={{ accentColor: `rgb(var(--accent))` }}
+          />
+
+          <label className="field-label">左右位置</label>
+          <input
+            type="range" min={0} max={100} step={1} value={pos.x}
+            onChange={e => setPos(Number(e.target.value), pos.y)}
+            className="w-full"
+            style={{ accentColor: `rgb(var(--accent))` }}
+          />
+
+          <button
+            onClick={() => setPos(50, 35)}
+            className="text-xs mt-3 font-medium active:scale-95 transition-transform"
+            style={{ color: '#A8A29E' }}
+          >
+            位置をリセット
+          </button>
+        </div>
+      )}
 
       <div className="px-4 space-y-4">
         {/* Basic info */}

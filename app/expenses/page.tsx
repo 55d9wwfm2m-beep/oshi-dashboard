@@ -17,6 +17,7 @@ export default function ExpensesPage() {
   const [form, setForm]     = useState({ ...EMPTY, date: todayString() });
   const [amtInput, setAmtInput] = useState('');
   const [filter, setFilter] = useState<ExpenseCategory|'すべて'>('すべて');
+  const [editId, setEditId] = useState<string | null>(null);
 
   if (!loaded) return null;
 
@@ -39,11 +40,22 @@ export default function ExpensesPage() {
   const addExpense = () => {
     const amt = parseInt(amtInput);
     if (!form.date || !amt || amt <= 0) return;
-    setExpenses(prev => [{ id: generateId(), ...form, amount: amt }, ...prev]);
-    addXP(XP_REWARDS.EXPENSE_CREATE);
+    if (editId) {
+      setExpenses(prev => prev.map(e => e.id === editId ? { ...e, ...form, amount: amt } : e));
+    } else {
+      setExpenses(prev => [{ id: generateId(), ...form, amount: amt }, ...prev]);
+      addXP(XP_REWARDS.EXPENSE_CREATE);
+    }
     setForm({ ...EMPTY, date: todayString() });
     setAmtInput('');
+    setEditId(null);
     setShowForm(false);
+  };
+  const startEdit = (exp: Expense) => {
+    setForm({ date: exp.date, amount: exp.amount, category: exp.category, description: exp.description });
+    setAmtInput(String(exp.amount));
+    setEditId(exp.id);
+    setShowForm(true);
   };
   const del = (id:string) => { if (confirm('削除しますか？')) setExpenses(prev => prev.filter(e=>e.id!==id)); };
 
@@ -56,7 +68,8 @@ export default function ExpensesPage() {
           <h1 className="text-2xl font-semibold mt-0.5" style={{ color: '#1C1917' }}>推し活支出</h1>
         </div>
         <button
-          onClick={() => { setShowForm(true); setForm({...EMPTY, date: todayString()}); setAmtInput(''); }}
+          onClick={() => { setShowForm(true); setForm({...EMPTY, date: todayString()}); setAmtInput(''); setEditId(null); }}
+          aria-label="支出を記録"
           className="w-10 h-10 rounded-2xl flex items-center justify-center text-white text-xl shadow-md active:scale-90 transition-transform anim-fadeIn"
           style={{ background: `rgb(var(--accent))` }}
         >
@@ -155,7 +168,10 @@ export default function ExpensesPage() {
               </div>
               <div className="text-right shrink-0">
                 <p className="font-semibold text-sm" style={{ color: '#1C1917' }}>{formatYen(exp.amount)}</p>
-                <button onClick={() => del(exp.id)} className="text-[11px] mt-0.5 active:text-red-400 transition-colors" style={{ color: '#D0C8C2' }}>
+                <button onClick={() => startEdit(exp)} className="text-[11px] mt-0.5 px-2 py-1.5 -my-1 rounded-lg" style={{ color: '#A8A29E' }} aria-label="この支出を編集">
+                  編集
+                </button>
+                <button onClick={() => del(exp.id)} className="text-[11px] mt-0.5 px-2 py-1.5 -my-1 rounded-lg active:text-red-400 transition-colors" style={{ color: '#D0C8C2' }} aria-label="この支出を削除">
                   削除
                 </button>
               </div>
@@ -218,7 +234,7 @@ export default function ExpensesPage() {
         <div className="fixed inset-0 z-50 flex items-end" style={{ background:'rgba(28,18,12,0.4)' }} onClick={() => setShowForm(false)}>
           <div className="bottom-sheet" onClick={e=>e.stopPropagation()}>
             <div className="w-10 h-1 rounded-full mx-auto mb-6" style={{ background:'#E0D8D2' }} />
-            <h2 className="text-lg font-semibold mb-5" style={{ color:'#1C1917' }}>支出を記録</h2>
+            <h2 className="text-lg font-semibold mb-5" style={{ color:'#1C1917' }}>{editId ? '支出を編集' : '支出を記録'}</h2>
 
             <div className="space-y-4">
               <div>
@@ -261,7 +277,7 @@ export default function ExpensesPage() {
 
             <div className="flex gap-3 mt-6">
               <button onClick={()=>setShowForm(false)} className="flex-1 py-3.5 rounded-2xl text-sm font-medium" style={{ background:'#F0EBE6',color:'#78716C' }}>キャンセル</button>
-              <button onClick={addExpense} disabled={!amtInput||parseInt(amtInput)<=0} className="flex-1 py-3.5 rounded-2xl text-sm font-medium text-white disabled:opacity-40" style={{ background:`rgb(var(--accent))` }}>記録する</button>
+              <button onClick={addExpense} disabled={!amtInput||parseInt(amtInput)<=0} className="flex-1 py-3.5 rounded-2xl text-sm font-medium text-white disabled:opacity-40" style={{ background:`rgb(var(--accent))` }}>{editId ? '保存する' : '記録する'}</button>
             </div>
           </div>
         </div>

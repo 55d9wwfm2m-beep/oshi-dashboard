@@ -140,6 +140,7 @@ export default function WishlistPage() {
         </div>
         <button
           onClick={openAdd}
+          aria-label="グッズを追加"
           className="w-10 h-10 rounded-2xl flex items-center justify-center text-white text-xl shadow-md active:scale-90 transition-transform"
           style={{ background: 'rgb(var(--accent))' }}
         >

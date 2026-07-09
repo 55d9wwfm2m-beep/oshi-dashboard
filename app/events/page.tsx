@@ -6,6 +6,8 @@ import { useGameState } from '@/hooks/useGameState';
 import { OshiEvent, EventType, EVENT_TYPES, EVENT_TYPE_EMOJI } from '@/types';
 import { daysUntil, formatDate, generateId, todayString } from '@/lib/utils';
 import { XP_REWARDS } from '@/lib/game';
+import Field from '@/components/ui/Field';
+import BottomSheet from '@/components/ui/BottomSheet';
 
 const EMPTY = { name: '', date: '', venue: '', memo: '', type: 'ライブ' as EventType };
 
@@ -13,6 +15,7 @@ export default function EventsPage() {
   const [events, setEvents, loaded] = useLocalStorage<OshiEvent[]>('oshi-events', []);
   const { addXP } = useGameState();
   const [showForm, setShowForm] = useState(false);
+  const [editId, setEditId]     = useState<string | null>(null);
   const [form, setForm]         = useState(EMPTY);
   const [tab, setTab]           = useState<'upcoming' | 'past'>('upcoming');
   const [typeFilter, setTypeFilter] = useState<EventType | 'すべて'>('すべて');
@@ -27,12 +30,22 @@ export default function EventsPage() {
 
   const list = applyFilter(tab === 'upcoming' ? allUpcoming : allPast);
 
-  const add = () => {
+  const save = () => {
     if (!form.name || !form.date) return;
-    setEvents(prev => [...prev, { id: generateId(), ...form }]);
-    addXP(XP_REWARDS.EVENT_CREATE);
+    if (editId) {
+      setEvents(prev => prev.map(e => e.id === editId ? { ...e, ...form } : e));
+    } else {
+      setEvents(prev => [...prev, { id: generateId(), ...form }]);
+      addXP(XP_REWARDS.EVENT_CREATE);
+    }
     setForm(EMPTY);
+    setEditId(null);
     setShowForm(false);
+  };
+  const startEdit = (ev: OshiEvent) => {
+    setForm({ name: ev.name, date: ev.date, venue: ev.venue, memo: ev.memo, type: ev.type ?? 'ライブ' });
+    setEditId(ev.id);
+    setShowForm(true);
   };
   const del = (id: string) => { if (confirm('削除しますか？')) setEvents(prev => prev.filter(e => e.id !== id)); };
 
@@ -45,7 +58,8 @@ export default function EventsPage() {
           <h1 className="text-2xl font-semibold mt-0.5" style={{ color: '#1C1917' }}>イベント</h1>
         </div>
         <button
-          onClick={() => { setShowForm(true); setForm(EMPTY); }}
+          onClick={() => { setShowForm(true); setForm(EMPTY); setEditId(null); }}
+          aria-label="イベントを追加"
           className="w-10 h-10 rounded-2xl flex items-center justify-center text-white text-xl shadow-md active:scale-90 transition-transform"
           style={{ background: `rgb(var(--accent))` }}
         >
@@ -171,13 +185,24 @@ export default function EventsPage() {
                   <span className="text-xs" style={{ color: '#A8A29E' }}>
                     {days >= 0 ? `📍 ${ev.venue || '場所未定'}` : `✓ 参加済み`}
                   </span>
-                  <button
-                    onClick={() => del(ev.id)}
-                    className="text-[11px] transition-colors active:text-red-400"
-                    style={{ color: '#D0C8C2' }}
-                  >
-                    削除
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => startEdit(ev)}
+                      className="text-[11px] px-3 py-2 -my-2 rounded-lg transition-colors"
+                      style={{ color: '#A8A29E' }}
+                      aria-label={`${ev.name}を編集`}
+                    >
+                      編集
+                    </button>
+                    <button
+                      onClick={() => del(ev.id)}
+                      className="text-[11px] px-3 py-2 -my-2 -mr-3 rounded-lg transition-colors active:text-red-400"
+                      style={{ color: '#D0C8C2' }}
+                      aria-label={`${ev.name}を削除`}
+                    >
+                      削除
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -186,15 +211,7 @@ export default function EventsPage() {
       </div>
 
       {/* Bottom sheet form */}
-      {showForm && (
-        <div
-          className="fixed inset-0 z-50 flex items-end"
-          style={{ background: 'rgba(28,18,12,0.4)' }}
-          onClick={() => setShowForm(false)}
-        >
-          <div className="bottom-sheet" onClick={e => e.stopPropagation()}>
-            <div className="w-10 h-1 rounded-full mx-auto mb-6" style={{ background: '#E0D8D2' }} />
-            <h2 className="text-lg font-semibold mb-5" style={{ color: '#1C1917' }}>イベントを追加</h2>
+      <BottomSheet open={showForm} onClose={() => setShowForm(false)} title={editId ? 'イベントを編集' : 'イベントを追加'}>
 
             <div className="space-y-4">
               {/* Type selection */}
@@ -232,34 +249,15 @@ export default function EventsPage() {
                 キャンセル
               </button>
               <button
-                onClick={add}
+                onClick={save}
                 disabled={!form.name || !form.date}
                 className="flex-1 py-3.5 rounded-2xl text-sm font-medium text-white shadow-md disabled:opacity-40 active:scale-[0.98]"
                 style={{ background: `rgb(var(--accent))` }}
               >
-                追加する
+                {editId ? '保存する' : '追加する'}
               </button>
             </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Field({ label, value, onChange, placeholder='', type='text' }: {
-  label: string; value: string; onChange: (v:string)=>void; placeholder?:string; type?:string;
-}) {
-  return (
-    <div>
-      <label className="field-label">{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="input"
-      />
+      </BottomSheet>
     </div>
   );
 }

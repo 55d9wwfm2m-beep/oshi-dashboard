@@ -3,9 +3,12 @@
 import { useState, useRef } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useGameState } from '@/hooks/useGameState';
-import { OshiProfile, THEME_PRESETS, AvatarConfig, DEFAULT_AVATAR_CONFIG } from '@/types';
+import { OshiProfile, THEME_PRESETS } from '@/types';
 import { resizeImage, todayString } from '@/lib/utils';
 import Avatar from '@/components/Avatar';
+import { useAvatarEquip } from '@/hooks/useAvatarEquip';
+import { showToast } from '@/components/ui/Toast';
+import Field from '@/components/ui/Field';
 import { XP_REWARDS } from '@/lib/game';
 import Link from 'next/link';
 
@@ -14,11 +17,12 @@ const DEFAULT: OshiProfile = { name:'', group:'', meetDate:'', birthday:'', phot
 export default function ProfilePage() {
   const [profile, setProfile, loaded] = useLocalStorage<OshiProfile>('oshi-profile', DEFAULT);
   const [, setThemeColor]  = useLocalStorage('oshi-theme-color', '196,164,160');
-  const [avatarConfig]     = useLocalStorage<AvatarConfig>('oshi-avatar-config', DEFAULT_AVATAR_CONFIG);
+  const { equip: avatarConfig } = useAvatarEquip();
   const { state: gameState, addXP } = useGameState();
   const [form, setForm]   = useState<OshiProfile|null>(null);
   const [saved, setSaved] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const importRef = useRef<HTMLInputElement>(null);
 
   if (!loaded) return null;
 
@@ -42,6 +46,50 @@ export default function ProfilePage() {
     if (!file) return;
     const b64 = await resizeImage(file, 600);
     set('photoUrl', b64);
+  };
+
+  const OSHI_KEYS = [
+    'oshi-profile', 'oshi-events', 'oshi-expenses', 'oshi-logs', 'oshi-wishlist',
+    'oshi-savings', 'oshi-game', 'oshi-earned', 'oshi-theme-color',
+    'oshi-avatar-v2', 'oshi-avatar-config',
+  ];
+
+  const exportData = () => {
+    try {
+      const dump: Record<string, unknown> = { _app: 'oshi-dashboard', _exportedAt: new Date().toISOString() };
+      OSHI_KEYS.forEach(k => {
+        const v = window.localStorage.getItem(k);
+        if (v !== null) dump[k] = JSON.parse(v);
+      });
+      const blob = new Blob([JSON.stringify(dump, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `oshi-backup-${todayString()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('バックアップを書き出しました 📦');
+    } catch {
+      showToast('書き出しに失敗しました');
+    }
+  };
+
+  const importData = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!confirm('バックアップを読み込むと、今のデータは上書きされます。よろしいですか？')) return;
+    try {
+      const dump = JSON.parse(await file.text()) as Record<string, unknown>;
+      if (dump._app !== 'oshi-dashboard') throw new Error('invalid');
+      OSHI_KEYS.forEach(k => {
+        if (k in dump) window.localStorage.setItem(k, JSON.stringify(dump[k]));
+      });
+      showToast('読み込みました。再読み込みします…', { accent: true });
+      setTimeout(() => window.location.reload(), 900);
+    } catch {
+      showToast('読み込めませんでした（ファイルをご確認ください）');
+    }
   };
 
   const save = () => {
@@ -73,7 +121,7 @@ export default function ProfilePage() {
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold" style={{ color: '#1C1917' }}>マイアバター</p>
           <p className="text-xs mt-0.5" style={{ color: '#A8A29E' }}>
-            髪型・推しカラーなどカスタマイズできます
+            きせかえで自分だけのちびキャラに
           </p>
           <p className="text-xs mt-1.5 font-medium" style={{ color: avatarConfig.oshiColor }}>
             カスタマイズ画面へ →
@@ -206,6 +254,31 @@ export default function ProfilePage() {
           {saved ? '✓ 保存しました' : '保存する'}
         </button>
 
+        {/* Backup */}
+        <div className="card p-5 anim-fadeInUp stagger-3">
+          <p className="text-sm font-medium mb-1" style={{ color: '#1C1917' }}>データのバックアップ</p>
+          <p className="text-xs mb-4" style={{ color: '#A8A29E' }}>
+            思い出はこの端末のブラウザに保存されています。JSONに書き出しておくと機種変更やデータ消去の時も安心です。
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={exportData}
+              className="flex-1 py-3 rounded-2xl text-sm font-medium"
+              style={{ background: 'rgba(var(--accent),0.1)', color: 'rgb(var(--accent))' }}
+            >
+              書き出す
+            </button>
+            <button
+              onClick={() => importRef.current?.click()}
+              className="flex-1 py-3 rounded-2xl text-sm font-medium"
+              style={{ background: '#F0EBE6', color: '#78716C' }}
+            >
+              読み込む
+            </button>
+            <input ref={importRef} type="file" accept="application/json,.json" onChange={importData} className="hidden" aria-label="バックアップファイルを選択" />
+          </div>
+        </div>
+
         {/* Sub links */}
         <div className="flex justify-between py-2 anim-fadeInUp stagger-3">
           <Link href="/savings" className="text-xs" style={{ color: '#B8B0A8' }}>
@@ -220,20 +293,3 @@ export default function ProfilePage() {
   );
 }
 
-function Field({ label, value, onChange, placeholder='', type='text', max }: {
-  label: string; value: string; onChange:(v:string)=>void; placeholder?:string; type?:string; max?:string;
-}) {
-  return (
-    <div>
-      <label className="field-label">{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={e=>onChange(e.target.value)}
-        placeholder={placeholder}
-        max={max}
-        className="input"
-      />
-    </div>
-  );
-}

@@ -1,52 +1,53 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useGameState } from '@/hooks/useGameState';
+import { useAvatarEquip } from '@/hooks/useAvatarEquip';
+import { OshiProfile, OshiEvent, AttendanceLog, Expense, WishlistItem, OSHI_COLOR_PRESETS } from '@/types';
+import { daysSince } from '@/lib/utils';
 import { getLevelTier } from '@/lib/game';
+import { showToast } from '@/components/ui/Toast';
+import { AvatarSVG } from '@/components/avatar/art';
 import {
-  AvatarConfig,
-  DEFAULT_AVATAR_CONFIG,
-  OSHI_COLOR_PRESETS,
-  HAIR_COLOR_PRESETS,
-  HAIR_STYLES,
-  SKIN_TONES,
-} from '@/types';
-import Avatar from '@/components/Avatar';
+  CATEGORIES, RARITY, isUnlocked, unlockLabel, unlockProgress,
+  AvatarStats, AvatarEquip,
+} from '@/components/avatar/catalog';
 
-// DiceBear Adventurer の eyes 値にマッピング
-const EYE_OPTIONS: { id: string; label: string }[] = [
-  { id: 'variant01', label: 'ぱっちり' },
-  { id: 'variant12', label: 'やさしい' },
-  { id: 'variant22', label: 'クール' },
-];
+const DP: OshiProfile = { name:'', group:'', meetDate:'', birthday:'', photoUrl:'', themeColor:'196,164,160' };
 
 export default function AvatarPage() {
-  const router = useRouter();
-  const [savedConfig, setSavedConfig, loaded] = useLocalStorage<AvatarConfig>(
-    'oshi-avatar-config',
-    DEFAULT_AVATAR_CONFIG,
-  );
+  const { equip, setEquip, loaded } = useAvatarEquip();
   const { state: gameState, loaded: gameLoaded } = useGameState();
-  const [cfg, setCfg] = useState<AvatarConfig>(DEFAULT_AVATAR_CONFIG);
-  const [saved, setSaved] = useState(false);
-
-  // Sync from localStorage on first load
-  useEffect(() => {
-    if (loaded) setCfg(savedConfig);
-  }, [loaded]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [profile]  = useLocalStorage<OshiProfile>('oshi-profile', DP);
+  const [events]   = useLocalStorage<OshiEvent[]>('oshi-events', []);
+  const [logs]     = useLocalStorage<AttendanceLog[]>('oshi-logs', []);
+  const [expenses] = useLocalStorage<Expense[]>('oshi-expenses', []);
+  const [wishlist] = useLocalStorage<WishlistItem[]>('oshi-wishlist', []);
+  const [cat, setCat] = useState(0);
+  const [bounce, setBounce] = useState(0);
 
   if (!loaded || !gameLoaded) return null;
 
+  const stats: AvatarStats = {
+    level:    gameState.level,
+    events:   events.length,
+    logs:     logs.length,
+    goods:    wishlist.filter(w => w.purchased).length,
+    expenses: expenses.length,
+    days:     profile.meetDate ? daysSince(profile.meetDate) : 0,
+  };
+  const prog = unlockProgress(stats);
   const tier = getLevelTier(gameState.level);
-  const set  = <K extends keyof AvatarConfig>(key: K, val: AvatarConfig[K]) =>
-    setCfg(prev => ({ ...prev, [key]: val }));
+  const category = CATEGORIES[cat];
 
-  const save = () => {
-    setSavedConfig(cfg);
-    setSaved(true);
-    setTimeout(() => { setSaved(false); router.push('/achievements'); }, 1200);
+  const selectItem = (itemId: string) => {
+    if (!isUnlocked(category.key, itemId, stats)) {
+      showToast(`🔒 ${unlockLabel(category.key, itemId)}`);
+      return;
+    }
+    setEquip({ [category.key]: itemId });
+    setBounce(b => b + 1);
   };
 
   return (
@@ -54,198 +55,140 @@ export default function AvatarPage() {
       {/* Header */}
       <div className="px-4 pt-8 pb-4 anim-fadeIn">
         <p className="text-[11px] font-medium tracking-widest uppercase" style={{ color: '#A8A29E' }}>Avatar</p>
-        <h1 className="text-2xl font-semibold mt-0.5" style={{ color: '#1C1917' }}>アバターカスタマイズ</h1>
-        <p className="text-xs mt-1" style={{ color: '#B8B0A8' }}>自分だけのキャラクターを育てよう</p>
+        <h1 className="text-2xl font-semibold mt-0.5" style={{ color: '#1C1917' }}>きせかえ</h1>
+        <p className="text-xs mt-1" style={{ color: '#8F877F' }}>
+          推し活するほどアイテムが解放されます — {prog.unlocked}/{prog.total} 解放中
+        </p>
       </div>
 
-      {/* Live preview */}
+      {/* Stage */}
       <div
-        className="flex flex-col items-center py-8 anim-scaleIn"
-        style={{
-          background: `linear-gradient(160deg, ${cfg.oshiColor}18 0%, ${cfg.oshiColor}06 60%, transparent 100%)`,
-          position: 'relative',
-          overflow: 'hidden',
-        }}
+        className="mx-4 mb-4 card overflow-hidden anim-scaleIn"
+        style={{ background: 'linear-gradient(160deg, #FDF3F7 0%, #EFEAF9 100%)' }}
       >
-        {/* Bokeh */}
-        {[
-          { top: '15%', left: '15%', r: 3 },
-          { top: '20%', left: '80%', r: 4 },
-          { top: '70%', left: '10%', r: 2 },
-          { top: '65%', left: '78%', r: 3 },
-        ].map((d, i) => (
-          <div key={i} style={{
-            position: 'absolute', top: d.top, left: d.left,
-            width: d.r * 2, height: d.r * 2,
-            borderRadius: '50%',
-            background: cfg.oshiColor,
-            opacity: 0.25,
-            boxShadow: `0 0 ${d.r * 6}px ${d.r * 3}px ${cfg.oshiColor}20`,
-          }}/>
-        ))}
-
-        <Avatar level={gameState.level} size="lg" config={cfg} />
-
-        <div className="mt-4 text-center">
-          <p className="text-sm font-semibold" style={{ color: '#1C1917' }}>Lv.{gameState.level}</p>
-          <p className="text-xs mt-0.5" style={{ color: cfg.oshiColor }}>{tier.title}</p>
+        <div className="flex flex-col items-center pt-5 pb-4">
+          <div key={bounce} className="anim-scaleIn">
+            <AvatarSVG equip={equip} size={216} animated uid="stage" bounceKey={bounce} />
+          </div>
+          <div className="mt-2 text-center">
+            <p className="text-sm font-semibold" style={{ color: '#1C1917' }}>Lv.{gameState.level}</p>
+            <p className="text-xs mt-0.5" style={{ color: equip.oshiColor }}>{tier.title}</p>
+          </div>
         </div>
       </div>
 
-      <div className="px-4 space-y-4 mt-2">
-
-        {/* 髪型 */}
-        <Section title="髪型">
-          <div className="grid grid-cols-3 gap-2">
-            {HAIR_STYLES.map(s => (
-              <button
-                key={s.id}
-                onClick={() => set('hairStyle', s.id)}
-                className="py-2.5 rounded-xl text-xs font-medium transition-all active:scale-95"
-                style={{
-                  background: cfg.hairStyle === s.id ? cfg.oshiColor : '#F5F0EC',
-                  color:      cfg.hairStyle === s.id ? 'white' : '#78716C',
-                  border:     cfg.hairStyle === s.id ? 'none' : '1px solid #EAE4DF',
-                  boxShadow:  cfg.hairStyle === s.id ? `0 3px 10px ${cfg.oshiColor}40` : 'none',
-                }}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
-        </Section>
-
-        {/* 髪色 */}
-        <Section title="髪の色">
-          <div className="flex gap-3 flex-wrap">
-            {HAIR_COLOR_PRESETS.map(c => (
-              <button
-                key={c.hex}
-                onClick={() => set('hairColor', c.hex)}
-                title={c.name}
-                className="flex flex-col items-center gap-1.5 active:scale-90 transition-transform"
-              >
-                <div style={{
-                  width:        36,
-                  height:       36,
-                  borderRadius: '50%',
-                  background:   c.hex,
-                  border:       cfg.hairColor === c.hex ? `3px solid ${cfg.oshiColor}` : '3px solid transparent',
-                  boxShadow:    cfg.hairColor === c.hex ? `0 0 0 2px white, 0 0 0 4px ${cfg.oshiColor}50` : '0 2px 6px rgba(0,0,0,0.15)',
-                  transition:   'all 0.15s',
-                }}/>
-                <span className="text-[9px]" style={{ color: cfg.hairColor === c.hex ? cfg.oshiColor : '#A8A29E' }}>
-                  {c.name}
-                </span>
-              </button>
-            ))}
-          </div>
-        </Section>
-
-        {/* 目の形 */}
-        <Section title="目の形">
-          <div className="flex gap-3">
-            {EYE_OPTIONS.map(e => (
-              <button
-                key={e.id}
-                onClick={() => set('eyeStyle', e.id)}
-                className="flex-1 py-2.5 rounded-xl text-xs font-medium transition-all active:scale-95"
-                style={{
-                  background: cfg.eyeStyle === e.id ? cfg.oshiColor : '#F5F0EC',
-                  color:      cfg.eyeStyle === e.id ? 'white' : '#78716C',
-                  border:     cfg.eyeStyle === e.id ? 'none' : '1px solid #EAE4DF',
-                  boxShadow:  cfg.eyeStyle === e.id ? `0 3px 10px ${cfg.oshiColor}40` : 'none',
-                }}
-              >
-                👁 {e.label}
-              </button>
-            ))}
-          </div>
-        </Section>
-
-        {/* 肌色 */}
-        <Section title="肌の色">
-          <div className="flex gap-3 flex-wrap">
-            {SKIN_TONES.map(t => (
-              <button
-                key={t.hex}
-                onClick={() => set('faceColor', t.hex)}
-                title={t.name}
-                className="flex flex-col items-center gap-1.5 active:scale-90 transition-transform"
-              >
-                <div style={{
-                  width:        36,
-                  height:       36,
-                  borderRadius: '50%',
-                  background:   t.hex,
-                  border:       cfg.faceColor === t.hex ? `3px solid ${cfg.oshiColor}` : '3px solid transparent',
-                  boxShadow:    cfg.faceColor === t.hex ? `0 0 0 2px white, 0 0 0 4px ${cfg.oshiColor}50` : '0 2px 6px rgba(0,0,0,0.15)',
-                  transition:   'all 0.15s',
-                }}/>
-                <span className="text-[9px]" style={{ color: cfg.faceColor === t.hex ? cfg.oshiColor : '#A8A29E' }}>
-                  {t.name}
-                </span>
-              </button>
-            ))}
-          </div>
-        </Section>
-
-        {/* 推しカラー */}
-        <Section
-          title="推しカラー"
-          subtitle="服 / ペンライト / アクセサリーの色"
-        >
-          <div className="flex gap-3 flex-wrap">
-            {OSHI_COLOR_PRESETS.map(c => (
-              <button
-                key={c.hex}
-                onClick={() => set('oshiColor', c.hex)}
-                title={c.name}
-                className="flex flex-col items-center gap-1.5 active:scale-90 transition-transform"
-              >
-                <div style={{
-                  width:        40,
-                  height:       40,
-                  borderRadius: '50%',
-                  background:   c.hex,
-                  border:       cfg.oshiColor === c.hex ? `3px solid white` : '3px solid transparent',
-                  boxShadow:    cfg.oshiColor === c.hex
-                    ? `0 0 0 2px ${c.hex}, 0 4px 12px ${c.hex}60`
-                    : '0 2px 8px rgba(0,0,0,0.18)',
-                  transition:   'all 0.15s',
-                }}/>
-                <span className="text-[9px] font-medium" style={{ color: cfg.oshiColor === c.hex ? c.hex : '#A8A29E' }}>
-                  {c.name}
-                </span>
-              </button>
-            ))}
-          </div>
-        </Section>
-
-        {/* Save */}
-        <button
-          onClick={save}
-          className="w-full py-4 rounded-2xl text-white text-sm font-semibold tracking-wide shadow-lg active:scale-[0.98] transition-all"
-          style={{
-            background: saved ? '#6B9E6B' : cfg.oshiColor,
-            boxShadow:  saved ? '0 6px 20px rgba(107,158,107,0.35)' : `0 6px 20px ${cfg.oshiColor}45`,
-            transition: 'background 0.3s, box-shadow 0.3s',
-          }}
-        >
-          {saved ? '✓ 保存しました！' : '保存して実績ページへ'}
-        </button>
+      {/* 推しカラー */}
+      <div className="mx-4 mb-4 card p-4 anim-fadeInUp">
+        <p className="text-sm font-semibold mb-3" style={{ color: '#1C1917' }}>推しカラー</p>
+        <div className="flex gap-3 flex-wrap">
+          {OSHI_COLOR_PRESETS.map(c => (
+            <button
+              key={c.hex}
+              onClick={() => setEquip({ oshiColor: c.hex })}
+              aria-label={`推しカラー: ${c.name}`}
+              className="active:scale-90 transition-transform"
+            >
+              <div style={{
+                width: 36, height: 36, borderRadius: '50%', background: c.hex,
+                border: equip.oshiColor === c.hex ? '3px solid white' : '3px solid transparent',
+                boxShadow: equip.oshiColor === c.hex
+                  ? `0 0 0 2px ${c.hex}, 0 4px 12px ${c.hex}60`
+                  : '0 2px 8px rgba(0,0,0,0.18)',
+                transition: 'all 0.15s',
+              }} />
+            </button>
+          ))}
+        </div>
       </div>
-    </div>
-  );
-}
 
-function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
-  return (
-    <div className="card p-5 anim-fadeInUp">
-      <p className="text-sm font-semibold mb-0.5" style={{ color: '#1C1917' }}>{title}</p>
-      {subtitle && <p className="text-[11px] mb-3" style={{ color: '#A8A29E' }}>{subtitle}</p>}
-      {!subtitle && <div className="mb-3" />}
-      {children}
+      {/* Category tabs */}
+      <div className="px-4 mb-3">
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {CATEGORIES.map((c, i) => (
+            <button
+              key={c.key}
+              onClick={() => setCat(i)}
+              className="shrink-0 text-xs px-3.5 py-2 rounded-full font-medium transition-all"
+              style={cat === i
+                ? { background: 'rgb(var(--accent))', color: 'white' }
+                : { background: 'white', color: '#78716C', border: '1px solid #EDE8E3' }
+              }
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Item grid */}
+      <div className="px-4 grid grid-cols-3 gap-2.5">
+        {category.items.map(item => {
+          const unlocked = isUnlocked(category.key, item.id, stats);
+          const equipped = equip[category.key] === item.id;
+          const preview: AvatarEquip = { ...equip, [category.key]: item.id };
+          const r = RARITY[item.rarity] ?? RARITY.N;
+          const isBg = category.key === 'background';
+          return (
+            <button
+              key={item.id}
+              onClick={() => selectItem(item.id)}
+              aria-label={unlocked ? `${item.name}を装備` : `${item.name}（${unlockLabel(category.key, item.id)}）`}
+              className="card p-2 pb-2.5 text-center transition-transform active:scale-95 relative"
+              style={equipped ? { boxShadow: `0 0 0 2px ${equip.oshiColor}, 0 2px 16px rgba(28,18,12,0.06)` } : undefined}
+            >
+              <div
+                className="rounded-xl overflow-hidden mx-auto flex items-center justify-center"
+                style={{
+                  width: '100%', aspectRatio: '1',
+                  background: isBg ? 'transparent' : 'linear-gradient(160deg,#FDF3F7,#EFEAF9)',
+                }}
+              >
+                <AvatarSVG
+                  equip={preview}
+                  size={isBg ? 76 : 88}
+                  crop={isBg ? undefined : 'bust'}
+                  showBackground={isBg}
+                  uid={`c${category.key}-${item.id}`}
+                />
+              </div>
+              <p className="text-[11px] font-medium mt-1.5 leading-tight" style={{ color: '#1C1917' }}>
+                {item.name}
+              </p>
+              {item.rarity !== 'N' && (
+                <span
+                  className="absolute top-1.5 left-1.5 text-[8px] font-bold px-1.5 py-0.5 rounded-full text-white"
+                  style={{ background: r.ring }}
+                >
+                  {item.rarity}
+                </span>
+              )}
+              {equipped && (
+                <span
+                  className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px]"
+                  style={{ background: equip.oshiColor }}
+                >
+                  ✓
+                </span>
+              )}
+              {!unlocked && (
+                <div
+                  className="absolute inset-0 rounded-3xl flex flex-col items-center justify-center gap-1"
+                  style={{ background: 'rgba(250,248,246,0.72)', backdropFilter: 'blur(1px)' }}
+                >
+                  <span className="text-base">🔒</span>
+                  <span className="text-[9px] font-medium px-1 leading-tight" style={{ color: '#78716C' }}>
+                    {unlockLabel(category.key, item.id)}
+                  </span>
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      <p className="text-center text-[11px] mt-5 px-8" style={{ color: '#B8B0A8' }}>
+        タップですぐ保存されます。イベントやログを記録して、もっと解放しよう ✨
+      </p>
     </div>
   );
 }

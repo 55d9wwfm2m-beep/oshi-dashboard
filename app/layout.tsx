@@ -3,6 +3,8 @@ import { Inter, Cormorant_Garamond } from 'next/font/google';
 import './globals.css';
 import BottomNav from '@/components/BottomNav';
 import ThemeProvider from '@/components/ThemeProvider';
+import Toaster from '@/components/ui/Toast';
+import AchievementWatcher from '@/components/AchievementWatcher';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -26,7 +28,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
+  themeColor: '#FAF8F6',
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -39,6 +42,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               {children}
             </main>
             <BottomNav />
+            <Toaster />
+            <AchievementWatcher />
           </div>
         </ThemeProvider>
       </body>

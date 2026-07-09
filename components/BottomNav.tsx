@@ -64,13 +64,18 @@ export default function BottomNav() {
         borderTop: '1px solid rgba(28,18,12,0.07)',
       }}
     >
-      <div className="max-w-lg mx-auto flex items-center h-16">
+      <div
+        className="max-w-lg mx-auto flex items-center h-16"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)', boxSizing: 'content-box' }}
+      >
         {navItems.map((item) => {
           const active = pathname === item.href;
           return (
             <Link
               key={item.href}
               href={item.href}
+              aria-label={item.label}
+              aria-current={active ? 'page' : undefined}
               className="flex-1 flex flex-col items-center justify-center gap-1 relative"
             >
               <div
@@ -80,15 +85,15 @@ export default function BottomNav() {
                 <span
                   className="transition-all duration-200"
                   style={{
-                    color:     active ? `rgb(var(--accent))` : '#B8B0A8',
+                    color:     active ? `rgb(var(--accent))` : '#8F877F',
                     transform: active ? 'scale(1.05)' : 'scale(1)',
                   }}
                 >
                   {item.icon}
                 </span>
                 <span
-                  className="text-[9px] font-medium tracking-wide transition-all"
-                  style={{ color: active ? `rgb(var(--accent))` : '#B8B0A8' }}
+                  className="text-[10px] font-medium tracking-wide transition-all"
+                  style={{ color: active ? `rgb(var(--accent))` : '#8F877F' }}
                 >
                   {item.label}
                 </span>

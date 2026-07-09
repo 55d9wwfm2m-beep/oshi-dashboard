@@ -4,10 +4,11 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useGameState } from '@/hooks/useGameState';
-import { OshiProfile, OshiEvent, Savings, Expense, AttendanceLog, AvatarConfig, DEFAULT_AVATAR_CONFIG } from '@/types';
+import { OshiProfile, OshiEvent, Savings, Expense, AttendanceLog } from '@/types';
 import { daysSince, daysUntil, formatYen, formatDate, getCurrentMonth, todayString } from '@/lib/utils';
 import { getXPProgress, getLevelTier, ACHIEVEMENTS, checkAchievement, XP_REWARDS } from '@/lib/game';
 import Avatar from '@/components/Avatar';
+import { useAvatarEquip } from '@/hooks/useAvatarEquip';
 
 const DEFAULT_PROFILE: OshiProfile = {
   name: '', group: '', meetDate: '', birthday: '', photoUrl: '', themeColor: '196,164,160',
@@ -20,7 +21,7 @@ export default function HomePage() {
   const [savings]     = useLocalStorage<Savings>('oshi-savings', DEFAULT_SAVINGS);
   const [expenses]    = useLocalStorage<Expense[]>('oshi-expenses', []);
   const [logs]        = useLocalStorage<AttendanceLog[]>('oshi-logs', []);
-  const [avatarConfig] = useLocalStorage<AvatarConfig>('oshi-avatar-config', DEFAULT_AVATAR_CONFIG);
+  const { equip: avatarConfig } = useAvatarEquip();
   const { state: gameState, addXP, markLogin, loaded: gameLoaded } = useGameState();
 
   // Daily login XP

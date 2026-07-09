@@ -25,6 +25,7 @@ export default function LogsPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm]         = useState({ ...EMPTY, date: todayString() });
   const [expanded, setExpanded] = useState<string|null>(null);
+  const [editId, setEditId]     = useState<string | null>(null);
 
   if (!loaded) return null;
 
@@ -33,10 +34,21 @@ export default function LogsPage() {
 
   const add = () => {
     if (!form.date || !form.eventName) return;
-    setLogs(prev => [{ id: generateId(), ...form }, ...prev]);
-    addXP(XP_REWARDS.LOG_CREATE);
+    if (editId) {
+      setLogs(prev => prev.map(l => l.id === editId ? { ...l, ...form } : l));
+    } else {
+      setLogs(prev => [{ id: generateId(), ...form }, ...prev]);
+      addXP(XP_REWARDS.LOG_CREATE);
+    }
     setForm({ ...EMPTY, date: todayString() });
+    setEditId(null);
     setShowForm(false);
+  };
+  const startEdit = (l: AttendanceLog) => {
+    setForm({ date: l.date, eventName: l.eventName, seat: l.seat, impression: l.impression });
+    setEditId(l.id);
+    setExpanded(null);
+    setShowForm(true);
   };
   const del = (id: string) => {
     if (!confirm('削除しますか？')) return;
@@ -56,7 +68,8 @@ export default function LogsPage() {
           )}
         </div>
         <button
-          onClick={() => { setShowForm(true); setForm({ ...EMPTY, date: todayString() }); }}
+          onClick={() => { setShowForm(true); setForm({ ...EMPTY, date: todayString() }); setEditId(null); }}
+          aria-label="参戦ログを書く"
           className="w-10 h-10 rounded-2xl flex items-center justify-center text-white text-xl shadow-md active:scale-90 transition-transform anim-fadeIn"
           style={{ background: `rgb(var(--accent))` }}
         >
@@ -170,13 +183,22 @@ export default function LogsPage() {
               >
                 閉じる
               </button>
-              <button
-                onClick={() => del(expandedLog.id)}
-                className="text-sm active:text-red-400 transition-colors"
-                style={{ color: '#D0C8C2' }}
-              >
-                削除する
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => startEdit(expandedLog)}
+                  className="text-sm font-medium px-3 py-2 -my-2 rounded-lg"
+                  style={{ color: 'rgb(var(--accent))' }}
+                >
+                  編集する
+                </button>
+                <button
+                  onClick={() => del(expandedLog.id)}
+                  className="text-sm px-3 py-2 -my-2 rounded-lg active:text-red-400 transition-colors"
+                  style={{ color: '#D0C8C2' }}
+                >
+                  削除する
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -191,7 +213,7 @@ export default function LogsPage() {
         >
           <div className="bottom-sheet" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 rounded-full mx-auto mb-6" style={{ background: '#E0D8D2' }} />
-            <h2 className="text-lg font-semibold mb-5" style={{ color: '#1C1917' }}>参戦を記録する</h2>
+            <h2 className="text-lg font-semibold mb-5" style={{ color: '#1C1917' }}>{editId ? '参戦ログを編集' : '参戦を記録する'}</h2>
 
             <div className="space-y-4">
               <div>
@@ -220,7 +242,7 @@ export default function LogsPage() {
 
             <div className="flex gap-3 mt-6">
               <button onClick={()=>setShowForm(false)} className="flex-1 py-3.5 rounded-2xl text-sm font-medium" style={{ background:'#F0EBE6',color:'#78716C' }}>キャンセル</button>
-              <button onClick={add} disabled={!form.date||!form.eventName} className="flex-1 py-3.5 rounded-2xl text-sm font-medium text-white disabled:opacity-40" style={{ background:`rgb(var(--accent))` }}>記録する</button>
+              <button onClick={add} disabled={!form.date||!form.eventName} className="flex-1 py-3.5 rounded-2xl text-sm font-medium text-white disabled:opacity-40" style={{ background:`rgb(var(--accent))` }}>{editId ? '保存する' : '記録する'}</button>
             </div>
           </div>
         </div>

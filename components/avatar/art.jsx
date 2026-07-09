@@ -1044,7 +1044,7 @@ function Accessory({ id }) {
 }
 
 /* --- アバター本体 --- */
-function Avatar({ equip, size = 320, showBackground = true, bounceKey, animated = false, uid = "a", crop }) {
+function Avatar({ equip, size = 320, showBackground = true, bounceKey = 0, animated = false, uid = "a", crop = "full" }) {
   const ck = equip.hairColor;
   const bust = crop === "bust";
   const vb = bust ? "44 22 232 232" : "0 0 320 380";

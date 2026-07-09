@@ -133,16 +133,16 @@ export interface Category {
 }
 
 export const CATEGORIES: Category[] = [
-  { key: 'outfit',    label: 'ふく',     items: OUTFITS },
-  { key: 'hairStyle', label: 'かみがた', items: HAIRSTYLES },
-  { key: 'hairColor', label: 'かみいろ', items: HAIRCOLORS },
-  { key: 'eyeStyle',  label: 'ひとみ',   items: EYESTYLES },
-  { key: 'eyeColor',  label: 'めのいろ', items: EYECOLORS },
-  { key: 'skin',      label: 'はだ',     items: SKINS },
-  { key: 'headwear',  label: 'あたま',   items: HEADWEAR },
-  { key: 'glasses',   label: 'メガネ',   items: GLASSES },
-  { key: 'accessory', label: 'こもの',   items: ACCESSORIES },
-  { key: 'background',label: 'はいけい', items: BACKGROUNDS },
+  { key: 'outfit',    label: 'ふく', items: OUTFITS as any },
+  { key: 'hairStyle', label: 'かみがた', items: HAIRSTYLES as any },
+  { key: 'hairColor', label: 'かみいろ', items: HAIRCOLORS as any },
+  { key: 'eyeStyle',  label: 'ひとみ',   items: EYESTYLES as any },
+  { key: 'eyeColor',  label: 'めのいろ', items: EYECOLORS as any },
+  { key: 'skin',      label: 'はだ',     items: SKINS as any },
+  { key: 'headwear',  label: 'あたま',   items: HEADWEAR as any },
+  { key: 'glasses',   label: 'メガネ',   items: GLASSES as any },
+  { key: 'accessory', label: 'こもの',   items: ACCESSORIES as any },
+  { key: 'background',label: 'はいけい', items: BACKGROUNDS as any },
 ];
 
 export function getUnlock(catKey: string, itemId: string): Unlock {

@@ -71,7 +71,7 @@ export default function AvatarPage() {
             <AvatarSVG equip={equip} size={216} animated uid="stage" bounceKey={bounce} />
           </div>
           <div className="mt-2 text-center">
-            <p className="text-sm font-semibold" style={{ color: '#1C1917' }}>Lv.{gameState.level}</p>
+            <p className="text-sm font-semibold" style={{ color: '#1C1917' }}>Lv.{String(gameState.level)}</p>
             <p className="text-xs mt-0.5" style={{ color: equip.oshiColor }}>{tier.title}</p>
           </div>
         </div>

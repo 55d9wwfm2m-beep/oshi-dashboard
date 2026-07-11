@@ -13,7 +13,7 @@
      （小サイズはぼかし・虹彩の放射線を省いた簡略描画）。
    ============================================================ */
 import React, { useId } from "react";
-import { C, RARITY, SKIN_TONE, HAIR_PAL, EYE_PAL, makeIds } from "./palettes";
+import { SKIN_TONE, HAIR_PAL, EYE_PAL, makeIds } from "./palettes";
 import { VIEWBOX, CROPS, HAIR_LEGACY_FIT } from "./skeleton";
 import {
   SKINS, HAIRSTYLES, HAIRCOLORS, EYESTYLES, EYECOLORS,
@@ -164,5 +164,3 @@ export function AvatarSVG({
     </svg>
   );
 }
-
-export { C, RARITY, SKIN_TONE, HAIR_PAL, EYE_PAL };

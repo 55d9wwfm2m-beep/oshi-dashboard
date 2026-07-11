@@ -225,6 +225,7 @@ export default function AvatarPage() {
                 aria-label={`推しカラー: ${c.name}`}
                 aria-pressed={selected}
                 className="shrink-0 active:scale-90 transition-transform"
+                style={{ padding: 6, margin: -1 }}
               >
                 <div
                   className="flex items-center justify-center"
@@ -361,12 +362,12 @@ export default function AvatarPage() {
                 <div
                   className="absolute"
                   style={{
-                    left: 6, right: 6, bottom: 26, borderRadius: 10,
+                    left: 5, right: 5, bottom: 26, borderRadius: 10,
                     background: 'rgba(58,46,74,0.84)', backdropFilter: 'blur(2px)',
-                    padding: '4px 7px 6px',
+                    padding: '4px 5px 6px',
                   }}
                 >
-                  <p style={{ fontSize: 8.5, fontWeight: 700, color: '#FFF', lineHeight: 1.25 }}>
+                  <p style={{ fontSize: 8, fontWeight: 700, color: '#FFF', lineHeight: 1.25 }}>
                     🔒 {unlockLabel(category.key, item.id)}
                   </p>
                   <div style={{ height: 3.5, borderRadius: 999, background: 'rgba(255,255,255,0.28)', marginTop: 3, overflow: 'hidden' }}>

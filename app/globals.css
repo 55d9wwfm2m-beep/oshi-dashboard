@@ -238,3 +238,23 @@ main > * {
 @media (prefers-reduced-motion: reduce) {
   .oa-av-idle, .oa-av-idle .oa-eye, .toast-item { animation: none; }
 }
+
+/* ──── きせかえ画面の演出 ──── */
+@keyframes oaFloat {
+  0%, 100% { transform: translateY(0) scale(1);      opacity: .6; }
+  50%      { transform: translateY(-9px) scale(1.18); opacity: 1;  }
+}
+.oa-float {
+  position: absolute;
+  pointer-events: none;
+  animation: oaFloat 3.8s ease-in-out infinite;
+}
+@keyframes oaPop {
+  0%   { transform: scale(.4);  opacity: 0; }
+  60%  { transform: scale(1.25); }
+  100% { transform: scale(1);   opacity: 1; }
+}
+.anim-pop { animation: oaPop 0.32s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .oa-float, .anim-pop { animation: none; }
+}

@@ -115,8 +115,8 @@ const UNLOCK_LABEL: Record<string, (v: number) => string> = {
   level:    v => `Lv.${v}で解放`,
   events:   v => `イベント${v}件で解放`,
   logs:     v => `参戦ログ${v}件で解放`,
-  goods:    v => `グッズ${v}個ゲットで解放`,
-  expenses: v => `支出${v}件記録で解放`,
+  goods:    v => `グッズ${v}個で解放`,
+  expenses: v => `支出${v}件で解放`,
   days:     v => `推し活${v}日で解放`,
 };
 

@@ -23,6 +23,13 @@ const cormorant = Cormorant_Garamond({
 export const metadata: Metadata = {
   title: '推し活ダッシュボード',
   description: '推しとの思い出・イベント・支出を一括管理',
+  // ホーム画面追加（PWA）時のiOS向け設定。
+  // アイコンは app/icon.png（favicon）と app/apple-icon.png のファイル規約で自動リンクされる。
+  appleWebApp: {
+    capable: true,
+    title: '推し活',
+    statusBarStyle: 'default',
+  },
 };
 
 export const viewport: Viewport = {

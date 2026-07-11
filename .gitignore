@@ -27,6 +27,10 @@ verify-screenshot.mjs
 # Screenshots and temporary SVGs used during development
 *.png
 avatar-*.svg
+# ただしアプリのアイコン類はコミット対象
+!app/icon.png
+!app/apple-icon.png
+!public/icons/*.png
 
 # OS
 .DS_Store

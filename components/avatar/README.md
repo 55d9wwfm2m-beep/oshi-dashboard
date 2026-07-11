@@ -22,7 +22,10 @@
 2. `parts/outfits.jsx` の `OUTFITS_R` に1エントリ追加
    - `pal`: 配色（**色は必ずここに集約**。カラバリ＝pal差し替え）
    - `pants`: ズボン衣装のみ。足レイヤーの色指定（無し＝素肌の脚）
-   - `render({ pal, ids })`: 描画。胸元(160,196-216)・ウエストy240・裾上限y296
+   - `render({ pal, ids, oshi })`: 描画。胸元(160,196-216)・ウエストy240・裾上限y296
+   - `oshi` はユーザーの推しカラー（#hex）。推しカラー連動衣装を作るときは
+     原色のまま塗らず `tint(oshi, t)` / `deepen(oshi, t)`（palettes.js）で
+     トーン補正して使う（参考実装: `oshiStage`）
 3. 解放条件を付けるなら `catalog.ts` の `UNLOCKS` に1行（`'outfit:新id': { kind:'level', v:5 }`）
 
 ### 髪型を1つ追加する

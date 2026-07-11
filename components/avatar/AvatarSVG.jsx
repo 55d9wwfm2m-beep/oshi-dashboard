@@ -143,8 +143,8 @@ export function AvatarSVG({
       <Neck skin={skinId} ids={ids} />
       {/* 7. 胴（服の下地） */}
       <Torso skin={skinId} ids={ids} />
-      {/* 8. 服 */}
-      {outfitDef.render({ pal: outfitDef.pal, ids })}
+      {/* 8. 服（oshi=推しカラー。アクセントスロットを持つ衣装が使う） */}
+      {outfitDef.render({ pal: outfitDef.pal, ids, oshi: equip.oshiColor || "#E91E8C" })}
       {/* 9. 顔土台 */}
       <FaceBase skin={skinId} masc={masc} ids={ids} />
       {/* 10. チーク */}

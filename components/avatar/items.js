@@ -73,6 +73,7 @@ export const OUTFITS = [
   { id: "seifuku", name: "制服", rarity: "N", source: "default" },
   { id: "liveT", name: "ライブT", rarity: "R", source: "ach", ach: "events1" },
   { id: "idol", name: "アイドル衣装", rarity: "SR", source: "ach", ach: "queen" },
+  { id: "oshiStage", name: "推しいろステージ", rarity: "SR", source: "ach", ach: "events10" },
   { id: "yukata", name: "浴衣", rarity: "R", source: "ach", ach: "days7" },
   { id: "yumekawa", name: "ゆめかわワンピ", rarity: "SR", source: "shop", price: 400 },
   { id: "chiffon", name: "シフォンチュールワンピ", rarity: "SR", source: "ach", ach: "goods10" },

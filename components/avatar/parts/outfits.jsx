@@ -18,7 +18,7 @@
    手首 (136,244)・(184,244)
    ============================================================ */
 import React from "react";
-import { C } from "../palettes";
+import { C, tint, deepen } from "../palettes";
 
 /* ---------- 共通ヘルパー ---------- */
 const sleeves = (fill, w = 11, full = false) => (
@@ -173,6 +173,45 @@ export const OUTFITS_R = {
         {sparkle(158, 282, 2.8, 0.8)}
       </g>
     ),
+  },
+
+  /* SR: 推しいろステージ。シグネチャ=推しカラーが服になる（アクセントスロット）。
+     白ベース×推しカラーなので、8色プリセットのどの色でも破綻しない */
+  oshiStage: {
+    pal: { base: "#FFFDFA", shade: "#F1E8EE", frill: "#FFFFFF" },
+    render: ({ pal, ids, oshi }) => {
+      const acc = oshi;
+      const accLight = tint(oshi, 0.62);
+      const accDeep = deepen(oshi, 0.28);
+      return (
+        <g>
+          {puff(pal.base)}
+          {/* 手首の推しカラーカフス */}
+          <path d="M133,224 q4,4 9,2 M187,224 q-4,4 -9,2" stroke={accLight} strokeWidth="4.5" fill="none" strokeLinecap="round" />
+          {/* 3層スカート（外層に推しカラー） */}
+          {skirt(accLight, 299, 40)}
+          {skirt(pal.base, 291, 34)}
+          {ruffle(297, 40, pal.frill, 8, 13)}
+          {ruffle(288, 33, accLight, 7, 11)}
+          {/* 裾の推しカラーライン */}
+          <path d="M121,296 L199,296" stroke={acc} strokeWidth="2" opacity=".85" />
+          {/* スカートの星ワッペン */}
+          <path d="M174,276 l2,4.2 l4.6,.6 l-3.4,3.2 l.9,4.6 l-4.1,-2.3 l-4.1,2.3 l.9,-4.6 l-3.4,-3.2 l4.6,-.6 Z" fill={acc} opacity=".9" />
+          {bodice(pal.base)}
+          <path d="M147,244 Q160,250 173,244 L173,248 Q160,254 147,248 Z" fill={pal.shade} />
+          {/* 胸元の推しカラーV＋ボタン */}
+          <path d="M148,192 L160,212 L172,192" stroke={acc} strokeWidth="2.2" fill="none" />
+          {[220, 230].map((y, i) => <circle key={i} cx="160" cy={y} r="2" fill={accDeep} />)}
+          {/* ウエストの推しカラー帯 */}
+          <rect x="146" y="238" width="28" height="6" rx="3" fill={acc} />
+          {/* 大きな胸リボン（推しカラー） */}
+          {bow(160, 200, 1.5, acc, accDeep)}
+          {sparkle(141, 258, 3.6)}
+          {sparkle(181, 268, 3)}
+          {sparkle(156, 284, 2.6, 0.8)}
+        </g>
+      );
+    },
   },
 
   /* R: 浴衣。シグネチャ=太い帯＋帯締め＋右腰のリボン結び */

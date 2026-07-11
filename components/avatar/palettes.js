@@ -64,6 +64,28 @@ export const EYE_PAL = {
 };
 
 /* ============================================================
+   色計算ヘルパー（推しカラーのアクセントスロット用）
+   ------------------------------------------------------------
+   ユーザーの推しカラー（任意の#RRGGBB）を衣装に流し込むとき、
+   原色のまま使わずトーン補正してから使う。
+   - tint:   白と混ぜて淡く（パステル化）
+   - deepen: インク色と混ぜて影・結び目用の深色に
+   ============================================================ */
+function mixHex(hexA, hexB, t) {
+  const p = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+  try {
+    const [ar, ag, ab] = p(hexA);
+    const [br, bg, bb] = p(hexB);
+    const m = (a, b) => Math.round(a + (b - a) * t).toString(16).padStart(2, "0");
+    return `#${m(ar, br)}${m(ag, bg)}${m(ab, bb)}`;
+  } catch {
+    return hexA;
+  }
+}
+export const tint = (hex, t = 0.5) => mixHex(hex, "#FFFFFF", t);
+export const deepen = (hex, t = 0.25) => mixHex(hex, "#3A2E4A", t);
+
+/* ============================================================
    defs ID の名前空間化
    ------------------------------------------------------------
    フィルタ・グラデーションのIDはインスタンスごとに一意化する

@@ -82,6 +82,7 @@ const UNLOCKS: Record<string, Unlock> = {
   // 衣装
   'outfit:liveT':         { kind: 'events', v: 1 },
   'outfit:idol':          { kind: 'events', v: 5 },
+  'outfit:oshiStage':     { kind: 'events', v: 10 },
   'outfit:yukata':        { kind: 'days', v: 7 },
   'outfit:yumekawa':      { kind: 'level', v: 6 },
   'outfit:chiffon':       { kind: 'goods', v: 10 },

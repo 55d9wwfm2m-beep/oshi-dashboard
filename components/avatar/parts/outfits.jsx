@@ -64,7 +64,7 @@ export const OUTFITS_R = {
     pal: { top: C.sakura, sleeve: C.sakuraDeep, star: C.gold, skirt: "#8FA9E6", stitch: "#DCE5F8", cuff: "#FFE3F0" },
     render: ({ pal }) => (
       <g>
-        {sleeves(pal.sleeve, 11)}
+        {sleeves(pal.sleeve, 13.5)}
         <path d="M139,232 q3,3 6,0 M175,232 q3,3 6,0" stroke={pal.cuff} strokeWidth="2.4" fill="none" strokeLinecap="round" />
         {bodice(pal.top)}
         <path d="M152,184 q8,7 16,0" stroke="#FFF" strokeWidth="2.4" fill="none" />
@@ -103,7 +103,7 @@ export const OUTFITS_R = {
     pal: { main: "#3B4A7A", collar: "#FFFFFF", line: "#5C6FA8", scarf: "#E0556B", skirt: "#2E3A63", pleat: "#46568C" },
     render: ({ pal }) => (
       <g>
-        {sleeves(pal.main, 11)}
+        {sleeves(pal.main, 13.5)}
         <path d="M138,226 q4,4 8,1 M182,226 q-4,4 -8,1" stroke={pal.collar} strokeWidth="2" fill="none" strokeLinecap="round" />
         {bodice(pal.main)}
         {/* プリーツ（2値の面で表現） */}
@@ -129,7 +129,7 @@ export const OUTFITS_R = {
     pal: { main: "#2C2C38", print: C.gold, hem: "#5B5B70", cuff: "#44445A", band: C.sakuraDeep, tape: "#9CC8F0" },
     render: ({ pal }) => (
       <g>
-        {sleeves(pal.main, 12)}
+        {sleeves(pal.main, 14.5)}
         <path d="M137,228 q4,4 8,0 M175,228 q4,4 8,0" stroke={pal.cuff} strokeWidth="4" fill="none" strokeLinecap="round" />
         {/* ビッグシルエット（裾ラウンド） */}
         <path d="M143,189 C143,183 177,183 177,189 L177,252 Q160,262 143,252 Z" fill={pal.main} />
@@ -180,7 +180,7 @@ export const OUTFITS_R = {
     pal: { main: "#BFD9F2", shade: "#9FC2E4", collar: "#FFFFFF", collarIn: "#F2A9C4", obi: C.sakuraDeep, obiCord: C.gold, flower: "#FF9EC6", hem: "#E8F2FB" },
     render: ({ pal }) => (
       <g>
-        {sleeves(pal.main, 15, true)}
+        {sleeves(pal.main, 16, true)}
         <path d="M141,214 C139,226 139,236 141,244 M179,214 C181,226 181,236 179,244" stroke={pal.shade} strokeWidth="3" fill="none" opacity=".5" />
         <path d="M146,189 L174,189 L186,298 L134,298 Z" fill={pal.main} />
         {/* 裾の流水ライン */}
@@ -271,7 +271,7 @@ export const OUTFITS_R = {
         <path d="M120,290 C112,252 116,214 140,196" stroke={pal.capeTrim} strokeWidth="2" fill="none" opacity=".9" />
         <path d="M200,290 C208,252 204,214 180,196" stroke={pal.capeTrim} strokeWidth="2" fill="none" opacity=".9" />
         <path d="M142,200 C128,214 126,248 132,284 C130,250 134,218 148,202 Z" fill={pal.capeIn} opacity=".7" filter={ids.soft1} />
-        {sleeves(pal.coat, 12, true)}
+        {sleeves(pal.coat, 14.5, true)}
         <path d="M146,189 C146,183 174,183 174,189 L172,266 L148,266 Z" fill={pal.coat} />
         <path d="M158,189 L154,266 L166,266 L162,189 Z" fill={pal.coatShade} />
         {/* サッシュ＋勲章 */}
@@ -302,7 +302,7 @@ export const OUTFITS_R = {
     pants: { base: "#1A1A2E", shade: "#101022", light: "#2A2A48", shoe: "#1F1B2E", shoeLine: "#0F0D1F" },
     render: ({ pal, ids }) => (
       <g>
-        {sleeves(pal.main, 13)}
+        {sleeves(pal.main, 15)}
         <path d="M137,228 q4,3 8,0 M175,228 q4,3 8,0" stroke={pal.light} strokeWidth="2" fill="none" strokeLinecap="round" />
         <path d="M137,192 C137,185 183,185 183,192 L181,250 C181,256 139,256 139,250 Z" fill={pal.main} />
         {/* 立ち襟＋白カラー */}
@@ -357,7 +357,7 @@ export const OUTFITS_R = {
     pants: { base: "#FFF6E8", shade: "#E7DDC8", light: "#FFFFFF", shoe: "#7A4B66", shoeLine: "#502E44" },
     render: ({ pal, ids }) => (
       <g>
-        {sleeves(pal.sleeve, 12, true)}
+        {sleeves(pal.sleeve, 14.5, true)}
         {/* ロールアップカフス */}
         <path d="M136,240 q4,5 10,4 M184,240 q-4,5 -10,4" stroke={pal.jabotShade} strokeWidth="5" fill="none" strokeLinecap="round" />
         <path d="M137,192 C137,185 183,185 183,192 L181,250 C181,256 139,256 139,250 Z" fill={pal.shirt} />
@@ -386,7 +386,7 @@ export const OUTFITS_R = {
     pants: { base: "#1F1A2E", shade: "#15102A", light: "#3A3252", shoe: "#1A1828", shoeLine: "#0F0D1F" },
     render: ({ pal, ids }) => (
       <g>
-        {sleeves(pal.main, 13)}
+        {sleeves(pal.main, 15)}
         <path d="M137,230 q4,3 8,0 M175,230 q4,3 8,0" stroke={pal.accent} strokeWidth="2" fill="none" strokeLinecap="round" opacity=".8" />
         <path d="M137,192 C137,185 183,185 183,192 L181,250 C181,256 139,256 139,250 Z" fill={pal.main} />
         <path d="M152,192 L168,192 L168,250 L152,250 Z" fill={pal.inner} />
@@ -422,7 +422,7 @@ export const OUTFITS_R = {
         <path d="M118,306 C104,258 112,214 136,196" stroke={pal.capeTrim} strokeWidth="2" fill="none" opacity=".9" />
         <path d="M202,306 C216,258 208,214 184,196" stroke={pal.capeTrim} strokeWidth="2" fill="none" opacity=".9" />
         <path d="M138,200 C124,220 122,260 130,300 C124,260 130,228 144,206 Z" fill={pal.capeIn} opacity=".6" filter={ids.soft2} />
-        {sleeves(pal.main, 12, true)}
+        {sleeves(pal.main, 14.5, true)}
         {/* 手首のレースカフス */}
         <path d="M135,242 q4,5 9,4 M185,242 q-4,5 -9,4" stroke={pal.shirt} strokeWidth="4" fill="none" strokeLinecap="round" />
         <path d="M147,192 C147,186 173,186 173,192 L172,250 L148,250 Z" fill={pal.shirt} />

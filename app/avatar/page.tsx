@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useGameState } from '@/hooks/useGameState';
 import { useAvatarEquip } from '@/hooks/useAvatarEquip';
@@ -11,8 +11,11 @@ import { showToast } from '@/components/ui/Toast';
 import { AvatarSVG } from '@/components/avatar/art';
 import {
   CATEGORIES, RARITY, isUnlocked, unlockLabel, unlockProgress, getUnlock,
-  AvatarStats, AvatarEquip,
+  AvatarStats, AvatarEquip, CatalogItem,
 } from '@/components/avatar/catalog';
+
+/** 「解放済みとして確認済み」のアイテムキー（cat:id）の保存先 */
+const SEEN_UNLOCKS_KEY = 'oshi-avatar-seen-unlocks';
 
 const DP: OshiProfile = { name:'', group:'', meetDate:'', birthday:'', photoUrl:'', themeColor:'196,164,160' };
 
@@ -40,8 +43,9 @@ export default function AvatarPage() {
   const [wishlist] = useLocalStorage<WishlistItem[]>('oshi-wishlist', []);
   const [cat, setCat] = useState(0);
   const [bounce, setBounce] = useState(0);
-
-  if (!loaded || !gameLoaded) return null;
+  /** 新しく解放されたアイテム（お祝い待ち行列と NEW バッジ） */
+  const [celebrateQueue, setCelebrateQueue] = useState<{ catKey: string; item: CatalogItem }[]>([]);
+  const [newKeys, setNewKeys] = useState<Set<string>>(new Set());
 
   const stats: AvatarStats = {
     level:    gameState.level,
@@ -51,6 +55,45 @@ export default function AvatarPage() {
     expenses: expenses.length,
     days:     profile.meetDate ? daysSince(profile.meetDate) : 0,
   };
+  const statsKey = `${stats.level}|${stats.events}|${stats.logs}|${stats.goods}|${stats.expenses}|${stats.days}`;
+
+  /* 前回訪問時より増えた解放アイテムを検出してお祝いする */
+  useEffect(() => {
+    if (!loaded || !gameLoaded) return;
+    const cur: string[] = [];
+    for (const c of CATEGORIES) {
+      for (const it of c.items) {
+        if (isUnlocked(c.key, it.id, stats)) cur.push(`${c.key}:${it.id}`);
+      }
+    }
+    let seenRaw: string[] | null = null;
+    try {
+      const raw = window.localStorage.getItem(SEEN_UNLOCKS_KEY);
+      seenRaw = raw ? (JSON.parse(raw) as string[]) : null;
+    } catch { seenRaw = null; }
+    if (!seenRaw) {
+      // 初回はお祝いせず現状を記録するだけ（既存ユーザーへの通知スパム防止）
+      window.localStorage.setItem(SEEN_UNLOCKS_KEY, JSON.stringify(cur));
+      return;
+    }
+    const seen = new Set(seenRaw);
+    const fresh = cur.filter(k => !seen.has(k));
+    if (fresh.length > 0) {
+      const freshSet = new Set(fresh);
+      const q: { catKey: string; item: CatalogItem }[] = [];
+      for (const c of CATEGORIES) {
+        for (const it of c.items) {
+          if (freshSet.has(`${c.key}:${it.id}`)) q.push({ catKey: c.key, item: it });
+        }
+      }
+      setCelebrateQueue(prev => [...prev, ...q]);
+      setNewKeys(prev => new Set([...Array.from(prev), ...fresh]));
+      window.localStorage.setItem(SEEN_UNLOCKS_KEY, JSON.stringify(cur));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded, gameLoaded, statsKey]);
+
+  if (!loaded || !gameLoaded) return null;
   const prog = unlockProgress(stats);
   const tier = getLevelTier(gameState.level);
   const xp = getXPProgress(gameState.xp);
@@ -64,6 +107,13 @@ export default function AvatarPage() {
     }
     setEquip({ [category.key]: itemId });
     setBounce(b => b + 1);
+    // 着てもらえたら NEW バッジは役目を終える
+    setNewKeys(prev => {
+      if (!prev.has(`${category.key}:${itemId}`)) return prev;
+      const next = new Set(prev);
+      next.delete(`${category.key}:${itemId}`);
+      return next;
+    });
   };
 
   return (
@@ -280,6 +330,19 @@ export default function AvatarPage() {
                   {item.rarity}
                 </span>
               )}
+              {/* NEWバッジ（解放ほやほや） */}
+              {!equipped && unlocked && newKeys.has(`${category.key}:${item.id}`) && (
+                <span
+                  className="absolute anim-pop"
+                  style={{
+                    top: 6, right: 6, fontSize: 8, fontWeight: 800, padding: '2.5px 7px',
+                    borderRadius: 999, background: '#FF5FA2', color: '#FFF',
+                    letterSpacing: '0.06em', boxShadow: '0 2px 6px rgba(255,95,162,0.5)',
+                  }}
+                >
+                  NEW
+                </span>
+              )}
               {/* そうび中ハート */}
               {equipped && (
                 <span
@@ -319,6 +382,65 @@ export default function AvatarPage() {
       <p className="text-center text-[11px] mt-5 px-8" style={{ color: '#B8B0A8' }}>
         タップですぐおきがえ完了！推し活を記録して、のこり{prog.total - prog.unlocked}このアイテムを解放しよう ✨
       </p>
+
+      {/* ── 解放セレブレーション ── */}
+      {celebrateQueue.length > 0 && (() => {
+        const cel = celebrateQueue[0];
+        const cr = RARITY[cel.item.rarity] ?? RARITY.N;
+        const celPreview = { ...equip, [cel.catKey]: cel.item.id } as AvatarEquip;
+        const celIsBg = cel.catKey === 'background';
+        const celCrop = celIsBg ? 'full' : cel.catKey === 'outfit' ? 'torso' : 'bust';
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center anim-fadeIn"
+            style={{ background: 'rgba(40,30,60,0.5)', backdropFilter: 'blur(3px)' }}
+          >
+            <div
+              className="relative anim-pop text-center"
+              style={{
+                width: 264, borderRadius: 28, background: '#FFF', padding: '22px 20px 18px',
+                boxShadow: `0 18px 50px rgba(0,0,0,0.3), 0 0 0 3px ${cr.ring}66`,
+              }}
+            >
+              <span className="oa-float" style={{ left: 18, top: 20, color: '#F2C14E', fontSize: 14 }}>✦</span>
+              <span className="oa-float" style={{ right: 22, top: 38, color: '#C9B4F0', fontSize: 12, animationDelay: '0.7s' }}>✧</span>
+              <span className="oa-float" style={{ left: 30, bottom: 74, color: '#FFC2DC', fontSize: 11, animationDelay: '1.3s' }}>✦</span>
+              <span className="oa-float" style={{ right: 30, bottom: 96, color: '#A8E6E2', fontSize: 10, animationDelay: '1.9s' }}>✦</span>
+              <p style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.22em', color: cr.ring }}>NEW ITEM!</p>
+              <div
+                className="mx-auto mt-3 overflow-hidden flex items-center justify-center"
+                style={{
+                  width: 122, height: 122, borderRadius: '50%',
+                  background: 'linear-gradient(160deg,#FDF3F7,#EFEAF9)',
+                  boxShadow: `0 0 0 3px ${cr.ring}55`,
+                }}
+              >
+                <AvatarSVG
+                  equip={celPreview}
+                  size={celIsBg ? 104 : 118}
+                  crop={celCrop}
+                  showBackground={celIsBg}
+                  uid={`cel-${cel.catKey}-${cel.item.id}`}
+                />
+              </div>
+              <p className="mt-3" style={{ fontSize: 15, fontWeight: 800, color: '#1C1917' }}>{cel.item.name}</p>
+              <p className="mt-0.5" style={{ fontSize: 10.5, fontWeight: 700, color: '#8F877F' }}>
+                {cel.item.rarity !== 'N' ? `${cel.item.rarity}レアを` : ''}かいほうしたよ！
+              </p>
+              <button
+                onClick={() => setCelebrateQueue(q => q.slice(1))}
+                className="mt-4 w-full active:scale-95 transition-transform"
+                style={{
+                  padding: '11px 0', borderRadius: 999, background: equip.oshiColor, color: '#FFF',
+                  fontSize: 13, fontWeight: 800, boxShadow: `0 6px 16px ${equip.oshiColor}55`,
+                }}
+              >
+                {celebrateQueue.length > 1 ? `うれしい！（あと${celebrateQueue.length - 1}こ）` : 'うれしい！'}
+              </button>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

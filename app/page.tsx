@@ -8,6 +8,7 @@ import { OshiProfile, OshiEvent, Savings, Expense, AttendanceLog } from '@/types
 import { daysSince, daysUntil, formatYen, formatDate, getCurrentMonth, todayString } from '@/lib/utils';
 import { getXPProgress, getLevelTier, ACHIEVEMENTS, checkAchievement, XP_REWARDS } from '@/lib/game';
 import Avatar from '@/components/Avatar';
+import AddToHomeBanner from '@/components/AddToHomeBanner';
 import { useAvatarEquip } from '@/hooks/useAvatarEquip';
 
 const DEFAULT_PROFILE: OshiProfile = {
@@ -282,8 +283,10 @@ export default function HomePage() {
       {/* ── CARDS ── */}
       <div className="px-4 space-y-3 pb-2">
 
-        {/* Level / Avatar card */}
-        <Link href="/achievements" className="block card card-hover anim-fadeInUp p-4 active:scale-[0.985]">
+        <AddToHomeBanner />
+
+        {/* Level / Avatar card（タップできせかえへ。実績はクイックリンクから） */}
+        <Link href="/avatar" className="block card card-hover anim-fadeInUp p-4 active:scale-[0.985]">
           <div className="flex items-center gap-4">
             <Avatar level={gameState.level} size="md" config={avatarConfig} />
             <div className="flex-1 min-w-0">
@@ -293,6 +296,12 @@ export default function HomePage() {
                 </span>
                 <span className="text-xs font-medium" style={{ color: `rgb(var(--accent))` }}>
                   {tier.title}
+                </span>
+                <span
+                  className="ml-auto shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full"
+                  style={{ background: 'rgba(var(--accent),0.12)', color: 'rgb(var(--accent))' }}
+                >
+                  👗 きせかえ
                 </span>
               </div>
               {/* XP bar */}

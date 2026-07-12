@@ -363,7 +363,7 @@ export default function AvatarPage() {
                   className="absolute"
                   style={{
                     left: 5, right: 5, bottom: 26, borderRadius: 10,
-                    background: 'rgba(58,46,74,0.84)', backdropFilter: 'blur(2px)',
+                    background: 'rgba(58,46,74,0.86)',
                     padding: '4px 5px 6px',
                   }}
                 >

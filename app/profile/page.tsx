@@ -51,7 +51,7 @@ export default function ProfilePage() {
   const OSHI_KEYS = [
     'oshi-profile', 'oshi-events', 'oshi-expenses', 'oshi-logs', 'oshi-wishlist',
     'oshi-savings', 'oshi-game', 'oshi-earned', 'oshi-theme-color',
-    'oshi-avatar-v2', 'oshi-avatar-config',
+    'oshi-avatar-v2', 'oshi-avatar-config', 'oshi-avatar-seen-unlocks',
   ];
 
   const exportData = () => {
@@ -257,8 +257,10 @@ export default function ProfilePage() {
         {/* Backup */}
         <div className="card p-5 anim-fadeInUp stagger-3">
           <p className="text-sm font-medium mb-1" style={{ color: '#1C1917' }}>データのバックアップ</p>
-          <p className="text-xs mb-4" style={{ color: '#A8A29E' }}>
-            思い出はこの端末のブラウザに保存されています。JSONに書き出しておくと機種変更やデータ消去の時も安心です。
+          <p className="text-xs mb-4 leading-relaxed" style={{ color: '#A8A29E' }}>
+            思い出はこの端末の中だけに保存されます（外部への送信はありません）。
+            ブラウザのまま使い続けると、iPhoneのSafariでは7日間ひらかないとデータが自動削除されることがあります。
+            「ホーム画面に追加」して使うか、ときどきここから書き出しておくと安心です。
           </p>
           <div className="flex gap-3">
             <button
@@ -286,6 +288,11 @@ export default function ProfilePage() {
           </Link>
           <Link href="/timeline" className="text-xs" style={{ color: '#B8B0A8' }}>
             推し年表を見る →
+          </Link>
+        </div>
+        <div className="text-center pb-2 anim-fadeInUp stagger-4">
+          <Link href="/privacy" className="text-[11px]" style={{ color: '#C4BDB5' }}>
+            プライバシーポリシー
           </Link>
         </div>
       </div>

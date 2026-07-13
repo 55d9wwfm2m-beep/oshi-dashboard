@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useGameState } from '@/hooks/useGameState';
 import { OshiProfile, THEME_PRESETS } from '@/types';
@@ -23,6 +23,21 @@ export default function ProfilePage() {
   const [saved, setSaved] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const importRef = useRef<HTMLInputElement>(null);
+  const [storageBytes, setStorageBytes] = useState<number | null>(null);
+
+  // アプリのデータ使用量を概算（写真の登録が増えると上限に近づくため目安を表示）
+  useEffect(() => {
+    try {
+      let chars = 0;
+      for (let i = 0; i < window.localStorage.length; i++) {
+        const k = window.localStorage.key(i);
+        if (k && k.startsWith('oshi-')) chars += (window.localStorage.getItem(k)?.length ?? 0) + k.length;
+      }
+      setStorageBytes(chars * 2); // localStorageはUTF-16のため約2バイト/文字
+    } catch {
+      setStorageBytes(null);
+    }
+  }, [profile, saved]);
 
   if (!loaded) return null;
 
@@ -279,6 +294,30 @@ export default function ProfilePage() {
             </button>
             <input ref={importRef} type="file" accept="application/json,.json" onChange={importData} className="hidden" aria-label="バックアップファイルを選択" />
           </div>
+
+          {storageBytes !== null && (() => {
+            const LIMIT = 4.8 * 1024 * 1024; // localStorageの実効上限の目安（約5MB）
+            const pct = Math.min(100, Math.round((storageBytes / LIMIT) * 100));
+            const mb = (storageBytes / (1024 * 1024)).toFixed(2);
+            const warn = pct >= 80;
+            const barColor = warn ? '#E0806B' : 'rgb(var(--accent))';
+            return (
+              <div className="mt-4 pt-4" style={{ borderTop: '1px solid #F0EBE6' }}>
+                <div className="flex justify-between items-baseline mb-1.5">
+                  <span className="text-[11px] font-medium" style={{ color: '#8F877F' }}>データ使用量</span>
+                  <span className="text-[11px] font-semibold" style={{ color: warn ? '#C25E44' : '#A8A29E' }}>{mb} MB</span>
+                </div>
+                <div style={{ height: 5, borderRadius: 999, background: '#F0EBE6', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${pct}%`, borderRadius: 999, background: barColor, transition: 'width .5s' }} />
+                </div>
+                {warn && (
+                  <p className="text-[10.5px] mt-1.5 leading-relaxed" style={{ color: '#C25E44' }}>
+                    保存容量が少なくなっています。写真を減らすか、バックアップを取ってから整理してください。
+                  </p>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Sub links */}

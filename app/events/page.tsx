@@ -108,11 +108,23 @@ export default function EventsPage() {
       {/* List */}
       <div className="px-4 space-y-3">
         {list.length === 0 && (
-          <div className="text-center py-20 space-y-3 anim-fadeIn">
-            <p className="text-4xl">🗓</p>
-            <p className="text-sm" style={{ color: '#A8A29E' }}>
-              {tab === 'upcoming' ? 'まだ予定がありません' : '過去のイベントがありません'}
+          <div className="text-center py-16 px-8 space-y-3 anim-fadeIn">
+            <p className="text-5xl">🗓</p>
+            <p className="text-base font-medium" style={{ color: '#78716C' }}>
+              {tab === 'upcoming' ? 'これからの予定はまだありません' : '過去のイベントはまだありません'}
             </p>
+            <p className="text-sm leading-relaxed" style={{ color: '#A8A29E' }}>
+              ライブや舞台、配信の予定を入れると<br />カウントダウンでその日を楽しみに待てるよ
+            </p>
+            {tab === 'upcoming' && (
+              <button
+                onClick={() => { setShowForm(true); setForm(EMPTY); setEditId(null); }}
+                className="inline-block mt-2 px-6 py-3 rounded-full text-sm font-semibold active:scale-95 transition-transform"
+                style={{ background: 'rgb(var(--accent))', color: 'white' }}
+              >
+                ＋ 最初のイベントを追加
+              </button>
+            )}
           </div>
         )}
 

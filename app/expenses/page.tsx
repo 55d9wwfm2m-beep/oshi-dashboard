@@ -134,9 +134,21 @@ export default function ExpensesPage() {
           </div>
 
           {list.length === 0 && (
-            <div className="text-center py-16 space-y-2 anim-fadeIn">
-              <p className="text-4xl">💸</p>
-              <p className="text-sm" style={{ color: '#A8A29E' }}>まだ記録がありません</p>
+            <div className="text-center py-16 px-8 space-y-3 anim-fadeIn">
+              <p className="text-5xl">💸</p>
+              <p className="text-base font-medium" style={{ color: '#78716C' }}>
+                {filter === 'すべて' ? 'まだ支出の記録がありません' : `「${filter}」の記録はまだありません`}
+              </p>
+              <p className="text-sm leading-relaxed" style={{ color: '#A8A29E' }}>
+                グッズや遠征の支出を記録すると<br />推し活にかけた金額がひと目で分かるよ
+              </p>
+              <button
+                onClick={() => { setShowForm(true); setForm({...EMPTY, date: todayString()}); setAmtInput(''); setEditId(null); }}
+                className="inline-block mt-2 px-6 py-3 rounded-full text-sm font-semibold active:scale-95 transition-transform"
+                style={{ background: 'rgb(var(--accent))', color: 'white' }}
+              >
+                ＋ 最初の支出を記録
+              </button>
             </div>
           )}
 

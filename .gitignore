@@ -27,9 +27,11 @@ verify-screenshot.mjs
 # Screenshots and temporary SVGs used during development
 *.png
 avatar-*.svg
-# ただしアプリのアイコン類はコミット対象
+# ただしアプリのアイコン類・OGP画像はコミット対象
 !app/icon.png
 !app/apple-icon.png
+!app/opengraph-image.png
+!app/twitter-image.png
 !public/icons/*.png
 
 # OS

@@ -20,15 +20,35 @@ const cormorant = Cormorant_Garamond({
   display: 'swap',
 });
 
+const APP_TITLE = '推し活ダッシュボード';
+const APP_DESC = '推しとの思い出・イベント・支出をひとつにまとめて、きせかえアバターを育てる推し活アプリ。';
+// 本番デプロイ時は環境変数 NEXT_PUBLIC_SITE_URL に公開URLを設定するとOGP画像が絶対URLで解決される。
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://oshi-dashboard.example.com';
+
 export const metadata: Metadata = {
-  title: '推し活ダッシュボード',
-  description: '推しとの思い出・イベント・支出を一括管理',
+  metadataBase: new URL(SITE_URL),
+  title: APP_TITLE,
+  description: APP_DESC,
+  applicationName: APP_TITLE,
   // ホーム画面追加（PWA）時のiOS向け設定。
   // アイコンは app/icon.png（favicon）と app/apple-icon.png のファイル規約で自動リンクされる。
   appleWebApp: {
     capable: true,
     title: '推し活',
     statusBarStyle: 'default',
+  },
+  // SNSシェア用カード。画像は app/opengraph-image.png / app/twitter-image.png を自動採用。
+  openGraph: {
+    title: APP_TITLE,
+    description: APP_DESC,
+    type: 'website',
+    locale: 'ja_JP',
+    siteName: APP_TITLE,
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: APP_TITLE,
+    description: APP_DESC,
   },
 };
 

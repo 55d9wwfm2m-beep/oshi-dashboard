@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* 空〜草原のやわらかいグラデーション背景 */
+  --bg-top: #eaf6fe;
+  --bg-bottom: #eef7ec;
+}
+
+html {
+  /* iPhoneでの余計な文字サイズ自動調整を止める */
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: linear-gradient(180deg, var(--bg-top) 0%, #f3fafe 45%, var(--bg-bottom) 100%);
+  background-attachment: fixed;
+  color: #1c2e4a;
+  min-height: 100dvh;
+  /* iOSのセーフエリア対応 */
+  padding-bottom: env(safe-area-inset-bottom);
+  font-feature-settings: 'palt';
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+/* iOS Safariで入力時にズームしないよう、フォームは必ず16px以上 */
+input,
+textarea,
+select,
+button {
+  font-size: 16px;
+}
+
+/* ドット絵をくっきり描画 */
+.pixelated {
+  image-rendering: pixelated;
+  shape-rendering: crispEdges;
+}
+
+@layer components {
+  /* 温かいクリームのパネル */
+  .panel {
+    @apply rounded-pixel border-2 border-navy-800/10 bg-cream-50 shadow-pixel;
+  }
+
+  /* iPhoneで押しやすい最小タップ領域 (44px) を担保するボタン基底 */
+  .btn {
+    @apply inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-pixel border-2 px-4
+      text-[15px] font-bold leading-none transition active:translate-y-[1px] active:shadow-none
+      disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn border-navy-800/20 bg-sky-400 text-white shadow-pixel-sm hover:bg-sky-500;
+  }
+  .btn-leaf {
+    @apply btn border-navy-800/20 bg-leaf-400 text-white shadow-pixel-sm hover:bg-leaf-500;
+  }
+  .btn-ghost {
+    @apply btn border-navy-800/10 bg-white/80 text-navy-700 shadow-pixel-sm hover:bg-white;
+  }
+  .btn-quiet {
+    @apply btn min-h-[40px] border-transparent bg-transparent px-2 text-navy-600 hover:bg-navy-800/5;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold leading-none;
+  }
+
+  /* フォーム入力 */
+  .field {
+    @apply w-full rounded-pixel border-2 border-navy-800/10 bg-white px-3 py-3 text-navy-800
+      shadow-pixel-inset outline-none placeholder:text-navy-500/50
+      focus:border-sky-400;
+  }
+
+  .label {
+    @apply mb-1.5 block text-sm font-bold text-navy-700;
+  }
+}
+
+/* スクロールバーを控えめに */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

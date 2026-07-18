@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useGameState } from '@/hooks/useGameState';
 import { Expense, ExpenseCategory, EXPENSE_CATEGORIES, CATEGORY_EMOJI, CATEGORY_COLOR } from '@/types';
@@ -97,6 +98,28 @@ export default function ExpensesPage() {
             </p>
           </div>
         ))}
+      </div>
+
+      {/* やりくり電卓への導線 */}
+      <div className="px-4 mb-4">
+        <Link
+          href="/money"
+          className="card card-hover p-4 flex items-center gap-3 anim-fadeInUp stagger-2 active:scale-[0.985]"
+        >
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0"
+            style={{ background: 'rgba(53,146,119,0.10)' }}
+          >
+            💰
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium" style={{ color: '#1C1917' }}>使っていいお金を計算</p>
+            <p className="text-[11px] mt-0.5" style={{ color: '#A8A29E' }}>所持金から未払いの固定費を引いてすぐ確認</p>
+          </div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#A8A29E" strokeWidth={2} className="w-4 h-4 shrink-0">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+          </svg>
+        </Link>
       </div>
 
       {/* Tabs */}

@@ -1,33 +1,27 @@
 name: Deploy yarikuri to GitHub Pages
 
+# site/ の内容を gh-pages ブランチへ同期して公開する。
+# Pages のソースは gh-pages ブランチ（初回プッシュ時に自動有効化済み）。
 on:
   workflow_dispatch:
   push:
-    branches: [claude/mobile-money-calculator-ndye1f]
+    branches: [claude/mobile-money-calculator-ndye1f, main]
     paths: ['site/**', '.github/workflows/deploy-yarikuri.yml']
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
-  deploy:
+  publish:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
+      - name: Publish site/ to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          enablement: true
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: site
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site

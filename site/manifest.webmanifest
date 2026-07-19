@@ -1,0 +1,15 @@
+{
+  "name": "やりくり電卓",
+  "short_name": "やりくり",
+  "description": "今持っているお金から未払いの固定費を引いて、使っていいお金をすぐ確認できる電卓",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F6F7F5",
+  "theme_color": "#359277",
+  "lang": "ja",
+  "icons": [
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

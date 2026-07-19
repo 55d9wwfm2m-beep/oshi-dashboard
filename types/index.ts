@@ -175,6 +175,17 @@ export const SKIN_TONES = [
   { name: 'ブラウン',   hex: '#A0714F' },
 ];
 
+// ──── やりくり電卓（使っていいお金計算） ────
+export interface FixedCost {
+  id: string;
+  name: string;
+  amount: number;
+  /** 毎月の支払日（1〜31） */
+  payDay: number;
+  /** 今月支払い済みか。月が変わると自動で false に戻る */
+  paid: boolean;
+}
+
 // DiceBear Adventurer の hair 値にマッピング
 export const HAIR_STYLES: { id: string; label: string }[] = [
   { id: 'long01',  label: 'ロング' },

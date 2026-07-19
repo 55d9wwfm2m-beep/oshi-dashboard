@@ -1,5 +1,7 @@
 'use client';
 
+import { createPortal } from 'react-dom';
+
 /** 下から出るモーダルシート（全ページ共通・iOS safe-area対応は.bottom-sheet側） */
 export default function BottomSheet({ open, onClose, title, children }: {
   open: boolean;
@@ -8,9 +10,12 @@ export default function BottomSheet({ open, onClose, title, children }: {
   children: React.ReactNode;
 }) {
   if (!open) return null;
-  return (
+  // body 直下に portal で描画する。ページ側の fadeIn アニメーション（main > *）が
+  // スタッキングコンテキストを作るため、ページ内に置くと z-index を上げても
+  // ボトムナビ（z-50）の下に描画され、シート下部のボタンが押せなくなる。
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-end"
+      className="fixed inset-0 z-[60] flex items-end"
       style={{ background: 'rgba(28,18,12,0.4)' }}
       onClick={onClose}
       role="dialog"
@@ -22,6 +27,7 @@ export default function BottomSheet({ open, onClose, title, children }: {
         {title && <h2 className="text-lg font-semibold mb-5" style={{ color: '#1C1917' }}>{title}</h2>}
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -1,0 +1,759 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>やりくり電卓</title>
+<meta name="description" content="今持っているお金から未払いの固定費を引いて、使っていいお金をすぐ確認できるシンプルな電卓。">
+<meta name="robots" content="noindex">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#F6F7F5">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141816">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="やりくり">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<style>
+  :root {
+    --bg: #F6F7F5;
+    --surface: #FFFFFF;
+    --surface-2: #EFF1EE;
+    --ink: #21261F;
+    --sub: #6E756E;
+    --muted: #9AA19A;
+    --line: rgba(33, 38, 31, 0.08);
+    --accent: #359277;
+    --accent-ink: #2B7A63;
+    --accent-soft: rgba(53, 146, 119, 0.10);
+    --danger: #C4574B;
+    --danger-soft: rgba(196, 87, 75, 0.10);
+    --shadow: 0 2px 16px rgba(33, 38, 31, 0.06);
+    --overlay: rgba(24, 28, 23, 0.42);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141816;
+      --surface: #1D2320;
+      --surface-2: #262D29;
+      --ink: #E9ECE9;
+      --sub: #A9B1AA;
+      --muted: #7E867F;
+      --line: rgba(233, 236, 233, 0.09);
+      --accent: #4FB394;
+      --accent-ink: #6BC5A8;
+      --accent-soft: rgba(79, 179, 148, 0.14);
+      --danger: #D97A6E;
+      --danger-soft: rgba(217, 122, 110, 0.14);
+      --shadow: 0 2px 16px rgba(0, 0, 0, 0.35);
+      --overlay: rgba(0, 0, 0, 0.55);
+    }
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.6;
+  }
+  .app { max-width: 480px; margin: 0 auto; padding: calc(24px + env(safe-area-inset-top)) 16px calc(56px + env(safe-area-inset-bottom)); }
+
+  .serif-num {
+    font-family: Georgia, "Times New Roman", "Hiragino Mincho ProN", serif;
+    font-style: italic;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── header ── */
+  .head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding: 8px 4px 20px; }
+  .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  .head h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.01em; margin: 2px 0 0; line-height: 1.3; }
+  .back {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 12px; font-weight: 500; color: var(--muted);
+    background: none; border: none; padding: 6px 4px; margin: -6px -4px 0; cursor: pointer; font-family: inherit;
+  }
+
+  /* ── buttons ── */
+  button { font-family: inherit; cursor: pointer; }
+  button:focus-visible, input:focus-visible, select:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+  .chipbtn {
+    border: none; border-radius: 999px; padding: 10px 18px;
+    font-size: 12px; font-weight: 600;
+    background: var(--accent-soft); color: var(--accent-ink);
+    transition: transform 0.15s ease; white-space: nowrap;
+  }
+  .chipbtn:active { transform: scale(0.95); }
+  .btn-primary {
+    display: block; width: 100%; border: none; border-radius: 18px;
+    padding: 16px; font-size: 15px; font-weight: 700; color: #fff;
+    background: var(--accent); transition: transform 0.15s ease;
+  }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-ghost {
+    flex: 1; border: none; border-radius: 16px; padding: 15px;
+    font-size: 14px; font-weight: 600;
+    background: var(--surface-2); color: var(--sub);
+  }
+  .btn-danger { background: var(--danger); }
+  .btn-primary:disabled { opacity: 0.4; cursor: default; }
+  .plusbtn {
+    width: 46px; height: 46px; border: none; border-radius: 16px;
+    font-size: 22px; line-height: 1; color: #fff; background: var(--accent);
+    box-shadow: var(--shadow); transition: transform 0.15s ease; flex-shrink: 0;
+  }
+  .plusbtn:active { transform: scale(0.9); }
+
+  /* ── cards ── */
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 22px; box-shadow: var(--shadow);
+    padding: 20px; margin-bottom: 14px;
+  }
+
+  /* ── month reset banner ── */
+  .banner { display: flex; align-items: flex-start; gap: 12px; }
+  .banner-icon {
+    width: 38px; height: 38px; border-radius: 12px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--accent-soft); font-size: 17px;
+  }
+  .banner h2 { font-size: 14px; font-weight: 600; margin: 0; }
+  .banner p { font-size: 12px; color: var(--sub); margin: 4px 0 0; }
+  .banner .closebtn {
+    border: none; background: none; color: var(--accent-ink);
+    font-size: 12px; font-weight: 600; padding: 8px; margin: -8px; flex-shrink: 0;
+  }
+
+  /* ── hero ── */
+  .hero { text-align: center; padding: 26px 20px 22px; background: linear-gradient(168deg, var(--accent-soft), var(--surface) 58%); }
+  .hero.is-short { background: linear-gradient(168deg, var(--danger-soft), var(--surface) 58%); }
+  .hero-label { font-size: 12px; font-weight: 600; letter-spacing: 0.12em; color: var(--sub); }
+  .hero-amount { font-size: 46px; font-weight: 600; line-height: 1.2; margin: 4px 0 0; transition: color 0.2s ease; }
+  .hero.is-short .hero-amount { color: var(--danger); }
+  .hero-hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .shortage {
+    display: inline-block; margin-top: 12px; padding: 8px 16px; border-radius: 999px;
+    font-size: 12px; font-weight: 600; background: var(--danger-soft); color: var(--danger);
+  }
+  .breakdown { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); display: grid; gap: 6px; }
+  .breakdown-row { display: flex; justify-content: space-between; font-size: 13px; }
+  .breakdown-row .k { color: var(--sub); }
+  .breakdown-row .v { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  /* ── inputs ── */
+  .field-label {
+    display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+  }
+  .money-wrap { position: relative; }
+  .money-wrap .yen {
+    position: absolute; left: 15px; top: 50%; transform: translateY(-50%);
+    font-size: 14px; color: var(--muted); pointer-events: none;
+  }
+  .input {
+    width: 100%; padding: 13px 15px; border-radius: 14px;
+    border: 1.5px solid var(--line); background: var(--bg);
+    font-size: 16px; color: var(--ink); font-family: inherit;
+    transition: border-color 0.15s ease;
+  }
+  .money-wrap .input { padding-left: 32px; font-weight: 600; font-size: 18px; font-variant-numeric: tabular-nums; }
+  .input:focus { border-color: var(--accent); outline: none; }
+  .input::placeholder { color: var(--muted); font-weight: 400; }
+  .formula { font-size: 11px; color: var(--muted); margin: 8px 0 0; }
+
+  /* ── fixed-cost list (home) ── */
+  .card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .card-title { font-size: 13px; font-weight: 600; color: var(--sub); margin: 0; }
+  .textlink { border: none; background: none; font-size: 12px; font-weight: 600; color: var(--accent-ink); padding: 8px; margin: -8px; }
+  .cost-list { list-style: none; margin: 0; padding: 0; }
+  .cost-list li { border-bottom: 1px solid var(--line); }
+  .cost-row {
+    width: 100%; display: flex; align-items: center; gap: 12px;
+    background: none; border: none; padding: 14px 0; text-align: left;
+    transition: opacity 0.15s ease;
+  }
+  .cost-row:active { opacity: 0.65; }
+  .checkmark {
+    width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid var(--line); background: var(--surface);
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .cost-row[aria-pressed="true"] .checkmark { background: var(--accent); border-color: var(--accent); }
+  .checkmark svg { width: 13px; height: 13px; display: none; }
+  .cost-row[aria-pressed="true"] .checkmark svg { display: block; }
+  .cost-main { flex: 1; min-width: 0; }
+  .cost-name { display: block; font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cost-row[aria-pressed="true"] .cost-name { color: var(--muted); }
+  .cost-day { display: block; font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .cost-side { text-align: right; flex-shrink: 0; }
+  .cost-amount { display: block; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .cost-row[aria-pressed="true"] .cost-amount { color: var(--muted); text-decoration: line-through; font-weight: 500; }
+  .cost-status { display: block; font-size: 11px; font-weight: 600; color: var(--muted); margin-top: 1px; }
+  .cost-row[aria-pressed="true"] .cost-status { color: var(--accent-ink); }
+  .totals { padding-top: 14px; display: grid; gap: 4px; }
+  .totals-row { display: flex; justify-content: space-between; align-items: baseline; }
+  .totals-row .k { font-size: 13px; color: var(--sub); }
+  .totals-row .v { font-size: 20px; font-weight: 600; }
+  .totals-row.small .k, .totals-row.small .v { font-size: 11px; color: var(--muted); font-weight: 500; }
+
+  /* ── empty states ── */
+  .empty { text-align: center; padding: 28px 12px; }
+  .empty .glyph { font-size: 38px; line-height: 1; }
+  .empty h3 { font-size: 14px; font-weight: 600; color: var(--sub); margin: 12px 0 0; }
+  .empty p { font-size: 12px; color: var(--muted); margin: 6px 0 0; }
+  .empty .cta {
+    display: inline-block; margin-top: 16px; border: none; border-radius: 999px;
+    padding: 13px 26px; font-size: 13px; font-weight: 700; color: #fff; background: var(--accent);
+  }
+
+  /* ── settings list ── */
+  .setting-row { display: flex; align-items: center; gap: 12px; padding: 16px; margin-bottom: 12px; }
+  .daybadge {
+    width: 42px; height: 42px; border-radius: 13px; flex-shrink: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: var(--accent-soft); color: var(--accent-ink);
+  }
+  .daybadge b { font-size: 15px; line-height: 1; font-variant-numeric: tabular-nums; }
+  .daybadge span { font-size: 9px; line-height: 1; margin-top: 2px; }
+  .setting-main { flex: 1; min-width: 0; }
+  .setting-name { font-size: 14px; font-weight: 600; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .setting-sub { font-size: 11px; color: var(--muted); margin: 2px 0 0; }
+  .setting-side { text-align: right; flex-shrink: 0; }
+  .setting-amount { font-size: 14px; font-weight: 700; margin: 0; font-variant-numeric: tabular-nums; }
+  .rowbtn { border: none; background: none; font-size: 11px; font-weight: 500; padding: 8px 6px; margin: 0 -2px; }
+  .rowbtn.edit { color: var(--muted); }
+  .rowbtn.del { color: var(--danger); opacity: 0.75; }
+
+  .summary .k { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  .summary .v { display: flex; align-items: baseline; gap: 8px; margin-top: 4px; }
+  .summary .v b { font-size: 24px; font-weight: 600; }
+  .summary .v span { font-size: 12px; color: var(--muted); }
+
+  .footnote { font-size: 11px; color: var(--muted); text-align: center; margin: 20px 8px 0; }
+
+  /* ── bottom sheet ── */
+  .overlay {
+    position: fixed; inset: 0; z-index: 60;
+    background: var(--overlay);
+    display: flex; align-items: flex-end; justify-content: center;
+  }
+  .overlay[hidden] { display: none; }
+  .sheet {
+    width: 100%; max-width: 480px;
+    background: var(--surface);
+    border-radius: 26px 26px 0 0;
+    padding: 22px 20px calc(30px + env(safe-area-inset-bottom));
+    max-height: 88dvh; overflow-y: auto; overscroll-behavior: contain;
+    animation: sheetUp 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes sheetUp { from { transform: translateY(32px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .grip { width: 40px; height: 4px; border-radius: 99px; background: var(--line); margin: 0 auto 18px; }
+  .sheet h2 { font-size: 17px; font-weight: 700; margin: 0 0 18px; }
+  .sheet .fields { display: grid; gap: 16px; }
+  .sheet .actions { display: flex; gap: 12px; margin-top: 24px; }
+  .sheet .actions .btn-primary { flex: 1; width: auto; }
+  select.input { appearance: none; -webkit-appearance: none; }
+  .del-summary { background: var(--danger-soft); border-radius: 16px; padding: 14px 16px; }
+  .del-summary b { font-size: 14px; display: block; }
+  .del-summary span { font-size: 12px; color: var(--sub); }
+  .del-note { font-size: 12px; color: var(--muted); margin: 12px 0 0; }
+
+  /* ── toast ── */
+  .toast {
+    position: fixed; left: 50%; bottom: calc(28px + env(safe-area-inset-bottom));
+    transform: translateX(-50%) translateY(8px); z-index: 90;
+    background: var(--ink); color: var(--bg);
+    font-size: 13px; font-weight: 500; padding: 10px 18px; border-radius: 999px;
+    opacity: 0; pointer-events: none; transition: opacity 0.25s ease, transform 0.25s ease;
+    max-width: calc(100vw - 48px); text-align: center;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .anim-in { animation: fadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  [hidden] { display: none !important; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sheet, .anim-in { animation: none; }
+    .toast { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ══════════ ホーム画面 ══════════ -->
+  <section id="view-home">
+    <header class="head">
+      <div>
+        <p class="eyebrow">Money</p>
+        <h1>やりくり電卓</h1>
+      </div>
+      <button class="chipbtn" data-nav="settings">固定費を設定</button>
+    </header>
+
+    <div class="card banner anim-in" id="reset-banner" role="status" hidden>
+      <div class="banner-icon">🗓️</div>
+      <div style="flex:1; min-width:0;">
+        <h2>新しい月になりました</h2>
+        <p>固定費の支払い状況をすべて「未払い」に戻しました。登録した固定費はそのまま残っています。</p>
+      </div>
+      <button class="closebtn" id="banner-close">閉じる</button>
+    </div>
+
+    <div class="card banner anim-in" id="storage-warn" role="alert" hidden>
+      <div class="banner-icon">⚠️</div>
+      <div style="flex:1; min-width:0;">
+        <h2>保存が利用できません</h2>
+        <p>プライベートブラウズなどで保存機能が使えないため、ページを閉じると入力内容が消えます。</p>
+      </div>
+    </div>
+
+    <div class="card hero anim-in" id="hero">
+      <p class="hero-label">使っていいお金</p>
+      <p class="hero-amount serif-num" id="hero-amount">¥0</p>
+      <div id="hero-detail"></div>
+    </div>
+
+    <div class="card anim-in">
+      <label class="field-label" for="balance">今持っているお金</label>
+      <div class="money-wrap">
+        <span class="yen">¥</span>
+        <input id="balance" class="input" type="text" inputmode="numeric" autocomplete="off" placeholder="0">
+      </div>
+      <p class="formula">使っていいお金 ＝ 今持っているお金 − 未払いの固定費</p>
+    </div>
+
+    <div class="card anim-in">
+      <div class="card-head">
+        <p class="card-title">今月の固定費</p>
+        <button class="textlink" data-nav="settings" id="edit-link" hidden>編集</button>
+      </div>
+      <div id="home-costs"></div>
+    </div>
+
+    <button class="btn-primary anim-in" data-nav="settings">固定費を設定する</button>
+
+    <p class="footnote">データはこの端末のブラウザ内にのみ保存されます</p>
+  </section>
+
+  <!-- ══════════ 固定費設定画面 ══════════ -->
+  <section id="view-settings" hidden>
+    <header class="head">
+      <div>
+        <button class="back" data-nav="home">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"></path></svg>
+          やりくり電卓へ戻る
+        </button>
+        <h1>固定費の設定</h1>
+      </div>
+      <button class="plusbtn" id="add-btn" aria-label="固定費を追加">＋</button>
+    </header>
+
+    <div class="card summary anim-in" id="summary" hidden>
+      <p class="k">毎月の固定費合計</p>
+      <div class="v"><b class="serif-num" id="summary-total">¥0</b><span id="summary-count"></span></div>
+    </div>
+
+    <div id="settings-list"></div>
+  </section>
+</div>
+
+<!-- ── 追加・編集シート ── -->
+<div class="overlay" id="sheet-form" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="form-title">
+    <div class="grip" aria-hidden="true"></div>
+    <h2 id="form-title">固定費を追加</h2>
+    <div class="fields">
+      <div>
+        <label class="field-label" for="f-name">固定費名 *</label>
+        <input id="f-name" class="input" type="text" placeholder="例：家賃・スマホ代・サブスク">
+      </div>
+      <div>
+        <label class="field-label" for="f-amount">金額 *</label>
+        <div class="money-wrap">
+          <span class="yen">¥</span>
+          <input id="f-amount" class="input" type="text" inputmode="numeric" autocomplete="off" placeholder="45,000">
+        </div>
+      </div>
+      <div>
+        <label class="field-label" for="f-day">支払日</label>
+        <select id="f-day" class="input"></select>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn-ghost" data-close="sheet-form">キャンセル</button>
+      <button class="btn-primary" id="form-save">追加する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 削除確認シート ── -->
+<div class="overlay" id="sheet-delete" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="del-title">
+    <div class="grip" aria-hidden="true"></div>
+    <h2 id="del-title">固定費を削除しますか？</h2>
+    <div class="del-summary">
+      <b id="del-name"></b>
+      <span id="del-detail"></span>
+    </div>
+    <p class="del-note">削除すると元に戻せません。来月以降も発生する固定費は残しておくのがおすすめです。</p>
+    <div class="actions">
+      <button class="btn-ghost" data-close="sheet-delete">キャンセル</button>
+      <button class="btn-primary btn-danger" id="del-confirm">削除する</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var KEYS = {
+    balance: 'oshi-money-balance',
+    costs: 'oshi-money-fixedcosts',
+    month: 'oshi-money-month'
+  };
+
+  /* ── storage（使えない環境ではメモリに退避） ── */
+  var storageOk = true;
+  function load(key, fallback) {
+    try {
+      var raw = localStorage.getItem(key);
+      return raw === null ? fallback : JSON.parse(raw);
+    } catch (e) { storageOk = false; return fallback; }
+  }
+  function save(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); }
+    catch (e) { storageOk = false; showStorageWarn(); }
+  }
+  function showStorageWarn() {
+    document.getElementById('storage-warn').hidden = false;
+  }
+
+  /* ── state ── */
+  var balanceRaw = load(KEYS.balance, '');   // 数字のみの文字列。'' は未入力
+  var costs = load(KEYS.costs, []);          // {id, name, amount, payDay, paid}
+  var savedMonth = load(KEYS.month, '');
+  var editId = null;
+  var deleteId = null;
+
+  if (typeof balanceRaw !== 'string') balanceRaw = String(balanceRaw || '');
+  if (!Array.isArray(costs)) costs = [];
+
+  /* ── utils ── */
+  function digitsOnly(v) {
+    return v
+      .replace(/[０-９]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xfee0); })
+      .replace(/\D/g, '')
+      .replace(/^0+(?=\d)/, '')
+      .slice(0, 9);
+  }
+  function yen(n) { return '¥' + Math.abs(n).toLocaleString('ja-JP'); }
+  function yenSigned(n) { return (n < 0 ? '-' : '') + yen(n); }
+  function currentMonth() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  }
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+  function esc(s) {
+    return s.replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function sorted() {
+    return costs.slice().sort(function (a, b) {
+      return a.payDay - b.payDay || a.name.localeCompare(b.name, 'ja');
+    });
+  }
+  function unpaidTotal() {
+    return costs.reduce(function (s, c) { return s + (c.paid ? 0 : c.amount); }, 0);
+  }
+
+  var toastTimer = null;
+  function toast(msg) {
+    var el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove('show'); }, 2200);
+  }
+
+  /* ── 月替わり検知：支払い状況だけ未払いへ戻す ── */
+  var nowMonth = currentMonth();
+  if (savedMonth !== nowMonth) {
+    if (savedMonth && costs.some(function (c) { return c.paid; })) {
+      costs = costs.map(function (c) {
+        return { id: c.id, name: c.name, amount: c.amount, payDay: c.payDay, paid: false };
+      });
+      save(KEYS.costs, costs);
+      document.getElementById('reset-banner').hidden = false;
+      setTimeout(function () { toast('新しい月になったので、支払い状況をリセットしました'); }, 400);
+    }
+    save(KEYS.month, nowMonth);
+  }
+
+  /* ── ホーム描画 ── */
+  var balanceInput = document.getElementById('balance');
+
+  function renderHero() {
+    var hero = document.getElementById('hero');
+    var amountEl = document.getElementById('hero-amount');
+    var detail = document.getElementById('hero-detail');
+    var empty = balanceRaw === '';
+    var balance = empty ? 0 : parseInt(balanceRaw, 10) || 0;
+    var unpaid = unpaidTotal();
+    var spendable = empty ? 0 : balance - unpaid; // 未入力時は結果を0円として扱う
+    var short = !empty && spendable < 0;
+
+    hero.classList.toggle('is-short', short);
+    amountEl.textContent = yenSigned(spendable);
+
+    if (empty) {
+      detail.innerHTML = '<p class="hero-hint">今持っているお金を入力すると自動で計算されます</p>';
+    } else if (short) {
+      detail.innerHTML = '<span class="shortage">固定費に対して ' + yen(-spendable) + ' 不足しています</span>';
+    } else {
+      detail.innerHTML =
+        '<div class="breakdown">' +
+          '<div class="breakdown-row"><span class="k">今持っているお金</span><span class="v">' + yen(balance) + '</span></div>' +
+          '<div class="breakdown-row"><span class="k">未払いの固定費</span><span class="v">−' + yen(unpaid) + '</span></div>' +
+        '</div>';
+    }
+  }
+
+  function renderHomeCosts() {
+    var box = document.getElementById('home-costs');
+    document.getElementById('edit-link').hidden = costs.length === 0;
+
+    if (costs.length === 0) {
+      box.innerHTML =
+        '<div class="empty">' +
+          '<div class="glyph">🧾</div>' +
+          '<h3>固定費がまだ登録されていません</h3>' +
+          '<p>家賃・スマホ代・サブスクなどを登録すると<br>使っていいお金が自動で計算されます</p>' +
+          '<button class="cta" data-nav="settings">＋ 固定費を登録する</button>' +
+        '</div>';
+      return;
+    }
+
+    var check = '<svg viewBox="0 0 20 20" fill="none" stroke="#fff" stroke-width="2.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 10.5l3.5 3.5 7.5-8.5"></path></svg>';
+    var rows = sorted().map(function (c) {
+      return '<li><button class="cost-row" data-toggle="' + c.id + '" aria-pressed="' + c.paid + '" ' +
+        'aria-label="' + esc(c.name) + ' を' + (c.paid ? '未払い' : '支払い済み') + 'にする">' +
+        '<span class="checkmark">' + check + '</span>' +
+        '<span class="cost-main"><span class="cost-name">' + esc(c.name) + '</span>' +
+        '<span class="cost-day">毎月' + c.payDay + '日</span></span>' +
+        '<span class="cost-side"><span class="cost-amount">' + yen(c.amount) + '</span>' +
+        '<span class="cost-status">' + (c.paid ? '支払い済み' : '未払い') + '</span></span>' +
+        '</button></li>';
+    }).join('');
+
+    var paidTotal = costs.reduce(function (s, c) { return s + (c.paid ? c.amount : 0); }, 0);
+    var totals =
+      '<div class="totals">' +
+        '<div class="totals-row"><span class="k">未払いの合計</span><span class="v serif-num">' + yen(unpaidTotal()) + '</span></div>' +
+        (paidTotal > 0
+          ? '<div class="totals-row small"><span class="k">支払い済みの合計</span><span class="v">' + yen(paidTotal) + '</span></div>'
+          : '') +
+      '</div>';
+
+    box.innerHTML = '<ul class="cost-list">' + rows + '</ul>' + totals;
+  }
+
+  function renderHome() {
+    balanceInput.value = balanceRaw === '' ? '' : parseInt(balanceRaw, 10).toLocaleString('ja-JP');
+    renderHero();
+    renderHomeCosts();
+  }
+
+  /* ── 設定画面描画 ── */
+  function renderSettings() {
+    var listEl = document.getElementById('settings-list');
+    var summary = document.getElementById('summary');
+
+    if (costs.length === 0) {
+      summary.hidden = true;
+      listEl.innerHTML =
+        '<div class="empty" style="padding-top:48px;">' +
+          '<div class="glyph">🧾</div>' +
+          '<h3>固定費がまだ登録されていません</h3>' +
+          '<p>家賃・スマホ代・サブスク・貯金など<br>毎月かならず出ていくお金を登録しましょう</p>' +
+          '<button class="cta" id="empty-add">＋ 最初の固定費を登録</button>' +
+        '</div>';
+      var btn = document.getElementById('empty-add');
+      if (btn) btn.addEventListener('click', function () { openForm(null); });
+      return;
+    }
+
+    summary.hidden = false;
+    var total = costs.reduce(function (s, c) { return s + c.amount; }, 0);
+    document.getElementById('summary-total').textContent = yen(total);
+    document.getElementById('summary-count').textContent = costs.length + '件';
+
+    listEl.innerHTML = sorted().map(function (c) {
+      return '<div class="card setting-row">' +
+        '<div class="daybadge"><b>' + c.payDay + '</b><span>日</span></div>' +
+        '<div class="setting-main"><p class="setting-name">' + esc(c.name) + '</p>' +
+        '<p class="setting-sub">毎月' + c.payDay + '日に支払い</p></div>' +
+        '<div class="setting-side"><p class="setting-amount">' + yen(c.amount) + '</p>' +
+        '<button class="rowbtn edit" data-edit="' + c.id + '" aria-label="' + esc(c.name) + 'を編集">編集</button>' +
+        '<button class="rowbtn del" data-del="' + c.id + '" aria-label="' + esc(c.name) + 'を削除">削除</button></div>' +
+        '</div>';
+    }).join('');
+  }
+
+  /* ── 画面切り替え ── */
+  function show(view) {
+    document.getElementById('view-home').hidden = view !== 'home';
+    document.getElementById('view-settings').hidden = view !== 'settings';
+    if (view === 'home') renderHome(); else renderSettings();
+    window.scrollTo(0, 0);
+  }
+
+  /* ── 追加・編集シート ── */
+  var daySelect = document.getElementById('f-day');
+  for (var d = 1; d <= 31; d++) {
+    var opt = document.createElement('option');
+    opt.value = d;
+    opt.textContent = '毎月 ' + d + ' 日';
+    daySelect.appendChild(opt);
+  }
+
+  var nameInput = document.getElementById('f-name');
+  var amountInput = document.getElementById('f-amount');
+  var saveBtn = document.getElementById('form-save');
+
+  function openForm(cost) {
+    editId = cost ? cost.id : null;
+    document.getElementById('form-title').textContent = cost ? '固定費を編集' : '固定費を追加';
+    saveBtn.textContent = cost ? '保存する' : '追加する';
+    nameInput.value = cost ? cost.name : '';
+    amountInput.value = cost ? cost.amount.toLocaleString('ja-JP') : '';
+    daySelect.value = cost ? String(cost.payDay) : '1';
+    validateForm();
+    document.getElementById('sheet-form').hidden = false;
+    nameInput.focus();
+  }
+  function closeSheet(id) { document.getElementById(id).hidden = true; }
+
+  function amountValue() {
+    var raw = digitsOnly(amountInput.value);
+    return raw === '' ? 0 : parseInt(raw, 10) || 0;
+  }
+  function validateForm() {
+    saveBtn.disabled = nameInput.value.trim() === '' || amountValue() <= 0;
+  }
+  nameInput.addEventListener('input', validateForm);
+  amountInput.addEventListener('input', function () {
+    var raw = digitsOnly(amountInput.value);
+    amountInput.value = raw === '' ? '' : parseInt(raw, 10).toLocaleString('ja-JP');
+    validateForm();
+  });
+
+  saveBtn.addEventListener('click', function () {
+    var name = nameInput.value.trim();
+    var amount = amountValue();
+    if (!name || amount <= 0) return;
+    var payDay = Math.min(Math.max(parseInt(daySelect.value, 10) || 1, 1), 31);
+    if (editId) {
+      costs = costs.map(function (c) {
+        return c.id === editId ? { id: c.id, name: name, amount: amount, payDay: payDay, paid: c.paid } : c;
+      });
+      toast('固定費を更新しました');
+    } else {
+      costs.push({ id: uid(), name: name, amount: amount, payDay: payDay, paid: false });
+      toast('固定費を追加しました');
+    }
+    save(KEYS.costs, costs);
+    closeSheet('sheet-form');
+    renderSettings();
+  });
+
+  /* ── 削除確認シート ── */
+  function openDelete(cost) {
+    deleteId = cost.id;
+    document.getElementById('del-name').textContent = cost.name;
+    document.getElementById('del-detail').textContent = yen(cost.amount) + '・毎月' + cost.payDay + '日';
+    document.getElementById('sheet-delete').hidden = false;
+  }
+  document.getElementById('del-confirm').addEventListener('click', function () {
+    var target = costs.find(function (c) { return c.id === deleteId; });
+    costs = costs.filter(function (c) { return c.id !== deleteId; });
+    save(KEYS.costs, costs);
+    closeSheet('sheet-delete');
+    renderSettings();
+    if (target) toast('「' + target.name + '」を削除しました');
+  });
+
+  /* ── 所持金入力（入力中に自動計算） ── */
+  balanceInput.addEventListener('input', function () {
+    balanceRaw = digitsOnly(balanceInput.value);
+    balanceInput.value = balanceRaw === '' ? '' : parseInt(balanceRaw, 10).toLocaleString('ja-JP');
+    save(KEYS.balance, balanceRaw);
+    renderHero();
+  });
+
+  /* ── クリック委譲 ── */
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest('[data-nav], [data-toggle], [data-edit], [data-del], [data-close], .overlay');
+    if (!t) return;
+
+    if (t.dataset && t.dataset.nav) { show(t.dataset.nav); return; }
+    if (t.dataset && t.dataset.close) { closeSheet(t.dataset.close); return; }
+    if (t.classList.contains('overlay') && e.target === t) { t.hidden = true; return; }
+
+    if (t.dataset && t.dataset.toggle) {
+      costs = costs.map(function (c) {
+        return c.id === t.dataset.toggle
+          ? { id: c.id, name: c.name, amount: c.amount, payDay: c.payDay, paid: !c.paid }
+          : c;
+      });
+      save(KEYS.costs, costs);
+      renderHome();
+      return;
+    }
+    if (t.dataset && t.dataset.edit) {
+      var ce = costs.find(function (c) { return c.id === t.dataset.edit; });
+      if (ce) openForm(ce);
+      return;
+    }
+    if (t.dataset && t.dataset.del) {
+      var cd = costs.find(function (c) { return c.id === t.dataset.del; });
+      if (cd) openDelete(cd);
+    }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    closeSheet('sheet-form');
+    closeSheet('sheet-delete');
+  });
+
+  document.getElementById('add-btn').addEventListener('click', function () { openForm(null); });
+  document.getElementById('banner-close').addEventListener('click', function () {
+    document.getElementById('reset-banner').hidden = true;
+  });
+
+  if (!storageOk) showStorageWarn();
+  show('home');
+
+  /* ── オフライン対応（ホーム画面アプリとして電波がなくても開けるように） ── */
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(function () { /* 未対応環境は無視 */ });
+  }
+})();
+</script>
+</body>
+</html>

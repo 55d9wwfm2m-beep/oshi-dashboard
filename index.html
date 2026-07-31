@@ -166,6 +166,22 @@
   .legend span { display: inline-flex; align-items: center; gap: 4px; }
   .legend i { width: 7px; height: 7px; border-radius: 50%; }
 
+  /* ── 給料日チップ ── */
+  .payday-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-bottom: 12px; padding: 7px 15px; border-radius: 999px;
+    border: none; font-family: inherit;
+    font-size: 12px; font-weight: 600;
+    background: var(--surface-2); color: var(--sub);
+    transition: transform 0.15s ease;
+  }
+  .payday-chip:active { transform: scale(0.96); }
+  .payday-chip b { font-weight: 700; color: var(--ink); }
+  .payday-chip.is-today { background: var(--accent-soft); color: var(--accent-ink); }
+  .payday-chip.as-btn {
+    background: transparent; border: 1.5px dashed var(--line); color: var(--muted);
+  }
+
   /* ── 買う前にチェック（購入シミュレーション） ── */
   .sim-row { display: flex; gap: 10px; }
   .sim-btn {
@@ -363,6 +379,7 @@
     </div>
 
     <div class="card hero anim-in" id="hero">
+      <div><button class="payday-chip" id="payday-chip" data-nav="settings" hidden></button></div>
       <p class="hero-label">使っていいお金</p>
       <p class="hero-amount serif-num" id="hero-amount">¥0</p>
       <div id="hero-detail"></div>
@@ -423,6 +440,14 @@
       </div>
       <button class="plusbtn" id="add-btn" aria-label="固定費を追加">＋</button>
     </header>
+
+    <div class="card anim-in">
+      <label class="field-label" for="payday-select">給料日</label>
+      <select id="payday-select" class="input">
+        <option value="0">未設定</option>
+      </select>
+      <p class="formula">設定するとホームに給料日までの残り日数が表示されます</p>
+    </div>
 
     <div class="card summary anim-in" id="summary" hidden>
       <p class="k">毎月の固定費合計</p>
@@ -488,7 +513,8 @@
   var KEYS = {
     balance: 'oshi-money-balance',
     costs: 'oshi-money-fixedcosts',
-    month: 'oshi-money-month'
+    month: 'oshi-money-month',
+    payday: 'oshi-money-payday'
   };
 
   /* ── storage（使えない環境ではメモリに退避） ── */
@@ -511,8 +537,11 @@
   var balanceRaw = load(KEYS.balance, '');   // 数字のみの文字列。'' は未入力
   var costs = load(KEYS.costs, []);          // {id, name, amount, payDay, paid}
   var savedMonth = load(KEYS.month, '');
+  var payday = load(KEYS.payday, 0);         // 給料日（1〜31）。0 は未設定
   var editId = null;
   var deleteId = null;
+
+  if (typeof payday !== 'number' || payday < 0 || payday > 31) payday = 0;
 
   if (typeof balanceRaw !== 'string') balanceRaw = String(balanceRaw || '');
   if (!Array.isArray(costs)) costs = [];
@@ -583,6 +612,37 @@
       setTimeout(function () { toast('新しい月になったので、支払い状況をリセットしました'); }, 400);
     }
     save(KEYS.month, nowMonth);
+  }
+
+  /* ── 給料日 ── */
+
+  /** 次の給料日まで何日か（今日なら0）。月にない日（31日など）はその月の末日として扱う */
+  function paydayDaysLeft(day) {
+    var now = new Date();
+    now.setHours(0, 0, 0, 0);
+    function eff(y, m) { return Math.min(day, new Date(y, m + 1, 0).getDate()); }
+    var y = now.getFullYear(), m = now.getMonth();
+    var target = new Date(y, m, eff(y, m));
+    if (target < now) target = new Date(y, m + 1, eff(y, m + 1));
+    return Math.round((target - now) / 86400000);
+  }
+
+  function renderPayday() {
+    var chip = document.getElementById('payday-chip');
+    chip.hidden = false;
+    chip.classList.remove('is-today', 'as-btn');
+    if (!payday) {
+      chip.classList.add('as-btn');
+      chip.textContent = '🗓 給料日を設定する';
+      return;
+    }
+    var days = paydayDaysLeft(payday);
+    if (days === 0) {
+      chip.classList.add('is-today');
+      chip.textContent = '🎉 今日は給料日！';
+    } else {
+      chip.innerHTML = '💴 給料日（毎月' + payday + '日）まで <b>あと' + days + '日</b>';
+    }
   }
 
   /* ── ホーム描画 ── */
@@ -663,14 +723,29 @@
 
   function renderHome() {
     balanceInput.value = balanceRaw === '' ? '' : parseInt(balanceRaw, 10).toLocaleString('ja-JP');
+    renderPayday();
     renderHero();
     renderHomeCosts();
   }
 
   /* ── 設定画面描画 ── */
+  var paydaySelect = document.getElementById('payday-select');
+  for (var pd = 1; pd <= 31; pd++) {
+    var pdOpt = document.createElement('option');
+    pdOpt.value = pd;
+    pdOpt.textContent = '毎月 ' + pd + ' 日';
+    paydaySelect.appendChild(pdOpt);
+  }
+  paydaySelect.addEventListener('change', function () {
+    payday = parseInt(paydaySelect.value, 10) || 0;
+    save(KEYS.payday, payday);
+    toast(payday ? '給料日を毎月' + payday + '日に設定しました' : '給料日の設定を解除しました');
+  });
+
   function renderSettings() {
     var listEl = document.getElementById('settings-list');
     var summary = document.getElementById('summary');
+    paydaySelect.value = String(payday || 0);
 
     if (costs.length === 0) {
       summary.hidden = true;

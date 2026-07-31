@@ -21,6 +21,7 @@ const PAY_DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
 
 export default function MoneySettingsPage() {
   const [costs, setCosts, loaded] = useLocalStorage<FixedCost[]>(MONEY_KEYS.fixedCosts, []);
+  const [payday, setPayday, paydayLoaded] = useLocalStorage<number>(MONEY_KEYS.payday, 0);
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [nameInput, setNameInput] = useState('');
@@ -28,7 +29,7 @@ export default function MoneySettingsPage() {
   const [dayInput, setDayInput] = useState('1');
   const [deleteTarget, setDeleteTarget] = useState<FixedCost | null>(null);
 
-  if (!loaded) return null;
+  if (!loaded || !paydayLoaded) return null;
 
   const sorted = sortByPayDay(costs);
   const total = costs.reduce((s, c) => s + c.amount, 0);
@@ -101,6 +102,29 @@ export default function MoneySettingsPage() {
       </div>
 
       <div className="px-4 space-y-4">
+        {/* 給料日 */}
+        <div className="card p-5 anim-fadeInUp">
+          <label className="field-label" htmlFor="payday-select">給料日</label>
+          <select
+            id="payday-select"
+            value={String(payday)}
+            onChange={e => {
+              const v = parseInt(e.target.value, 10) || 0;
+              setPayday(v);
+              showToast(v ? `給料日を毎月${v}日に設定しました` : '給料日の設定を解除しました');
+            }}
+            className="input"
+          >
+            <option value="0">未設定</option>
+            {PAY_DAYS.map(d => (
+              <option key={d} value={d}>毎月 {d} 日</option>
+            ))}
+          </select>
+          <p className="text-[11px] mt-2" style={{ color: '#A8A29E' }}>
+            設定するとホームに給料日までの残り日数が表示されます
+          </p>
+        </div>
+
         {/* 合計サマリー */}
         {costs.length > 0 && (
           <div className="card p-5 anim-fadeInUp">

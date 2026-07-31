@@ -16,6 +16,7 @@ import {
   digitsOnly,
   unpaidTotal,
   formatYenSigned,
+  paydayDaysLeft,
 } from '@/lib/money';
 import { showToast } from '@/components/ui/Toast';
 
@@ -36,6 +37,7 @@ export default function MoneyPage() {
   const [balanceRaw, setBalanceRaw, balanceLoaded] = useLocalStorage<string>(MONEY_KEYS.balance, '');
   const [costs, setCosts, costsLoaded] = useLocalStorage<FixedCost[]>(MONEY_KEYS.fixedCosts, []);
   const [month, setMonth, monthLoaded] = useLocalStorage<string>(MONEY_KEYS.month, '');
+  const [payday, , paydayLoaded] = useLocalStorage<number>(MONEY_KEYS.payday, 0);
   const [showResetNotice, setShowResetNotice] = useState(false);
   const [simRaw, setSimRaw] = useState('');
   const [simOpen, setSimOpen] = useState(false);
@@ -53,7 +55,9 @@ export default function MoneyPage() {
     setMonth(current);
   }, [costsLoaded, monthLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!balanceLoaded || !costsLoaded || !monthLoaded) return null;
+  if (!balanceLoaded || !costsLoaded || !monthLoaded || !paydayLoaded) return null;
+
+  const paydayDays = payday ? paydayDaysLeft(payday) : null;
 
   const balanceEmpty = balanceRaw === '';
   const balance = balanceEmpty ? 0 : parseInt(balanceRaw, 10) || 0;
@@ -137,6 +141,35 @@ export default function MoneyPage() {
               : `linear-gradient(165deg, ${heroMeta.bg}, #FFFFFF 60%)`,
           }}
         >
+          {/* 給料日チップ（タップで設定へ） */}
+          <div className="mb-3">
+            {payday === 0 ? (
+              <Link
+                href="/money/settings"
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold active:scale-95 transition-transform"
+                style={{ border: '1.5px dashed rgba(28,18,12,0.12)', color: '#A8A29E' }}
+              >
+                🗓 給料日を設定する
+              </Link>
+            ) : paydayDays === 0 ? (
+              <Link
+                href="/money/settings"
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold active:scale-95 transition-transform"
+                style={{ background: MONEY_ACCENT_BG, color: MONEY_ACCENT }}
+              >
+                🎉 今日は給料日！
+              </Link>
+            ) : (
+              <Link
+                href="/money/settings"
+                className="inline-flex items-center gap-1 px-4 py-1.5 rounded-full text-xs font-semibold active:scale-95 transition-transform"
+                style={{ background: '#F0EBE6', color: '#78716C' }}
+              >
+                💴 給料日（毎月{payday}日）まで
+                <b style={{ color: '#1C1917' }}>あと{paydayDays}日</b>
+              </Link>
+            )}
+          </div>
           <p className="text-xs font-medium tracking-widest" style={{ color: '#78716C' }}>
             使っていいお金
           </p>

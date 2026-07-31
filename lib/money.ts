@@ -8,7 +8,21 @@ export const MONEY_KEYS = {
   fixedCosts: 'oshi-money-fixedcosts',
   /** 支払い状況を最後にリセットした月（YYYY-MM） */
   month: 'oshi-money-month',
+  /** 給料日（1〜31）。0 は未設定 */
+  payday: 'oshi-money-payday',
 } as const;
+
+/** 次の給料日まで何日か（今日なら0）。月にない日（31日など）はその月の末日として扱う */
+export function paydayDaysLeft(day: number): number {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const eff = (y: number, m: number) => Math.min(day, new Date(y, m + 1, 0).getDate());
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  let target = new Date(y, m, eff(y, m));
+  if (target < now) target = new Date(y, m + 1, eff(y, m + 1));
+  return Math.round((target.getTime() - now.getTime()) / 86400000);
+}
 
 /** やりくり電卓の配色（白・薄いグレー・淡い緑）。推しテーマの --accent とは独立 */
 export const MONEY_ACCENT = '#359277';

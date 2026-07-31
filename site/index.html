@@ -446,7 +446,7 @@
       <select id="payday-select" class="input">
         <option value="0">未設定</option>
       </select>
-      <p class="formula">設定するとホームに給料日までの残り日数が表示されます</p>
+      <p class="formula" id="payday-note"></p>
     </div>
 
     <div class="card summary anim-in" id="summary" hidden>
@@ -614,17 +614,94 @@
     save(KEYS.month, nowMonth);
   }
 
-  /* ── 給料日 ── */
+  /* ── 給料日（土日・祝日は前の平日に前倒し） ── */
+  var WEEKDAY_JA = ['日', '月', '火', '水', '木', '金', '土'];
+  var holidayCache = {};
 
-  /** 次の給料日まで何日か（今日なら0）。月にない日（31日など）はその月の末日として扱う */
-  function paydayDaysLeft(day) {
+  function dayKey(d) { return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate(); }
+
+  /** その年 y の m 月（0始まり）の第 nth 月曜の日にち */
+  function nthMonday(y, m, nth) {
+    return 1 + ((8 - new Date(y, m, 1).getDay()) % 7) + (nth - 1) * 7;
+  }
+
+  /** 日本の祝日（振替休日・国民の休日を含む）。1980〜2099年ごろで有効 */
+  function holidaysOf(year) {
+    if (holidayCache[year]) return holidayCache[year];
+    var equinox = function (base) {
+      return Math.floor(base + 0.242194 * (year - 1980) - Math.floor((year - 1980) / 4));
+    };
+    var base = [
+      [0, 1],                        // 元日
+      [0, nthMonday(year, 0, 2)],    // 成人の日
+      [1, 11],                       // 建国記念の日
+      [1, 23],                       // 天皇誕生日
+      [2, equinox(20.8431)],         // 春分の日
+      [3, 29],                       // 昭和の日
+      [4, 3], [4, 4], [4, 5],        // 憲法記念日・みどりの日・こどもの日
+      [6, nthMonday(year, 6, 3)],    // 海の日
+      [7, 11],                       // 山の日
+      [8, nthMonday(year, 8, 3)],    // 敬老の日
+      [8, equinox(23.2488)],         // 秋分の日
+      [9, nthMonday(year, 9, 2)],    // スポーツの日
+      [10, 3], [10, 23]              // 文化の日・勤労感謝の日
+    ];
+    var set = {};
+    base.forEach(function (md) { set[dayKey(new Date(year, md[0], md[1]))] = true; });
+
+    // 振替休日：日曜と重なった祝日は、その後の最初の平日を休日にする
+    base.forEach(function (md) {
+      var d = new Date(year, md[0], md[1]);
+      if (d.getDay() !== 0) return;
+      do { d.setDate(d.getDate() + 1); } while (set[dayKey(d)]);
+      set[dayKey(d)] = true;
+    });
+
+    // 国民の休日：祝日と祝日に挟まれた平日も休日になる
+    base.forEach(function (md) {
+      var d = new Date(year, md[0], md[1] + 1);
+      if (set[dayKey(d)] || d.getDay() === 0) return;
+      var next = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+      if (set[dayKey(next)]) set[dayKey(d)] = true;
+    });
+
+    holidayCache[year] = set;
+    return set;
+  }
+
+  function isBusinessDay(d) {
+    return d.getDay() !== 0 && d.getDay() !== 6 && !holidaysOf(d.getFullYear())[dayKey(d)];
+  }
+
+  /**
+   * 次の給料日の情報。
+   * 月にない日（31日など）はその月の末日として扱い、土日・祝日ならその前の平日へ前倒しする。
+   * 戻り値: { date: 支給日, days: 今日からの日数（今日なら0）, moved: 前倒しされたか }
+   */
+  function nextPaydayInfo(day) {
     var now = new Date();
     now.setHours(0, 0, 0, 0);
-    function eff(y, m) { return Math.min(day, new Date(y, m + 1, 0).getDate()); }
-    var y = now.getFullYear(), m = now.getMonth();
-    var target = new Date(y, m, eff(y, m));
-    if (target < now) target = new Date(y, m + 1, eff(y, m + 1));
-    return Math.round((target - now) / 86400000);
+    for (var k = 0; k <= 3; k++) {
+      var y = now.getFullYear();
+      var m = now.getMonth() + k;
+      var raw = new Date(y, m, Math.min(day, new Date(y, m + 1, 0).getDate()));
+      var adj = new Date(raw);
+      while (!isBusinessDay(adj)) adj.setDate(adj.getDate() - 1);
+      if (adj >= now) {
+        return {
+          date: adj,
+          days: Math.round((adj - now) / 86400000),
+          moved: adj.getTime() !== raw.getTime()
+        };
+      }
+    }
+    return null;
+  }
+
+  /** 「8/24（金・前倒し）」形式のラベル */
+  function paydayLabel(info) {
+    return (info.date.getMonth() + 1) + '/' + info.date.getDate() +
+      '（' + WEEKDAY_JA[info.date.getDay()] + (info.moved ? '・前倒し' : '') + '）';
   }
 
   function renderPayday() {
@@ -636,12 +713,13 @@
       chip.textContent = '🗓 給料日を設定する';
       return;
     }
-    var days = paydayDaysLeft(payday);
-    if (days === 0) {
+    var info = nextPaydayInfo(payday);
+    if (!info) { chip.hidden = true; return; }
+    if (info.days === 0) {
       chip.classList.add('is-today');
       chip.textContent = '🎉 今日は給料日！';
     } else {
-      chip.innerHTML = '💴 給料日（毎月' + payday + '日）まで <b>あと' + days + '日</b>';
+      chip.innerHTML = '💴 給料日 ' + paydayLabel(info) + ' まで <b>あと' + info.days + '日</b>';
     }
   }
 
@@ -736,9 +814,26 @@
     pdOpt.textContent = '毎月 ' + pd + ' 日';
     paydaySelect.appendChild(pdOpt);
   }
+  var PAYDAY_RULE = '土日・祝日にあたる月は、その前の平日に自動で前倒しします。';
+
+  function renderPaydayNote() {
+    var note = document.getElementById('payday-note');
+    if (!payday) {
+      note.textContent = '設定するとホームに給料日までの残り日数が表示されます。' + PAYDAY_RULE;
+      return;
+    }
+    var info = nextPaydayInfo(payday);
+    if (!info) { note.textContent = PAYDAY_RULE; return; }
+    note.textContent =
+      '次回は ' + (info.date.getMonth() + 1) + '月' + info.date.getDate() + '日（' +
+      WEEKDAY_JA[info.date.getDay()] + '）' +
+      (info.moved ? '。' + payday + '日が休日のため前倒しされます' : 'です') + '。' + PAYDAY_RULE;
+  }
+
   paydaySelect.addEventListener('change', function () {
     payday = parseInt(paydaySelect.value, 10) || 0;
     save(KEYS.payday, payday);
+    renderPaydayNote();
     toast(payday ? '給料日を毎月' + payday + '日に設定しました' : '給料日の設定を解除しました');
   });
 
@@ -746,6 +841,7 @@
     var listEl = document.getElementById('settings-list');
     var summary = document.getElementById('summary');
     paydaySelect.value = String(payday || 0);
+    renderPaydayNote();
 
     if (costs.length === 0) {
       summary.hidden = true;

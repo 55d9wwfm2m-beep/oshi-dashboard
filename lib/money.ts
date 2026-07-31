@@ -12,16 +12,103 @@ export const MONEY_KEYS = {
   payday: 'oshi-money-payday',
 } as const;
 
-/** 次の給料日まで何日か（今日なら0）。月にない日（31日など）はその月の末日として扱う */
-export function paydayDaysLeft(day: number): number {
+export const WEEKDAY_JA = ['日', '月', '火', '水', '木', '金', '土'];
+
+const holidayCache: Record<number, Record<string, true>> = {};
+
+const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+
+/** その年 y の m 月（0始まり）の第 nth 月曜の日にち */
+const nthMonday = (y: number, m: number, nth: number) =>
+  1 + ((8 - new Date(y, m, 1).getDay()) % 7) + (nth - 1) * 7;
+
+/** 日本の祝日（振替休日・国民の休日を含む）。1980〜2099年ごろで有効 */
+function holidaysOf(year: number): Record<string, true> {
+  const cached = holidayCache[year];
+  if (cached) return cached;
+
+  const equinox = (base: number) =>
+    Math.floor(base + 0.242194 * (year - 1980) - Math.floor((year - 1980) / 4));
+
+  const base: [number, number][] = [
+    [0, 1],                        // 元日
+    [0, nthMonday(year, 0, 2)],    // 成人の日
+    [1, 11],                       // 建国記念の日
+    [1, 23],                       // 天皇誕生日
+    [2, equinox(20.8431)],         // 春分の日
+    [3, 29],                       // 昭和の日
+    [4, 3], [4, 4], [4, 5],        // 憲法記念日・みどりの日・こどもの日
+    [6, nthMonday(year, 6, 3)],    // 海の日
+    [7, 11],                       // 山の日
+    [8, nthMonday(year, 8, 3)],    // 敬老の日
+    [8, equinox(23.2488)],         // 秋分の日
+    [9, nthMonday(year, 9, 2)],    // スポーツの日
+    [10, 3], [10, 23],             // 文化の日・勤労感謝の日
+  ];
+
+  const set: Record<string, true> = {};
+  base.forEach(([m, d]) => { set[dayKey(new Date(year, m, d))] = true; });
+
+  // 振替休日：日曜と重なった祝日は、その後の最初の平日を休日にする
+  base.forEach(([m, d]) => {
+    const date = new Date(year, m, d);
+    if (date.getDay() !== 0) return;
+    do { date.setDate(date.getDate() + 1); } while (set[dayKey(date)]);
+    set[dayKey(date)] = true;
+  });
+
+  // 国民の休日：祝日と祝日に挟まれた平日も休日になる
+  base.forEach(([m, d]) => {
+    const date = new Date(year, m, d + 1);
+    if (set[dayKey(date)] || date.getDay() === 0) return;
+    const next = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+    if (set[dayKey(next)]) set[dayKey(date)] = true;
+  });
+
+  holidayCache[year] = set;
+  return set;
+}
+
+export function isBusinessDay(d: Date): boolean {
+  return d.getDay() !== 0 && d.getDay() !== 6 && !holidaysOf(d.getFullYear())[dayKey(d)];
+}
+
+export interface PaydayInfo {
+  /** 実際に支給される日 */
+  date: Date;
+  /** 今日からの日数（今日なら 0） */
+  days: number;
+  /** 土日・祝日のため前倒しされたか */
+  moved: boolean;
+}
+
+/**
+ * 次の給料日の情報。
+ * 月にない日（31日など）はその月の末日として扱い、土日・祝日ならその前の平日へ前倒しする。
+ */
+export function nextPaydayInfo(day: number): PaydayInfo | null {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
-  const eff = (y: number, m: number) => Math.min(day, new Date(y, m + 1, 0).getDate());
-  const y = now.getFullYear();
-  const m = now.getMonth();
-  let target = new Date(y, m, eff(y, m));
-  if (target < now) target = new Date(y, m + 1, eff(y, m + 1));
-  return Math.round((target.getTime() - now.getTime()) / 86400000);
+  for (let k = 0; k <= 3; k++) {
+    const y = now.getFullYear();
+    const m = now.getMonth() + k;
+    const raw = new Date(y, m, Math.min(day, new Date(y, m + 1, 0).getDate()));
+    const adj = new Date(raw);
+    while (!isBusinessDay(adj)) adj.setDate(adj.getDate() - 1);
+    if (adj >= now) {
+      return {
+        date: adj,
+        days: Math.round((adj.getTime() - now.getTime()) / 86400000),
+        moved: adj.getTime() !== raw.getTime(),
+      };
+    }
+  }
+  return null;
+}
+
+/** 「8/24（金・前倒し）」形式のラベル */
+export function paydayLabel(info: PaydayInfo): string {
+  return `${info.date.getMonth() + 1}/${info.date.getDate()}（${WEEKDAY_JA[info.date.getDay()]}${info.moved ? '・前倒し' : ''}）`;
 }
 
 /** やりくり電卓の配色（白・薄いグレー・淡い緑）。推しテーマの --accent とは独立 */

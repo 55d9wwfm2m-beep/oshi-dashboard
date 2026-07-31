@@ -13,11 +13,14 @@ import {
   MONEY_DANGER_BG,
   digitsOnly,
   sortByPayDay,
+  nextPaydayInfo,
+  WEEKDAY_JA,
 } from '@/lib/money';
 import BottomSheet from '@/components/ui/BottomSheet';
 import { showToast } from '@/components/ui/Toast';
 
 const PAY_DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
+const PAYDAY_RULE = '土日・祝日にあたる月は、その前の平日に自動で前倒しします。';
 
 export default function MoneySettingsPage() {
   const [costs, setCosts, loaded] = useLocalStorage<FixedCost[]>(MONEY_KEYS.fixedCosts, []);
@@ -120,8 +123,13 @@ export default function MoneySettingsPage() {
               <option key={d} value={d}>毎月 {d} 日</option>
             ))}
           </select>
-          <p className="text-[11px] mt-2" style={{ color: '#A8A29E' }}>
-            設定するとホームに給料日までの残り日数が表示されます
+          <p className="text-[11px] mt-2 leading-relaxed" style={{ color: '#A8A29E' }}>
+            {(() => {
+              const info = payday ? nextPaydayInfo(payday) : null;
+              if (!info) return `設定するとホームに給料日までの残り日数が表示されます。${PAYDAY_RULE}`;
+              const d = `次回は ${info.date.getMonth() + 1}月${info.date.getDate()}日（${WEEKDAY_JA[info.date.getDay()]}）`;
+              return `${d}${info.moved ? `。${payday}日が休日のため前倒しされます` : 'です'}。${PAYDAY_RULE}`;
+            })()}
           </p>
         </div>
 

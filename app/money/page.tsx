@@ -16,7 +16,8 @@ import {
   digitsOnly,
   unpaidTotal,
   formatYenSigned,
-  paydayDaysLeft,
+  nextPaydayInfo,
+  paydayLabel,
 } from '@/lib/money';
 import { showToast } from '@/components/ui/Toast';
 
@@ -57,7 +58,7 @@ export default function MoneyPage() {
 
   if (!balanceLoaded || !costsLoaded || !monthLoaded || !paydayLoaded) return null;
 
-  const paydayDays = payday ? paydayDaysLeft(payday) : null;
+  const paydayInfo = payday ? nextPaydayInfo(payday) : null;
 
   const balanceEmpty = balanceRaw === '';
   const balance = balanceEmpty ? 0 : parseInt(balanceRaw, 10) || 0;
@@ -143,7 +144,7 @@ export default function MoneyPage() {
         >
           {/* 給料日チップ（タップで設定へ） */}
           <div className="mb-3">
-            {payday === 0 ? (
+            {!paydayInfo ? (
               <Link
                 href="/money/settings"
                 className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold active:scale-95 transition-transform"
@@ -151,7 +152,7 @@ export default function MoneyPage() {
               >
                 🗓 給料日を設定する
               </Link>
-            ) : paydayDays === 0 ? (
+            ) : paydayInfo.days === 0 ? (
               <Link
                 href="/money/settings"
                 className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold active:scale-95 transition-transform"
@@ -165,8 +166,8 @@ export default function MoneyPage() {
                 className="inline-flex items-center gap-1 px-4 py-1.5 rounded-full text-xs font-semibold active:scale-95 transition-transform"
                 style={{ background: '#F0EBE6', color: '#78716C' }}
               >
-                💴 給料日（毎月{payday}日）まで
-                <b style={{ color: '#1C1917' }}>あと{paydayDays}日</b>
+                💴 給料日 {paydayLabel(paydayInfo)} まで
+                <b style={{ color: '#1C1917' }}>あと{paydayInfo.days}日</b>
               </Link>
             )}
           </div>

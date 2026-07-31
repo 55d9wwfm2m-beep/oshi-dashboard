@@ -26,6 +26,8 @@
     --accent: #359277;
     --accent-ink: #2B7A63;
     --accent-soft: rgba(53, 146, 119, 0.10);
+    --warn: #A8770E;
+    --warn-soft: rgba(168, 119, 14, 0.10);
     --danger: #C4574B;
     --danger-soft: rgba(196, 87, 75, 0.10);
     --shadow: 0 2px 16px rgba(33, 38, 31, 0.06);
@@ -43,6 +45,8 @@
       --accent: #4FB394;
       --accent-ink: #6BC5A8;
       --accent-soft: rgba(79, 179, 148, 0.14);
+      --warn: #DFB86A;
+      --warn-soft: rgba(223, 184, 106, 0.14);
       --danger: #D97A6E;
       --danger-soft: rgba(217, 122, 110, 0.14);
       --shadow: 0 2px 16px rgba(0, 0, 0, 0.35);
@@ -142,6 +146,46 @@
     display: inline-block; margin-top: 12px; padding: 8px 16px; border-radius: 999px;
     font-size: 12px; font-weight: 600; background: var(--danger-soft); color: var(--danger);
   }
+  /* ── 残高ステータス（色で一目で分かる表示） ── */
+  .hero.is-safe { background: linear-gradient(168deg, var(--accent-soft), var(--surface) 58%); }
+  .hero.is-warn { background: linear-gradient(168deg, var(--warn-soft), var(--surface) 58%); }
+  .hero.is-tight { background: linear-gradient(168deg, var(--danger-soft), var(--surface) 58%); }
+  .hero.is-safe .hero-amount { color: var(--accent-ink); }
+  .hero.is-warn .hero-amount { color: var(--warn); }
+  .hero.is-tight .hero-amount { color: var(--danger); }
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 7px;
+    margin-top: 10px; padding: 7px 15px; border-radius: 999px;
+    font-size: 12px; font-weight: 700;
+  }
+  .status-pill .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .pill-safe { background: var(--accent-soft); color: var(--accent-ink); }
+  .pill-warn { background: var(--warn-soft); color: var(--warn); }
+  .pill-tight { background: var(--danger-soft); color: var(--danger); }
+  .legend { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; font-size: 10.5px; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 4px; }
+  .legend i { width: 7px; height: 7px; border-radius: 50%; }
+
+  /* ── 買う前にチェック（購入シミュレーション） ── */
+  .sim-row { display: flex; gap: 10px; }
+  .sim-btn {
+    border: none; border-radius: 14px; padding: 0 22px;
+    font-size: 14px; font-weight: 700; color: #fff; background: var(--accent);
+    transition: transform 0.15s ease; flex-shrink: 0;
+  }
+  .sim-btn:active { transform: scale(0.95); }
+  .sim-btn:disabled { opacity: 0.4; }
+  .sim-result { margin-top: 16px; padding-top: 14px; border-top: 1.5px dashed var(--line); text-align: center; }
+  .sim-result .k { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: var(--sub); margin: 0; }
+  .sim-amount { font-size: 32px; font-weight: 600; line-height: 1.3; margin: 2px 0 0; }
+  .sim-amount.safe { color: var(--accent-ink); }
+  .sim-amount.warn { color: var(--warn); }
+  .sim-amount.tight, .sim-amount.short { color: var(--danger); }
+  .sim-verdict {
+    display: inline-block; margin-top: 10px; padding: 7px 15px;
+    border-radius: 999px; font-size: 12px; font-weight: 600;
+  }
+
   .breakdown { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); display: grid; gap: 6px; }
   .breakdown-row { display: flex; justify-content: space-between; font-size: 13px; }
   .breakdown-row .k { color: var(--sub); }
@@ -322,6 +366,27 @@
       <p class="hero-label">使っていいお金</p>
       <p class="hero-amount serif-num" id="hero-amount">¥0</p>
       <div id="hero-detail"></div>
+      <div class="legend" aria-hidden="true">
+        <span><i style="background: var(--accent);"></i>安心 3万円〜</span>
+        <span><i style="background: var(--warn);"></i>少し注意 1〜3万円</span>
+        <span><i style="background: var(--danger);"></i>節約モード 1万円未満</span>
+      </div>
+    </div>
+
+    <div class="card anim-in">
+      <label class="field-label" for="sim-price">買う前にチェック</label>
+      <div class="sim-row">
+        <div class="money-wrap" style="flex: 1; min-width: 0;">
+          <span class="yen">¥</span>
+          <input id="sim-price" class="input" type="text" inputmode="numeric" autocomplete="off" placeholder="購入予定の金額">
+        </div>
+        <button class="sim-btn" id="sim-btn" disabled>計算</button>
+      </div>
+      <div class="sim-result" id="sim-result" hidden>
+        <p class="k">購入後の使っていいお金</p>
+        <p class="sim-amount serif-num" id="sim-amount">¥0</p>
+        <span class="sim-verdict" id="sim-verdict"></span>
+      </div>
     </div>
 
     <div class="card anim-in">
@@ -481,6 +546,22 @@
     return costs.reduce(function (s, c) { return s + (c.paid ? 0 : c.amount); }, 0);
   }
 
+  /* 残額のステータス（🟢安心 / 🟡少し注意 / 🔴節約モード） */
+  function statusOf(amount) {
+    if (amount >= 30000) return 'safe';
+    if (amount >= 10000) return 'warn';
+    return 'tight';
+  }
+  var STATUS_LABEL = { safe: '安心', warn: '少し注意', tight: '節約モード' };
+
+  function calc() {
+    var empty = balanceRaw === '';
+    var balance = empty ? 0 : parseInt(balanceRaw, 10) || 0;
+    var unpaid = unpaidTotal();
+    // 所持金が未入力のときは結果を 0 円として扱う
+    return { empty: empty, balance: balance, unpaid: unpaid, spendable: empty ? 0 : balance - unpaid };
+  }
+
   var toastTimer = null;
   function toast(msg) {
     var el = document.getElementById('toast');
@@ -507,30 +588,38 @@
   /* ── ホーム描画 ── */
   var balanceInput = document.getElementById('balance');
 
+  function statusPillHTML(st) {
+    return '<div><span class="status-pill pill-' + st + '"><i class="dot" aria-hidden="true"></i>' + STATUS_LABEL[st] + '</span></div>';
+  }
+
   function renderHero() {
     var hero = document.getElementById('hero');
     var amountEl = document.getElementById('hero-amount');
     var detail = document.getElementById('hero-detail');
-    var empty = balanceRaw === '';
-    var balance = empty ? 0 : parseInt(balanceRaw, 10) || 0;
-    var unpaid = unpaidTotal();
-    var spendable = empty ? 0 : balance - unpaid; // 未入力時は結果を0円として扱う
-    var short = !empty && spendable < 0;
+    var c = calc();
+    var short = !c.empty && c.spendable < 0;
 
-    hero.classList.toggle('is-short', short);
-    amountEl.textContent = yenSigned(spendable);
+    hero.classList.remove('is-short', 'is-safe', 'is-warn', 'is-tight');
+    if (short) hero.classList.add('is-short');
+    else if (!c.empty) hero.classList.add('is-' + statusOf(c.spendable));
+    amountEl.textContent = yenSigned(c.spendable);
 
-    if (empty) {
+    if (c.empty) {
       detail.innerHTML = '<p class="hero-hint">今持っているお金を入力すると自動で計算されます</p>';
     } else if (short) {
-      detail.innerHTML = '<span class="shortage">固定費に対して ' + yen(-spendable) + ' 不足しています</span>';
+      detail.innerHTML =
+        statusPillHTML('tight') +
+        '<div><span class="shortage">固定費に対して ' + yen(-c.spendable) + ' 不足しています</span></div>';
     } else {
       detail.innerHTML =
+        statusPillHTML(statusOf(c.spendable)) +
         '<div class="breakdown">' +
-          '<div class="breakdown-row"><span class="k">今持っているお金</span><span class="v">' + yen(balance) + '</span></div>' +
-          '<div class="breakdown-row"><span class="k">未払いの固定費</span><span class="v">−' + yen(unpaid) + '</span></div>' +
+          '<div class="breakdown-row"><span class="k">今持っているお金</span><span class="v">' + yen(c.balance) + '</span></div>' +
+          '<div class="breakdown-row"><span class="k">未払いの固定費</span><span class="v">−' + yen(c.unpaid) + '</span></div>' +
         '</div>';
     }
+
+    renderSim();
   }
 
   function renderHomeCosts() {
@@ -695,6 +784,64 @@
     closeSheet('sheet-delete');
     renderSettings();
     if (target) toast('「' + target.name + '」を削除しました');
+  });
+
+  /* ── 買う前にチェック（購入シミュレーション） ── */
+  var simInput = document.getElementById('sim-price');
+  var simBtn = document.getElementById('sim-btn');
+  var simVisible = false;
+
+  function simPrice() {
+    var raw = digitsOnly(simInput.value);
+    return raw === '' ? 0 : parseInt(raw, 10) || 0;
+  }
+
+  function renderSim() {
+    var price = simPrice();
+    simBtn.disabled = price <= 0;
+    var resultEl = document.getElementById('sim-result');
+    var c = calc();
+    if (!simVisible || price <= 0 || c.empty) { resultEl.hidden = true; return; }
+
+    var after = c.spendable - price;
+    var amountEl = document.getElementById('sim-amount');
+    var verdictEl = document.getElementById('sim-verdict');
+    amountEl.textContent = yenSigned(after);
+
+    var st, verdict;
+    if (after < 0) {
+      st = 'tight';
+      amountEl.className = 'sim-amount serif-num short';
+      verdict = yen(-after) + ' 足りません。今月は見送りが安心です';
+    } else {
+      st = statusOf(after);
+      amountEl.className = 'sim-amount serif-num ' + st;
+      verdict = st === 'safe' ? '買っても ' + yen(after) + ' 残ります。余裕あり！'
+        : st === 'warn' ? '買うと残り ' + yen(after) + '。少し注意です'
+        : '買うと残り ' + yen(after) + '。節約モードになります';
+    }
+    verdictEl.textContent = verdict;
+    verdictEl.className = 'sim-verdict pill-' + st;
+    resultEl.hidden = false;
+  }
+
+  simInput.addEventListener('input', function () {
+    var raw = digitsOnly(simInput.value);
+    simInput.value = raw === '' ? '' : parseInt(raw, 10).toLocaleString('ja-JP');
+    if (raw === '') simVisible = false;
+    renderSim();
+  });
+  simInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !simBtn.disabled) simBtn.click();
+  });
+  simBtn.addEventListener('click', function () {
+    if (calc().empty) {
+      toast('先に「今持っているお金」を入力してください');
+      return;
+    }
+    simVisible = true;
+    renderSim();
+    simInput.blur();
   });
 
   /* ── 所持金入力（入力中に自動計算） ── */

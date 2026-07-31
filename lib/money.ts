@@ -16,6 +16,21 @@ export const MONEY_ACCENT_BG = 'rgba(53,146,119,0.10)';
 export const MONEY_DANGER = '#C4574B';
 export const MONEY_DANGER_BG = 'rgba(196,87,75,0.10)';
 
+/** 使っていいお金の残額ステータス（色で一目で分かる表示用） */
+export type MoneyStatus = 'safe' | 'warn' | 'tight';
+
+export function statusOf(amount: number): MoneyStatus {
+  if (amount >= 30000) return 'safe';
+  if (amount >= 10000) return 'warn';
+  return 'tight';
+}
+
+export const STATUS_META: Record<MoneyStatus, { label: string; color: string; bg: string }> = {
+  safe: { label: '安心', color: '#2B7A63', bg: 'rgba(53,146,119,0.10)' },
+  warn: { label: '少し注意', color: '#A8770E', bg: 'rgba(168,119,14,0.10)' },
+  tight: { label: '節約モード', color: MONEY_DANGER, bg: MONEY_DANGER_BG },
+};
+
 /** 全角数字を半角に直し、数字以外と余分な先頭の0を取り除く（最大9桁） */
 export function digitsOnly(value: string): string {
   return value

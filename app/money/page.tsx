@@ -11,17 +11,34 @@ import {
   MONEY_ACCENT_BG,
   MONEY_DANGER,
   MONEY_DANGER_BG,
+  STATUS_META,
+  statusOf,
   digitsOnly,
   unpaidTotal,
   formatYenSigned,
 } from '@/lib/money';
 import { showToast } from '@/components/ui/Toast';
 
+/** ステータスの丸ドット付きピル（🟢安心 / 🟡少し注意 / 🔴節約モード） */
+function StatusPill({ color, bg, label }: { color: string; bg: string; label: string }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 mt-2.5 px-4 py-1.5 rounded-full text-xs font-bold"
+      style={{ background: bg, color }}
+    >
+      <span className="w-2 h-2 rounded-full" style={{ background: color }} aria-hidden="true" />
+      {label}
+    </span>
+  );
+}
+
 export default function MoneyPage() {
   const [balanceRaw, setBalanceRaw, balanceLoaded] = useLocalStorage<string>(MONEY_KEYS.balance, '');
   const [costs, setCosts, costsLoaded] = useLocalStorage<FixedCost[]>(MONEY_KEYS.fixedCosts, []);
   const [month, setMonth, monthLoaded] = useLocalStorage<string>(MONEY_KEYS.month, '');
   const [showResetNotice, setShowResetNotice] = useState(false);
+  const [simRaw, setSimRaw] = useState('');
+  const [simOpen, setSimOpen] = useState(false);
 
   // 月が変わっていたら支払い状況をすべて「未払い」に戻す（固定費の登録内容は残す）
   useEffect(() => {
@@ -45,6 +62,21 @@ export default function MoneyPage() {
   // 所持金が未入力のときは結果を 0 円として扱う
   const spendable = balanceEmpty ? 0 : balance - unpaid;
   const isShort = !balanceEmpty && spendable < 0;
+  const heroMeta = STATUS_META[isShort ? 'tight' : statusOf(spendable)];
+
+  // 買う前にチェック（購入シミュレーション）
+  const simPrice = simRaw === '' ? 0 : parseInt(simRaw, 10) || 0;
+  const simAfter = spendable - simPrice;
+  const simMeta = STATUS_META[simAfter < 0 ? 'tight' : statusOf(simAfter)];
+  const simVisible = simOpen && simPrice > 0 && !balanceEmpty;
+  const simVerdict =
+    simAfter < 0
+      ? `${formatYen(-simAfter)} 足りません。今月は見送りが安心です`
+      : statusOf(simAfter) === 'safe'
+        ? `買っても ${formatYen(simAfter)} 残ります。余裕あり！`
+        : statusOf(simAfter) === 'warn'
+          ? `買うと残り ${formatYen(simAfter)}。少し注意です`
+          : `買うと残り ${formatYen(simAfter)}。節約モードになります`;
 
   const sorted = [...costs].sort((a, b) => a.payDay - b.payDay || a.name.localeCompare(b.name, 'ja'));
 
@@ -96,13 +128,13 @@ export default function MoneyPage() {
           </div>
         )}
 
-        {/* 使っていいお金（最重要表示） */}
+        {/* 使っていいお金（最重要表示・残額に応じて色分け） */}
         <div
           className="card p-6 text-center anim-scaleIn"
           style={{
-            background: isShort
-              ? `linear-gradient(165deg, ${MONEY_DANGER_BG}, #FFFFFF 60%)`
-              : `linear-gradient(165deg, ${MONEY_ACCENT_BG}, #FFFFFF 60%)`,
+            background: balanceEmpty
+              ? `linear-gradient(165deg, ${MONEY_ACCENT_BG}, #FFFFFF 60%)`
+              : `linear-gradient(165deg, ${heroMeta.bg}, #FFFFFF 60%)`,
           }}
         >
           <p className="text-xs font-medium tracking-widest" style={{ color: '#78716C' }}>
@@ -110,7 +142,7 @@ export default function MoneyPage() {
           </p>
           <p
             className="text-[46px] leading-tight font-semibold font-serif-num mt-1"
-            style={{ color: isShort ? MONEY_DANGER : '#1C1917', letterSpacing: '-0.03em' }}
+            style={{ color: balanceEmpty ? '#1C1917' : heroMeta.color, letterSpacing: '-0.03em' }}
           >
             {formatYenSigned(spendable)}
           </p>
@@ -120,22 +152,110 @@ export default function MoneyPage() {
               今持っているお金を入力すると自動で計算されます
             </p>
           ) : isShort ? (
-            <div
-              className="inline-block mt-3 px-4 py-2 rounded-full text-xs font-medium"
-              style={{ background: MONEY_DANGER_BG, color: MONEY_DANGER }}
-            >
-              固定費に対して {formatYen(-spendable)} 不足しています
-            </div>
+            <>
+              <div>
+                <StatusPill color={heroMeta.color} bg={heroMeta.bg} label={heroMeta.label} />
+              </div>
+              <div
+                className="inline-block mt-2 px-4 py-2 rounded-full text-xs font-medium"
+                style={{ background: MONEY_DANGER_BG, color: MONEY_DANGER }}
+              >
+                固定費に対して {formatYen(-spendable)} 不足しています
+              </div>
+            </>
           ) : (
-            <div className="mt-4 pt-3 space-y-1.5" style={{ borderTop: '1px solid rgba(28,18,12,0.06)' }}>
-              <div className="flex justify-between text-sm">
-                <span style={{ color: '#78716C' }}>今持っているお金</span>
-                <span className="font-medium" style={{ color: '#1C1917' }}>{formatYen(balance)}</span>
+            <>
+              <div>
+                <StatusPill color={heroMeta.color} bg={heroMeta.bg} label={heroMeta.label} />
               </div>
-              <div className="flex justify-between text-sm">
-                <span style={{ color: '#78716C' }}>未払いの固定費</span>
-                <span className="font-medium" style={{ color: '#1C1917' }}>−{formatYen(unpaid)}</span>
+              <div className="mt-4 pt-3 space-y-1.5" style={{ borderTop: '1px solid rgba(28,18,12,0.06)' }}>
+                <div className="flex justify-between text-sm">
+                  <span style={{ color: '#78716C' }}>今持っているお金</span>
+                  <span className="font-medium" style={{ color: '#1C1917' }}>{formatYen(balance)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span style={{ color: '#78716C' }}>未払いの固定費</span>
+                  <span className="font-medium" style={{ color: '#1C1917' }}>−{formatYen(unpaid)}</span>
+                </div>
               </div>
+            </>
+          )}
+
+          {/* 色の意味の凡例 */}
+          <div className="flex justify-center flex-wrap gap-x-3 gap-y-1 mt-4" aria-hidden="true">
+            {(['safe', 'warn', 'tight'] as const).map(key => (
+              <span key={key} className="inline-flex items-center gap-1 text-[10.5px]" style={{ color: '#A8A29E' }}>
+                <span className="w-[7px] h-[7px] rounded-full" style={{ background: STATUS_META[key].color }} />
+                {STATUS_META[key].label}
+                {key === 'safe' ? ' 3万円〜' : key === 'warn' ? ' 1〜3万円' : ' 1万円未満'}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* 買う前にチェック（購入シミュレーション） */}
+        <div className="card p-5 anim-fadeInUp">
+          <label htmlFor="sim-price" className="field-label">買う前にチェック</label>
+          <div className="flex gap-2.5">
+            <div className="relative flex-1 min-w-0">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#A8A29E' }}>¥</span>
+              <input
+                id="sim-price"
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                value={simRaw === '' ? '' : simPrice.toLocaleString('ja-JP')}
+                onChange={e => {
+                  const raw = digitsOnly(e.target.value);
+                  setSimRaw(raw);
+                  if (raw === '') setSimOpen(false);
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && simPrice > 0) {
+                    if (balanceEmpty) showToast('先に「今持っているお金」を入力してください');
+                    else setSimOpen(true);
+                  }
+                }}
+                placeholder="購入予定の金額"
+                className="input pl-8"
+              />
+            </div>
+            <button
+              onClick={() => {
+                if (balanceEmpty) {
+                  showToast('先に「今持っているお金」を入力してください');
+                  return;
+                }
+                setSimOpen(true);
+              }}
+              disabled={simPrice <= 0}
+              className="px-5 rounded-xl text-sm font-bold text-white shrink-0 active:scale-95 transition-transform disabled:opacity-40"
+              style={{ background: MONEY_ACCENT }}
+            >
+              計算
+            </button>
+          </div>
+
+          {simVisible && (
+            <div
+              className="mt-4 pt-3.5 text-center"
+              style={{ borderTop: '1.5px dashed rgba(28,18,12,0.09)' }}
+            >
+              <p className="text-xs font-medium tracking-wider" style={{ color: '#78716C' }}>
+                購入後の使っていいお金
+              </p>
+              <p
+                className="text-[32px] leading-snug font-semibold font-serif-num mt-0.5"
+                style={{ color: simMeta.color }}
+              >
+                {formatYenSigned(simAfter)}
+              </p>
+              <span
+                className="inline-block mt-2 px-4 py-1.5 rounded-full text-xs font-semibold"
+                style={{ background: simMeta.bg, color: simMeta.color }}
+              >
+                {simVerdict}
+              </span>
             </div>
           )}
         </div>

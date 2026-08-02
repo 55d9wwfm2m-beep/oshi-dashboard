@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * PromptHub のデザイントークン。
+ * 既存アプリ（app/(oshi)）とは別のスタイルシートなので、変数名の衝突も起きない。
+ * 値は「rgb チャンネル」で持ち、tailwind 側で <alpha-value> と組み合わせて使う。
+ */
+:root {
+  --ph-bg: 248 249 251;
+  --ph-surface: 255 255 255;
+  --ph-surface-2: 243 245 248;
+  --ph-border: 226 230 236;
+  --ph-border-strong: 203 210 220;
+
+  --ph-fg: 31 41 55;
+  --ph-muted: 87 98 114;
+  --ph-subtle: 133 143 157;
+
+  --ph-primary: 27 42 74;
+  --ph-primary-hover: 18 30 56;
+  --ph-primary-fg: 255 255 255;
+
+  --ph-accent: 37 99 175;
+  --ph-accent-soft: 234 241 250;
+
+  --ph-success: 21 122 89;
+  --ph-success-soft: 232 245 240;
+  --ph-warning: 167 111 12;
+  --ph-warning-soft: 252 245 230;
+  --ph-danger: 186 51 51;
+  --ph-danger-soft: 253 238 238;
+}
+
+.dark {
+  --ph-bg: 15 18 24;
+  --ph-surface: 22 26 34;
+  --ph-surface-2: 29 34 44;
+  --ph-border: 44 51 63;
+  --ph-border-strong: 66 75 90;
+
+  --ph-fg: 226 231 239;
+  --ph-muted: 158 168 182;
+  --ph-subtle: 122 132 147;
+
+  --ph-primary: 45 74 126;
+  --ph-primary-hover: 55 90 150;
+  --ph-primary-fg: 240 245 252;
+
+  --ph-accent: 111 163 232;
+  --ph-accent-soft: 27 40 58;
+
+  --ph-success: 74 187 141;
+  --ph-success-soft: 20 42 35;
+  --ph-warning: 216 165 74;
+  --ph-warning-soft: 46 38 22;
+  --ph-danger: 234 118 118;
+  --ph-danger-soft: 51 27 27;
+}
+
+html {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  background-color: rgb(var(--ph-bg));
+  color: rgb(var(--ph-fg));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* スマートフォンで意図しない横スクロールが出ないようにする */
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* プロンプト本文など、等幅で読ませたいテキスト */
+.ph-mono {
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono',
+    'Noto Sans Mono', monospace;
+  font-size: 13.5px;
+  line-height: 1.75;
+}
+
+/* 長いプロンプト本文の折り返し（コードブロック内の横スクロールを最小限にする） */
+.ph-prewrap {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

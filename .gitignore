@@ -28,10 +28,10 @@ verify-screenshot.mjs
 *.png
 avatar-*.svg
 # ただしアプリのアイコン類・OGP画像はコミット対象
-!app/icon.png
-!app/apple-icon.png
-!app/opengraph-image.png
-!app/twitter-image.png
+!app/(oshi)/icon.png
+!app/(oshi)/apple-icon.png
+!app/(oshi)/opengraph-image.png
+!app/(oshi)/twitter-image.png
 !public/icons/*.png
 
 # OS

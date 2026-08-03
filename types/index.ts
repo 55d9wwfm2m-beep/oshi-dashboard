@@ -183,6 +183,12 @@ export interface MoneyAccount {
   name: string;
   /** 数字のみの文字列。'' は未入力 */
   amount: string;
+  /**
+   * 「使っていいお金」の計算に含めるか。
+   * false の口座は総資産には数えるが、予算対象残高からは外れる。
+   * 省略時（旧データ）は true 扱い。
+   */
+  budget?: boolean;
 }
 
 export interface FixedCost {

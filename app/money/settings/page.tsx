@@ -17,8 +17,11 @@ import {
   WEEKDAY_JA,
   accountAmount,
   accountsTotal,
+  budgetTotal,
+  isBudgetAccount,
   legacyAccountSeed,
 } from '@/lib/money';
+import BudgetToggle from '@/components/ui/BudgetToggle';
 import BottomSheet from '@/components/ui/BottomSheet';
 import { showToast } from '@/components/ui/Toast';
 
@@ -57,7 +60,7 @@ export default function MoneySettingsPage() {
       setAccounts(prev => prev.map(a => (a.id === accForm.id ? { ...a, name, amount: accForm.amount } : a)));
       showToast('口座を更新しました');
     } else {
-      setAccounts(prev => [...prev, { id: generateId(), name, amount: accForm.amount }]);
+      setAccounts(prev => [...prev, { id: generateId(), name, amount: accForm.amount, budget: true }]);
       showToast('口座を追加しました');
     }
     setAccForm(null);
@@ -169,38 +172,90 @@ export default function MoneySettingsPage() {
             </div>
           ) : (
             <>
-              <div className="space-y-3.5">
-                {accounts.map(acc => (
-                  <div key={acc.id} className="flex items-center gap-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate" style={{ color: '#1C1917' }}>{acc.name}</p>
-                      <p className="text-[11px] mt-0.5" style={{ color: '#A8A29E' }}>
-                        {acc.amount === '' ? '未入力' : formatYen(accountAmount(acc))}
-                      </p>
+              <div>
+                {accounts.map((acc, i) => {
+                  const on = isBudgetAccount(acc);
+                  return (
+                    <div
+                      key={acc.id}
+                      className="py-3"
+                      style={{
+                        borderBottom: '1px solid rgba(28,18,12,0.06)',
+                        paddingTop: i === 0 ? 0 : undefined,
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate" style={{ color: on ? '#1C1917' : '#A8A29E' }}>
+                            <span
+                              className="mr-1"
+                              style={{ opacity: on ? 0.85 : 0.45, filter: on ? 'none' : 'grayscale(1)' }}
+                              aria-hidden="true"
+                            >
+                              {on ? '🏦' : '🔒'}
+                            </span>
+                            {acc.name}
+                            {!on && (
+                              <span
+                                className="ml-1.5 text-[10px] font-bold px-2 py-[3px] rounded-full align-middle"
+                                style={{ background: '#F0EBE6', color: '#A8A29E' }}
+                              >
+                                計算対象外
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-[11px] mt-0.5" style={{ color: '#A8A29E' }}>
+                            {acc.amount === '' ? '未入力' : formatYen(accountAmount(acc))}
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <button
+                            onClick={() => setAccForm({ id: acc.id, name: acc.name, amount: acc.amount })}
+                            className="text-[11px] px-2 py-1.5 rounded-lg"
+                            style={{ color: '#A8A29E' }}
+                            aria-label={`${acc.name}を編集`}
+                          >
+                            編集
+                          </button>
+                          <button
+                            onClick={() => setAccDeleteTarget(acc)}
+                            className="text-[11px] px-2 py-1.5 rounded-lg"
+                            style={{ color: MONEY_DANGER, opacity: 0.75 }}
+                            aria-label={`${acc.name}を削除`}
+                          >
+                            削除
+                          </button>
+                        </div>
+                      </div>
+
+                      <BudgetToggle
+                        on={on}
+                        accent={MONEY_ACCENT}
+                        onChange={() =>
+                          setAccounts(prev => prev.map(a => (a.id === acc.id ? { ...a, budget: !on } : a)))
+                        }
+                      />
                     </div>
-                    <div className="text-right shrink-0">
-                      <button
-                        onClick={() => setAccForm({ id: acc.id, name: acc.name, amount: acc.amount })}
-                        className="text-[11px] px-2 py-1.5 rounded-lg"
-                        style={{ color: '#A8A29E' }}
-                        aria-label={`${acc.name}を編集`}
-                      >
-                        編集
-                      </button>
-                      <button
-                        onClick={() => setAccDeleteTarget(acc)}
-                        className="text-[11px] px-2 py-1.5 rounded-lg"
-                        style={{ color: MONEY_DANGER, opacity: 0.75 }}
-                        aria-label={`${acc.name}を削除`}
-                      >
-                        削除
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
-              {accounts.length > 1 && (
+              {accounts.some(a => !isBudgetAccount(a)) ? (
+                <div className="mt-3.5 pt-3 space-y-2" style={{ borderTop: '1px solid rgba(28,18,12,0.06)' }}>
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-[12.5px]" style={{ color: '#78716C' }}>総資産</span>
+                    <span className="text-[15px] font-bold font-serif-num" style={{ color: '#1C1917' }}>
+                      {formatYen(accountsTotal(accounts))}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-[12.5px] font-semibold" style={{ color: '#1C1917' }}>予算対象残高</span>
+                    <span className="text-[19px] font-bold font-serif-num" style={{ color: MONEY_ACCENT }}>
+                      {formatYen(budgetTotal(accounts))}
+                    </span>
+                  </div>
+                </div>
+              ) : accounts.length > 1 ? (
                 <div
                   className="flex justify-between items-baseline mt-3.5 pt-3"
                   style={{ borderTop: '1px solid rgba(28,18,12,0.06)' }}
@@ -210,7 +265,7 @@ export default function MoneySettingsPage() {
                     {formatYen(accountsTotal(accounts))}
                   </span>
                 </div>
-              )}
+              ) : null}
             </>
           )}
         </div>

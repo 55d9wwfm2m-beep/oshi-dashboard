@@ -149,9 +149,19 @@ export function accountAmount(a: MoneyAccount): number {
   return a.amount === '' ? 0 : parseInt(a.amount, 10) || 0;
 }
 
-/** 全口座の合計 */
+/** 「使っていいお金」の計算に含める口座か（旧データは含める扱い） */
+export function isBudgetAccount(a: MoneyAccount): boolean {
+  return a.budget !== false;
+}
+
+/** 総資産：計算対象かどうかに関わらず、すべての口座の合計 */
 export function accountsTotal(accounts: MoneyAccount[]): number {
   return accounts.reduce((s, a) => s + accountAmount(a), 0);
+}
+
+/** 予算対象残高：計算対象（ON）の口座だけの合計 */
+export function budgetTotal(accounts: MoneyAccount[]): number {
+  return accounts.filter(isBudgetAccount).reduce((s, a) => s + accountAmount(a), 0);
 }
 
 /**
@@ -164,7 +174,7 @@ export function legacyAccountSeed(): MoneyAccount[] | null {
     if (window.localStorage.getItem(MONEY_KEYS.accounts) !== null) return null;
     const raw = window.localStorage.getItem(MONEY_KEYS.balance);
     const legacy = raw === null ? '' : digitsOnly(String(JSON.parse(raw) ?? ''));
-    return [{ id: generateId(), name: '現金', amount: legacy }];
+    return [{ id: generateId(), name: '現金', amount: legacy, budget: true }];
   } catch {
     return null;
   }

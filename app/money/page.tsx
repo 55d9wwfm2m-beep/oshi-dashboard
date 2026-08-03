@@ -20,9 +20,12 @@ import {
   paydayLabel,
   accountAmount,
   accountsTotal,
+  budgetTotal,
+  isBudgetAccount,
   legacyAccountSeed,
 } from '@/lib/money';
 import { showToast } from '@/components/ui/Toast';
+import BudgetToggle from '@/components/ui/BudgetToggle';
 
 /** ステータスの丸ドット付きピル（🟢安心 / 🟡少し注意 / 🔴節約モード） */
 function StatusPill({ color, bg, label }: { color: string; bg: string; label: string }) {
@@ -72,7 +75,10 @@ export default function MoneyPage() {
 
   // どの口座も未入力なら結果を 0 円として扱う
   const balanceEmpty = !accounts.some(a => a.amount !== '');
-  const balance = balanceEmpty ? 0 : accountsTotal(accounts);
+  const assets = balanceEmpty ? 0 : accountsTotal(accounts);
+  // 使っていいお金は「計算に含める」口座だけで算出する
+  const balance = balanceEmpty ? 0 : budgetTotal(accounts);
+  const hasExcluded = accounts.some(a => !isBudgetAccount(a));
   const unpaid = unpaidTotal(costs);
   const paidTotal = costs.filter(c => c.paid).reduce((s, c) => s + c.amount, 0);
   // 所持金が未入力のときは結果を 0 円として扱う
@@ -214,10 +220,23 @@ export default function MoneyPage() {
                 <StatusPill color={heroMeta.color} bg={heroMeta.bg} label={heroMeta.label} />
               </div>
               <div className="mt-4 pt-3 space-y-1.5" style={{ borderTop: '1px solid rgba(28,18,12,0.06)' }}>
-                <div className="flex justify-between text-sm">
-                  <span style={{ color: '#78716C' }}>今持っているお金</span>
-                  <span className="font-medium" style={{ color: '#1C1917' }}>{formatYen(balance)}</span>
-                </div>
+                {hasExcluded ? (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span style={{ color: '#78716C' }}>総資産</span>
+                      <span className="font-medium" style={{ color: '#1C1917' }}>{formatYen(assets)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span style={{ color: '#78716C' }}>予算対象残高</span>
+                      <span className="font-medium" style={{ color: '#1C1917' }}>{formatYen(balance)}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex justify-between text-sm">
+                    <span style={{ color: '#78716C' }}>今持っているお金</span>
+                    <span className="font-medium" style={{ color: '#1C1917' }}>{formatYen(balance)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm">
                   <span style={{ color: '#78716C' }}>未払いの固定費</span>
                   <span className="font-medium" style={{ color: '#1C1917' }}>−{formatYen(unpaid)}</span>
@@ -329,38 +348,95 @@ export default function MoneyPage() {
             </div>
           ) : (
             <>
-              <div className="space-y-2.5">
-                {accounts.map(acc => (
-                  <div key={acc.id} className="flex items-center gap-3">
-                    <label
-                      htmlFor={`acc-${acc.id}`}
-                      className="flex-1 min-w-0 text-sm font-semibold truncate"
-                      style={{ color: '#1C1917' }}
+              <div>
+                {accounts.map((acc, i) => {
+                  const on = isBudgetAccount(acc);
+                  return (
+                    <div
+                      key={acc.id}
+                      className="py-3"
+                      style={{
+                        borderBottom: '1px solid rgba(28,18,12,0.06)',
+                        paddingTop: i === 0 ? 0 : undefined,
+                      }}
                     >
-                      {acc.name}
-                    </label>
-                    <div className="relative w-[58%] max-w-[190px] shrink-0">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#A8A29E' }}>¥</span>
-                      <input
-                        id={`acc-${acc.id}`}
-                        type="text"
-                        inputMode="numeric"
-                        autoComplete="off"
-                        value={acc.amount === '' ? '' : accountAmount(acc).toLocaleString('ja-JP')}
-                        onChange={e => {
-                          const raw = digitsOnly(e.target.value);
-                          setAccounts(prev => prev.map(a => (a.id === acc.id ? { ...a, amount: raw } : a)));
-                        }}
-                        placeholder="0"
-                        className="input text-right font-semibold"
-                        style={{ paddingLeft: 30, fontVariantNumeric: 'tabular-nums' }}
+                      <div className="flex items-center gap-2 mb-2">
+                        <span
+                          className="text-[15px] leading-none shrink-0 transition-all"
+                          style={{ opacity: on ? 0.85 : 0.45, filter: on ? 'none' : 'grayscale(1)' }}
+                          aria-hidden="true"
+                        >
+                          {on ? '🏦' : '🔒'}
+                        </span>
+                        <label
+                          htmlFor={`acc-${acc.id}`}
+                          className="flex-1 min-w-0 text-sm font-semibold truncate"
+                          style={{ color: on ? '#1C1917' : '#A8A29E' }}
+                        >
+                          {acc.name}
+                        </label>
+                        {!on && (
+                          <span
+                            className="text-[10px] font-bold px-2 py-[3px] rounded-full shrink-0"
+                            style={{ background: '#F0EBE6', color: '#A8A29E' }}
+                          >
+                            計算対象外
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="relative">
+                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#A8A29E' }}>¥</span>
+                        <input
+                          id={`acc-${acc.id}`}
+                          type="text"
+                          inputMode="numeric"
+                          autoComplete="off"
+                          value={acc.amount === '' ? '' : accountAmount(acc).toLocaleString('ja-JP')}
+                          onChange={e => {
+                            const raw = digitsOnly(e.target.value);
+                            setAccounts(prev => prev.map(a => (a.id === acc.id ? { ...a, amount: raw } : a)));
+                          }}
+                          placeholder="0"
+                          className="input text-right font-semibold"
+                          style={{
+                            paddingLeft: 30,
+                            fontVariantNumeric: 'tabular-nums',
+                            color: on ? '#1C1917' : '#A8A29E',
+                            background: on ? undefined : 'transparent',
+                          }}
+                        />
+                      </div>
+
+                      <BudgetToggle
+                        on={on}
+                        accent={MONEY_ACCENT}
+                        onChange={() =>
+                          setAccounts(prev => prev.map(a => (a.id === acc.id ? { ...a, budget: !on } : a)))
+                        }
                       />
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
-              {accounts.length > 1 && (
+              {/* 総資産と予算対象残高（対象外の口座があるときだけ2段で出す） */}
+              {hasExcluded ? (
+                <div className="mt-3.5 pt-3 space-y-2" style={{ borderTop: '1px solid rgba(28,18,12,0.06)' }}>
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-[12.5px]" style={{ color: '#78716C' }}>総資産</span>
+                    <span className="text-[15px] font-bold font-serif-num" style={{ color: '#1C1917' }}>
+                      {formatYen(accountsTotal(accounts))}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-[12.5px] font-semibold" style={{ color: '#1C1917' }}>予算対象残高</span>
+                    <span className="text-[19px] font-bold font-serif-num" style={{ color: MONEY_ACCENT }}>
+                      {formatYen(budgetTotal(accounts))}
+                    </span>
+                  </div>
+                </div>
+              ) : accounts.length > 1 ? (
                 <div
                   className="flex justify-between items-baseline mt-3.5 pt-3"
                   style={{ borderTop: '1px solid rgba(28,18,12,0.06)' }}
@@ -370,7 +446,7 @@ export default function MoneyPage() {
                     {formatYen(accountsTotal(accounts))}
                   </span>
                 </div>
-              )}
+              ) : null}
             </>
           )}
 

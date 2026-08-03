@@ -183,6 +183,18 @@
   }
 
   /* ── 口座（現金・銀行・PayPayなど） ── */
+  .acc-item { padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .acc-item:first-child { padding-top: 0; }
+  .acc-item.is-off .acc-name, .acc-item.is-off .acc-input { color: var(--muted); }
+  .acc-item.is-off .acc-input { background: transparent; }
+  .acc-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .acc-icon { font-size: 15px; line-height: 1; flex-shrink: 0; opacity: 0.85; }
+  .acc-item.is-off .acc-icon { opacity: 0.45; filter: grayscale(1); }
+  .acc-off-tag {
+    font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 999px;
+    background: var(--surface-2); color: var(--muted); flex-shrink: 0;
+  }
+
   .acc-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
   .acc-name {
     flex: 1; min-width: 0; font-size: 14px; font-weight: 600;
@@ -198,6 +210,37 @@
   .acc-total b { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
   .acc-empty { text-align: center; padding: 18px 8px 6px; }
   .acc-empty p { font-size: 12px; color: var(--muted); margin: 0 0 12px; }
+
+  /* ── 計算対象トグル（指で押しやすい高さを確保） ── */
+  .acc-toggle {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    background: none; border: none; padding: 8px 0 2px; margin: 0;
+    font-family: inherit; text-align: left; cursor: pointer;
+  }
+  .toggle-track {
+    position: relative; width: 40px; height: 24px; border-radius: 999px;
+    background: #D6D9D5; flex-shrink: 0; transition: background 0.2s ease;
+  }
+  .toggle-knob {
+    position: absolute; top: 3px; left: 3px; width: 18px; height: 18px;
+    border-radius: 50%; background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    transition: transform 0.2s ease;
+  }
+  .acc-toggle[aria-checked="true"] .toggle-track { background: var(--accent); }
+  .acc-toggle[aria-checked="true"] .toggle-knob { transform: translateX(16px); }
+  .toggle-label { font-size: 11.5px; color: var(--sub); line-height: 1.4; }
+  .acc-toggle[aria-checked="false"] .toggle-label { color: var(--muted); }
+  @media (prefers-color-scheme: dark) { .toggle-track { background: #3C443E; } }
+
+  /* ── 総資産 / 予算対象残高 ── */
+  .totals-block { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); display: grid; gap: 8px; }
+  .totals-line { display: flex; justify-content: space-between; align-items: baseline; }
+  .totals-line .k { font-size: 12.5px; color: var(--sub); }
+  .totals-line .v { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .totals-line.is-budget .k { font-weight: 600; color: var(--ink); }
+  .totals-line.is-budget .v { font-size: 19px; color: var(--accent-ink); }
+  .hero-split { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); display: grid; gap: 7px; }
 
   /* ── 買う前にチェック（購入シミュレーション） ── */
   .sim-row { display: flex; gap: 10px; }
@@ -621,13 +664,15 @@
       return {
         id: a.id || uid(),
         name: typeof a.name === 'string' && a.name ? a.name : '口座',
-        amount: digitsOnly(String(a.amount == null ? '' : a.amount))
+        amount: digitsOnly(String(a.amount == null ? '' : a.amount)),
+        // 旧データ（budget を持たない）は計算対象として扱う
+        budget: a.budget !== false
       };
     });
   } else {
     // 旧バージョン（単一の所持金）からの引き継ぎ。以前の金額を「現金」として残す
     var legacy = load(KEYS.balance, '');
-    accounts = [{ id: uid(), name: '現金', amount: digitsOnly(String(legacy == null ? '' : legacy)) }];
+    accounts = [{ id: uid(), name: '現金', amount: digitsOnly(String(legacy == null ? '' : legacy)), budget: true }];
     save(KEYS.accounts, accounts);
   }
 
@@ -672,17 +717,34 @@
 
   function accAmount(a) { return a.amount === '' ? 0 : parseInt(a.amount, 10) || 0; }
 
-  /** 全口座の合計 */
+  /** 総資産：計算対象かどうかに関わらず、すべての口座の合計 */
   function totalBalance() {
     return accounts.reduce(function (s, a) { return s + accAmount(a); }, 0);
+  }
+
+  /** 予算対象残高：計算に含める（ON）口座だけの合計 */
+  function budgetBalance() {
+    return accounts.reduce(function (s, a) { return s + (a.budget === false ? 0 : accAmount(a)); }, 0);
+  }
+
+  /** 計算対象外の口座があるか（総資産と予算対象残高を出し分ける判定に使う） */
+  function hasExcluded() {
+    return accounts.some(function (a) { return a.budget === false; });
   }
 
   function calc() {
     // どの口座も未入力なら結果を 0 円として扱う
     var empty = !accounts.some(function (a) { return a.amount !== ''; });
-    var balance = empty ? 0 : totalBalance();
+    var assets = empty ? 0 : totalBalance();
+    var balance = empty ? 0 : budgetBalance();
     var unpaid = unpaidTotal();
-    return { empty: empty, balance: balance, unpaid: unpaid, spendable: empty ? 0 : balance - unpaid };
+    return {
+      empty: empty,
+      assets: assets,
+      balance: balance,
+      unpaid: unpaid,
+      spendable: empty ? 0 : balance - unpaid
+    };
   }
 
   var toastTimer = null;
@@ -831,26 +893,51 @@
       return;
     }
     var rows = accounts.map(function (a) {
-      return '<div class="acc-row">' +
-        '<label class="acc-name" for="acc-' + a.id + '">' + esc(a.name) + '</label>' +
-        '<div class="money-wrap acc-input-wrap">' +
-          '<span class="yen">¥</span>' +
-          '<input id="acc-' + a.id + '" data-acc="' + a.id + '" class="input acc-input" type="text" ' +
-            'inputmode="numeric" autocomplete="off" placeholder="0" style="padding-left:30px;" ' +
-            'value="' + (a.amount === '' ? '' : accAmount(a).toLocaleString('ja-JP')) + '">' +
+      var on = a.budget !== false;
+      return '<div class="acc-item' + (on ? '' : ' is-off') + '" data-acc-item="' + a.id + '">' +
+        '<div class="acc-head">' +
+          '<span class="acc-icon" aria-hidden="true">' + (on ? '🏦' : '🔒') + '</span>' +
+          '<label class="acc-name" for="acc-' + a.id + '">' + esc(a.name) + '</label>' +
+          (on ? '' : '<span class="acc-off-tag">計算対象外</span>') +
         '</div>' +
+        '<div class="acc-row" style="margin-bottom:0;">' +
+          '<div class="money-wrap acc-input-wrap" style="width:100%; max-width:none;">' +
+            '<span class="yen">¥</span>' +
+            '<input id="acc-' + a.id + '" data-acc="' + a.id + '" class="input acc-input" type="text" ' +
+              'inputmode="numeric" autocomplete="off" placeholder="0" style="padding-left:30px;" ' +
+              'value="' + (a.amount === '' ? '' : accAmount(a).toLocaleString('ja-JP')) + '">' +
+          '</div>' +
+        '</div>' +
+        '<button class="acc-toggle" data-acc-toggle="' + a.id + '" role="switch" aria-checked="' + on + '">' +
+          '<span class="toggle-track" aria-hidden="true"><span class="toggle-knob"></span></span>' +
+          '<span class="toggle-label">この口座を使っていいお金の計算に含める</span>' +
+        '</button>' +
       '</div>';
     }).join('');
-    var total = accounts.length > 1
-      ? '<div class="acc-total"><span>合計</span><b class="serif-num" id="acc-total">' + yen(totalBalance()) + '</b></div>'
-      : '';
-    box.innerHTML = rows + total;
+    box.innerHTML = rows + accountTotalsHTML();
   }
 
-  /** 合計だけを更新（入力中に使う） */
+  /** 総資産・予算対象残高の行（対象外の口座があるときだけ2段で出す） */
+  function accountTotalsHTML() {
+    if (accounts.length === 0) return '';
+    if (!hasExcluded()) {
+      return accounts.length > 1
+        ? '<div class="totals-block"><div class="totals-line is-budget">' +
+          '<span class="k">合計</span><b class="v serif-num">' + yen(totalBalance()) + '</b></div></div>'
+        : '';
+    }
+    return '<div class="totals-block">' +
+      '<div class="totals-line"><span class="k">総資産</span><b class="v serif-num">' + yen(totalBalance()) + '</b></div>' +
+      '<div class="totals-line is-budget"><span class="k">予算対象残高</span><b class="v serif-num">' + yen(budgetBalance()) + '</b></div>' +
+    '</div>';
+  }
+
+  /** 合計行だけを更新（入力中に使う。入力欄は作り直さないのでフォーカスが保たれる） */
   function refreshAccountTotal() {
-    var el = document.getElementById('acc-total');
-    if (el) el.textContent = yen(totalBalance());
+    var block = document.querySelector('#account-list .totals-block');
+    var next = accountTotalsHTML();
+    if (block) block.outerHTML = next;
+    else if (next) document.getElementById('account-list').insertAdjacentHTML('beforeend', next);
   }
 
   document.addEventListener('input', function (e) {
@@ -859,7 +946,7 @@
     var raw = digitsOnly(e.target.value);
     e.target.value = raw === '' ? '' : parseInt(raw, 10).toLocaleString('ja-JP');
     accounts = accounts.map(function (a) {
-      return a.id === id ? { id: a.id, name: a.name, amount: raw } : a;
+      return a.id === id ? { id: a.id, name: a.name, amount: raw, budget: a.budget !== false } : a;
     });
     save(KEYS.accounts, accounts);
     refreshAccountTotal();
@@ -889,10 +976,14 @@
         statusPillHTML('tight') +
         '<div><span class="shortage">固定費に対して ' + yen(-c.spendable) + ' 不足しています</span></div>';
     } else {
+      var excluded = hasExcluded();
       detail.innerHTML =
         statusPillHTML(statusOf(c.spendable)) +
         '<div class="breakdown">' +
-          '<div class="breakdown-row"><span class="k">今持っているお金</span><span class="v">' + yen(c.balance) + '</span></div>' +
+          (excluded
+            ? '<div class="breakdown-row"><span class="k">総資産</span><span class="v">' + yen(c.assets) + '</span></div>' +
+              '<div class="breakdown-row"><span class="k">予算対象残高</span><span class="v">' + yen(c.balance) + '</span></div>'
+            : '<div class="breakdown-row"><span class="k">今持っているお金</span><span class="v">' + yen(c.balance) + '</span></div>') +
           '<div class="breakdown-row"><span class="k">未払いの固定費</span><span class="v">−' + yen(c.unpaid) + '</span></div>' +
         '</div>';
     }
@@ -992,20 +1083,27 @@
       return;
     }
     box.innerHTML = accounts.map(function (a) {
-      return '<div class="acc-row" style="margin-bottom:14px;">' +
-        '<div style="flex:1; min-width:0;">' +
-          '<p class="setting-name">' + esc(a.name) + '</p>' +
-          '<p class="setting-sub">' + (a.amount === '' ? '未入力' : yen(accAmount(a))) + '</p>' +
+      var on = a.budget !== false;
+      return '<div class="acc-item' + (on ? '' : ' is-off') + '">' +
+        '<div class="acc-row" style="margin-bottom:0;">' +
+          '<div style="flex:1; min-width:0;">' +
+            '<p class="setting-name">' +
+              '<span class="acc-icon" aria-hidden="true">' + (on ? '🏦' : '🔒') + '</span> ' + esc(a.name) +
+              (on ? '' : ' <span class="acc-off-tag">計算対象外</span>') +
+            '</p>' +
+            '<p class="setting-sub">' + (a.amount === '' ? '未入力' : yen(accAmount(a))) + '</p>' +
+          '</div>' +
+          '<div class="setting-side">' +
+            '<button class="rowbtn edit" data-acc-edit="' + a.id + '" aria-label="' + esc(a.name) + 'を編集">編集</button>' +
+            '<button class="rowbtn del" data-acc-del="' + a.id + '" aria-label="' + esc(a.name) + 'を削除">削除</button>' +
+          '</div>' +
         '</div>' +
-        '<div class="setting-side">' +
-          '<button class="rowbtn edit" data-acc-edit="' + a.id + '" aria-label="' + esc(a.name) + 'を編集">編集</button>' +
-          '<button class="rowbtn del" data-acc-del="' + a.id + '" aria-label="' + esc(a.name) + 'を削除">削除</button>' +
-        '</div>' +
+        '<button class="acc-toggle" data-acc-toggle-settings="' + a.id + '" role="switch" aria-checked="' + on + '">' +
+          '<span class="toggle-track" aria-hidden="true"><span class="toggle-knob"></span></span>' +
+          '<span class="toggle-label">この口座を使っていいお金の計算に含める</span>' +
+        '</button>' +
       '</div>';
-    }).join('') +
-    (accounts.length > 1
-      ? '<div class="acc-total"><span>合計</span><b class="serif-num">' + yen(totalBalance()) + '</b></div>'
-      : '');
+    }).join('') + accountTotalsHTML();
   }
 
   function accFormAmount() {
@@ -1038,11 +1136,11 @@
     var amount = accFormAmount();
     if (accEditId) {
       accounts = accounts.map(function (a) {
-        return a.id === accEditId ? { id: a.id, name: name, amount: amount } : a;
+        return a.id === accEditId ? { id: a.id, name: name, amount: amount, budget: a.budget !== false } : a;
       });
       toast('口座を更新しました');
     } else {
-      accounts.push({ id: uid(), name: name, amount: amount });
+      accounts.push({ id: uid(), name: name, amount: amount, budget: true });
       toast('口座を追加しました');
     }
     save(KEYS.accounts, accounts);
@@ -1248,8 +1346,45 @@
 
   /* ── クリック委譲 ── */
   document.addEventListener('click', function (e) {
-    var t = e.target.closest('[data-nav], [data-toggle], [data-edit], [data-del], [data-acc-edit], [data-acc-del], [data-close], .overlay');
+    var t = e.target.closest('[data-nav], [data-toggle], [data-edit], [data-del], [data-acc-toggle], [data-acc-toggle-settings], [data-acc-edit], [data-acc-del], [data-close], .overlay');
     if (!t) return;
+
+    // 設定画面の計算対象トグル
+    if (t.dataset && t.dataset.accToggleSettings) {
+      var sid = t.dataset.accToggleSettings;
+      accounts = accounts.map(function (a) {
+        return a.id === sid ? { id: a.id, name: a.name, amount: a.amount, budget: a.budget === false } : a;
+      });
+      save(KEYS.accounts, accounts);
+      renderAccountSettings();
+      return;
+    }
+
+    // 計算対象トグル：入力欄を作り直さず、その行の見た目と合計だけ更新する
+    if (t.dataset && t.dataset.accToggle) {
+      var accId = t.dataset.accToggle;
+      var on = false;
+      accounts = accounts.map(function (a) {
+        if (a.id !== accId) return a;
+        on = a.budget === false;
+        return { id: a.id, name: a.name, amount: a.amount, budget: on };
+      });
+      save(KEYS.accounts, accounts);
+      t.setAttribute('aria-checked', String(on));
+      var item = document.querySelector('[data-acc-item="' + accId + '"]');
+      if (item) {
+        item.classList.toggle('is-off', !on);
+        var icon = item.querySelector('.acc-icon');
+        if (icon) icon.textContent = on ? '🏦' : '🔒';
+        var head = item.querySelector('.acc-head');
+        var tag = item.querySelector('.acc-off-tag');
+        if (!on && !tag && head) head.insertAdjacentHTML('beforeend', '<span class="acc-off-tag">計算対象外</span>');
+        if (on && tag) tag.remove();
+      }
+      refreshAccountTotal();
+      renderHero();
+      return;
+    }
 
     if (t.dataset && t.dataset.nav) { show(t.dataset.nav); return; }
     if (t.dataset && t.dataset.close) { closeSheet(t.dataset.close); return; }

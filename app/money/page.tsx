@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { FixedCost } from '@/types';
+import { FixedCost, MoneyAccount } from '@/types';
 import { formatYen, getCurrentMonth } from '@/lib/utils';
 import {
   MONEY_KEYS,
@@ -18,6 +18,9 @@ import {
   formatYenSigned,
   nextPaydayInfo,
   paydayLabel,
+  accountAmount,
+  accountsTotal,
+  legacyAccountSeed,
 } from '@/lib/money';
 import { showToast } from '@/components/ui/Toast';
 
@@ -35,13 +38,20 @@ function StatusPill({ color, bg, label }: { color: string; bg: string; label: st
 }
 
 export default function MoneyPage() {
-  const [balanceRaw, setBalanceRaw, balanceLoaded] = useLocalStorage<string>(MONEY_KEYS.balance, '');
+  const [accounts, setAccounts, accountsLoaded] = useLocalStorage<MoneyAccount[]>(MONEY_KEYS.accounts, []);
   const [costs, setCosts, costsLoaded] = useLocalStorage<FixedCost[]>(MONEY_KEYS.fixedCosts, []);
   const [month, setMonth, monthLoaded] = useLocalStorage<string>(MONEY_KEYS.month, '');
   const [payday, , paydayLoaded] = useLocalStorage<number>(MONEY_KEYS.payday, 0);
   const [showResetNotice, setShowResetNotice] = useState(false);
   const [simRaw, setSimRaw] = useState('');
   const [simOpen, setSimOpen] = useState(false);
+
+  // 旧バージョンの所持金を「現金」口座として引き継ぐ（初回のみ）
+  useEffect(() => {
+    if (!accountsLoaded) return;
+    const seed = legacyAccountSeed();
+    if (seed) setAccounts(seed);
+  }, [accountsLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 月が変わっていたら支払い状況をすべて「未払い」に戻す（固定費の登録内容は残す）
   useEffect(() => {
@@ -56,12 +66,13 @@ export default function MoneyPage() {
     setMonth(current);
   }, [costsLoaded, monthLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!balanceLoaded || !costsLoaded || !monthLoaded || !paydayLoaded) return null;
+  if (!accountsLoaded || !costsLoaded || !monthLoaded || !paydayLoaded) return null;
 
   const paydayInfo = payday ? nextPaydayInfo(payday) : null;
 
-  const balanceEmpty = balanceRaw === '';
-  const balance = balanceEmpty ? 0 : parseInt(balanceRaw, 10) || 0;
+  // どの口座も未入力なら結果を 0 円として扱う
+  const balanceEmpty = !accounts.some(a => a.amount !== '');
+  const balance = balanceEmpty ? 0 : accountsTotal(accounts);
   const unpaid = unpaidTotal(costs);
   const paidTotal = costs.filter(c => c.paid).reduce((s, c) => s + c.amount, 0);
   // 所持金が未入力のときは結果を 0 円として扱う
@@ -294,24 +305,76 @@ export default function MoneyPage() {
           )}
         </div>
 
-        {/* 今持っているお金の入力 */}
+        {/* 今持っているお金（口座ごと） */}
         <div className="card p-5 anim-fadeInUp stagger-1">
-          <label htmlFor="money-balance" className="field-label">今持っているお金</label>
-          <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#A8A29E' }}>¥</span>
-            <input
-              id="money-balance"
-              type="text"
-              inputMode="numeric"
-              autoComplete="off"
-              value={balanceEmpty ? '' : balance.toLocaleString('ja-JP')}
-              onChange={e => setBalanceRaw(digitsOnly(e.target.value))}
-              placeholder="0"
-              className="input pl-8"
-              style={{ fontSize: 18, fontWeight: 600 }}
-            />
+          <div className="flex items-center justify-between mb-3.5">
+            <p className="text-sm font-medium" style={{ color: '#78716C' }}>今持っているお金</p>
+            <Link href="/money/settings" className="text-xs font-medium px-2 py-1.5 -my-1 rounded-lg" style={{ color: MONEY_ACCENT }}>
+              口座を編集
+            </Link>
           </div>
-          <p className="text-[11px] mt-2" style={{ color: '#A8A29E' }}>
+
+          {accounts.length === 0 ? (
+            <div className="text-center py-4 space-y-3">
+              <p className="text-xs leading-relaxed" style={{ color: '#A8A29E' }}>
+                口座がまだありません。現金・銀行・PayPayなど、<br />持っているお金を分けて登録できます
+              </p>
+              <Link
+                href="/money/settings"
+                className="inline-block px-6 py-3 rounded-full text-sm font-semibold text-white active:scale-95 transition-transform"
+                style={{ background: MONEY_ACCENT }}
+              >
+                ＋ 口座を追加する
+              </Link>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-2.5">
+                {accounts.map(acc => (
+                  <div key={acc.id} className="flex items-center gap-3">
+                    <label
+                      htmlFor={`acc-${acc.id}`}
+                      className="flex-1 min-w-0 text-sm font-semibold truncate"
+                      style={{ color: '#1C1917' }}
+                    >
+                      {acc.name}
+                    </label>
+                    <div className="relative w-[58%] max-w-[190px] shrink-0">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#A8A29E' }}>¥</span>
+                      <input
+                        id={`acc-${acc.id}`}
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="off"
+                        value={acc.amount === '' ? '' : accountAmount(acc).toLocaleString('ja-JP')}
+                        onChange={e => {
+                          const raw = digitsOnly(e.target.value);
+                          setAccounts(prev => prev.map(a => (a.id === acc.id ? { ...a, amount: raw } : a)));
+                        }}
+                        placeholder="0"
+                        className="input text-right font-semibold"
+                        style={{ paddingLeft: 30, fontVariantNumeric: 'tabular-nums' }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {accounts.length > 1 && (
+                <div
+                  className="flex justify-between items-baseline mt-3.5 pt-3"
+                  style={{ borderTop: '1px solid rgba(28,18,12,0.06)' }}
+                >
+                  <span className="text-sm font-medium" style={{ color: '#78716C' }}>合計</span>
+                  <span className="text-xl font-semibold font-serif-num" style={{ color: '#1C1917' }}>
+                    {formatYen(accountsTotal(accounts))}
+                  </span>
+                </div>
+              )}
+            </>
+          )}
+
+          <p className="text-[11px] mt-3" style={{ color: '#A8A29E' }}>
             使っていいお金 ＝ 今持っているお金 − 未払いの固定費
           </p>
         </div>

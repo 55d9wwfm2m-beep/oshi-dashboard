@@ -176,6 +176,15 @@ export const SKIN_TONES = [
 ];
 
 // ──── やりくり電卓（使っていいお金計算） ────
+
+/** 現金・銀行・PayPayなど、お金の置き場所ごとの残高 */
+export interface MoneyAccount {
+  id: string;
+  name: string;
+  /** 数字のみの文字列。'' は未入力 */
+  amount: string;
+}
+
 export interface FixedCost {
   id: string;
   name: string;

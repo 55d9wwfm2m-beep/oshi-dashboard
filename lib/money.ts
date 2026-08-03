@@ -1,8 +1,11 @@
-import { FixedCost } from '@/types';
+import { FixedCost, MoneyAccount } from '@/types';
+import { generateId } from '@/lib/utils';
 
 /** やりくり電卓で使う localStorage キー */
 export const MONEY_KEYS = {
-  /** 今持っているお金（数字のみの文字列。'' は未入力） */
+  /** 口座ごとの残高 */
+  accounts: 'oshi-money-accounts',
+  /** 旧・単一口座時代の所持金。accounts へ引き継いだあとは参照しない */
   balance: 'oshi-money-balance',
   /** 登録された固定費の配列 */
   fixedCosts: 'oshi-money-fixedcosts',
@@ -139,6 +142,32 @@ export function digitsOnly(value: string): string {
     .replace(/\D/g, '')
     .replace(/^0+(?=\d)/, '')
     .slice(0, 9);
+}
+
+/** 口座の金額（未入力は0） */
+export function accountAmount(a: MoneyAccount): number {
+  return a.amount === '' ? 0 : parseInt(a.amount, 10) || 0;
+}
+
+/** 全口座の合計 */
+export function accountsTotal(accounts: MoneyAccount[]): number {
+  return accounts.reduce((s, a) => s + accountAmount(a), 0);
+}
+
+/**
+ * 旧バージョン（単一の所持金）からの引き継ぎ。
+ * accounts をまだ一度も保存していないときだけ、以前の金額を「現金」として引き継ぐ。
+ * 引き継ぐものがなければ null（＝何もしない）。
+ */
+export function legacyAccountSeed(): MoneyAccount[] | null {
+  try {
+    if (window.localStorage.getItem(MONEY_KEYS.accounts) !== null) return null;
+    const raw = window.localStorage.getItem(MONEY_KEYS.balance);
+    const legacy = raw === null ? '' : digitsOnly(String(JSON.parse(raw) ?? ''));
+    return [{ id: generateId(), name: '現金', amount: legacy }];
+  } catch {
+    return null;
+  }
 }
 
 /** 未払い固定費の合計 */

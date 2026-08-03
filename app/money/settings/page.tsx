@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { FixedCost } from '@/types';
+import { FixedCost, MoneyAccount } from '@/types';
 import { formatYen, generateId } from '@/lib/utils';
 import {
   MONEY_KEYS,
@@ -15,6 +15,9 @@ import {
   sortByPayDay,
   nextPaydayInfo,
   WEEKDAY_JA,
+  accountAmount,
+  accountsTotal,
+  legacyAccountSeed,
 } from '@/lib/money';
 import BottomSheet from '@/components/ui/BottomSheet';
 import { showToast } from '@/components/ui/Toast';
@@ -25,6 +28,16 @@ const PAYDAY_RULE = '土日・祝日にあたる月は、その前の平日に�
 export default function MoneySettingsPage() {
   const [costs, setCosts, loaded] = useLocalStorage<FixedCost[]>(MONEY_KEYS.fixedCosts, []);
   const [payday, setPayday, paydayLoaded] = useLocalStorage<number>(MONEY_KEYS.payday, 0);
+  const [accounts, setAccounts, accountsLoaded] = useLocalStorage<MoneyAccount[]>(MONEY_KEYS.accounts, []);
+  const [accForm, setAccForm] = useState<{ id: string | null; name: string; amount: string } | null>(null);
+  const [accDeleteTarget, setAccDeleteTarget] = useState<MoneyAccount | null>(null);
+
+  // 旧バージョンの所持金を「現金」口座として引き継ぐ（初回のみ）
+  useEffect(() => {
+    if (!accountsLoaded) return;
+    const seed = legacyAccountSeed();
+    if (seed) setAccounts(seed);
+  }, [accountsLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [nameInput, setNameInput] = useState('');
@@ -32,7 +45,30 @@ export default function MoneySettingsPage() {
   const [dayInput, setDayInput] = useState('1');
   const [deleteTarget, setDeleteTarget] = useState<FixedCost | null>(null);
 
-  if (!loaded || !paydayLoaded) return null;
+  if (!loaded || !paydayLoaded || !accountsLoaded) return null;
+
+  const accFormAmount = accForm && accForm.amount !== '' ? parseInt(accForm.amount, 10) || 0 : 0;
+  const canSaveAcc = accForm !== null && accForm.name.trim().length > 0;
+
+  const saveAccount = () => {
+    if (!accForm || !canSaveAcc) return;
+    const name = accForm.name.trim();
+    if (accForm.id) {
+      setAccounts(prev => prev.map(a => (a.id === accForm.id ? { ...a, name, amount: accForm.amount } : a)));
+      showToast('口座を更新しました');
+    } else {
+      setAccounts(prev => [...prev, { id: generateId(), name, amount: accForm.amount }]);
+      showToast('口座を追加しました');
+    }
+    setAccForm(null);
+  };
+
+  const confirmDeleteAccount = () => {
+    if (!accDeleteTarget) return;
+    setAccounts(prev => prev.filter(a => a.id !== accDeleteTarget.id));
+    showToast(`「${accDeleteTarget.name}」を削除しました`);
+    setAccDeleteTarget(null);
+  };
 
   const sorted = sortByPayDay(costs);
   const total = costs.reduce((s, c) => s + c.amount, 0);
@@ -105,6 +141,80 @@ export default function MoneySettingsPage() {
       </div>
 
       <div className="px-4 space-y-4">
+        {/* 口座 */}
+        <div className="card p-5 anim-fadeInUp">
+          <div className="flex items-center justify-between mb-3.5">
+            <p className="text-sm font-medium" style={{ color: '#78716C' }}>口座</p>
+            <button
+              onClick={() => setAccForm({ id: null, name: '', amount: '' })}
+              className="text-xs font-semibold px-2 py-1.5 -my-1 rounded-lg"
+              style={{ color: MONEY_ACCENT }}
+            >
+              ＋ 追加
+            </button>
+          </div>
+
+          {accounts.length === 0 ? (
+            <div className="text-center py-4 space-y-3">
+              <p className="text-xs leading-relaxed" style={{ color: '#A8A29E' }}>
+                現金・銀行・PayPayなど、持っているお金を<br />分けて登録できます
+              </p>
+              <button
+                onClick={() => setAccForm({ id: null, name: '', amount: '' })}
+                className="inline-block px-6 py-3 rounded-full text-sm font-semibold text-white active:scale-95 transition-transform"
+                style={{ background: MONEY_ACCENT }}
+              >
+                ＋ 最初の口座を追加
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-3.5">
+                {accounts.map(acc => (
+                  <div key={acc.id} className="flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate" style={{ color: '#1C1917' }}>{acc.name}</p>
+                      <p className="text-[11px] mt-0.5" style={{ color: '#A8A29E' }}>
+                        {acc.amount === '' ? '未入力' : formatYen(accountAmount(acc))}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <button
+                        onClick={() => setAccForm({ id: acc.id, name: acc.name, amount: acc.amount })}
+                        className="text-[11px] px-2 py-1.5 rounded-lg"
+                        style={{ color: '#A8A29E' }}
+                        aria-label={`${acc.name}を編集`}
+                      >
+                        編集
+                      </button>
+                      <button
+                        onClick={() => setAccDeleteTarget(acc)}
+                        className="text-[11px] px-2 py-1.5 rounded-lg"
+                        style={{ color: MONEY_DANGER, opacity: 0.75 }}
+                        aria-label={`${acc.name}を削除`}
+                      >
+                        削除
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {accounts.length > 1 && (
+                <div
+                  className="flex justify-between items-baseline mt-3.5 pt-3"
+                  style={{ borderTop: '1px solid rgba(28,18,12,0.06)' }}
+                >
+                  <span className="text-sm font-medium" style={{ color: '#78716C' }}>合計</span>
+                  <span className="text-xl font-semibold font-serif-num" style={{ color: '#1C1917' }}>
+                    {formatYen(accountsTotal(accounts))}
+                  </span>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
         {/* 給料日 */}
         <div className="card p-5 anim-fadeInUp">
           <label className="field-label" htmlFor="payday-select">給料日</label>
@@ -210,7 +320,102 @@ export default function MoneySettingsPage() {
         )}
       </div>
 
-      {/* 追加・編集シート */}
+      {/* 口座の追加・編集シート */}
+      <BottomSheet
+        open={accForm !== null}
+        onClose={() => setAccForm(null)}
+        title={accForm?.id ? '口座を編集' : '口座を追加'}
+      >
+        {accForm && (
+          <>
+            <div className="space-y-4">
+              <div>
+                <label className="field-label" htmlFor="account-name">口座名 *</label>
+                <input
+                  id="account-name"
+                  type="text"
+                  value={accForm.name}
+                  onChange={e => setAccForm({ ...accForm, name: e.target.value })}
+                  placeholder="例：現金・銀行・PayPay"
+                  className="input"
+                />
+              </div>
+              <div>
+                <label className="field-label" htmlFor="account-amount">今ある金額</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#A8A29E' }}>¥</span>
+                  <input
+                    id="account-amount"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    value={accForm.amount === '' ? '' : accFormAmount.toLocaleString('ja-JP')}
+                    onChange={e => setAccForm({ ...accForm, amount: digitsOnly(e.target.value) })}
+                    placeholder="0"
+                    className="input pl-8"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setAccForm(null)}
+                className="flex-1 py-3.5 rounded-2xl text-sm font-medium"
+                style={{ background: '#F0EBE6', color: '#78716C' }}
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={saveAccount}
+                disabled={!canSaveAcc}
+                className="flex-1 py-3.5 rounded-2xl text-sm font-medium text-white disabled:opacity-40"
+                style={{ background: MONEY_ACCENT }}
+              >
+                {accForm.id ? '保存する' : '追加する'}
+              </button>
+            </div>
+          </>
+        )}
+      </BottomSheet>
+
+      {/* 口座の削除確認シート */}
+      <BottomSheet
+        open={accDeleteTarget !== null}
+        onClose={() => setAccDeleteTarget(null)}
+        title="口座を削除しますか？"
+      >
+        {accDeleteTarget && (
+          <>
+            <div className="p-4 rounded-2xl" style={{ background: MONEY_DANGER_BG }}>
+              <p className="text-sm font-medium" style={{ color: '#1C1917' }}>{accDeleteTarget.name}</p>
+              <p className="text-xs mt-0.5" style={{ color: '#78716C' }}>
+                {accDeleteTarget.amount === '' ? '残高は未入力' : `残高 ${formatYen(accountAmount(accDeleteTarget))}`}
+              </p>
+            </div>
+            <p className="text-xs mt-3 leading-relaxed" style={{ color: '#A8A29E' }}>
+              削除すると、この口座の残高も一緒に消えます。元に戻せません。
+            </p>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setAccDeleteTarget(null)}
+                className="flex-1 py-3.5 rounded-2xl text-sm font-medium"
+                style={{ background: '#F0EBE6', color: '#78716C' }}
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={confirmDeleteAccount}
+                className="flex-1 py-3.5 rounded-2xl text-sm font-medium text-white"
+                style={{ background: MONEY_DANGER }}
+              >
+                削除する
+              </button>
+            </div>
+          </>
+        )}
+      </BottomSheet>
+
+      {/* 固定費の追加・編集シート */}
       <BottomSheet
         open={showForm}
         onClose={() => setShowForm(false)}

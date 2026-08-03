@@ -182,6 +182,23 @@
     background: transparent; border: 1.5px dashed var(--line); color: var(--muted);
   }
 
+  /* ── 口座（現金・銀行・PayPayなど） ── */
+  .acc-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .acc-name {
+    flex: 1; min-width: 0; font-size: 14px; font-weight: 600;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .acc-input-wrap { width: 58%; max-width: 190px; flex-shrink: 0; }
+  .acc-input { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .acc-total {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line);
+  }
+  .acc-total span { font-size: 13px; font-weight: 600; color: var(--sub); }
+  .acc-total b { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .acc-empty { text-align: center; padding: 18px 8px 6px; }
+  .acc-empty p { font-size: 12px; color: var(--muted); margin: 0 0 12px; }
+
   /* ── 買う前にチェック（購入シミュレーション） ── */
   .sim-row { display: flex; gap: 10px; }
   .sim-btn {
@@ -407,11 +424,11 @@
     </div>
 
     <div class="card anim-in">
-      <label class="field-label" for="balance">今持っているお金</label>
-      <div class="money-wrap">
-        <span class="yen">¥</span>
-        <input id="balance" class="input" type="text" inputmode="numeric" autocomplete="off" placeholder="0">
+      <div class="card-head" style="margin-bottom: 14px;">
+        <p class="card-title">今持っているお金</p>
+        <button class="textlink" data-nav="settings">口座を編集</button>
       </div>
+      <div id="account-list"></div>
       <p class="formula">使っていいお金 ＝ 今持っているお金 − 未払いの固定費</p>
     </div>
 
@@ -440,6 +457,14 @@
       </div>
       <button class="plusbtn" id="add-btn" aria-label="固定費を追加">＋</button>
     </header>
+
+    <div class="card anim-in">
+      <div class="card-head" style="margin-bottom: 14px;">
+        <p class="card-title">口座</p>
+        <button class="textlink" id="acc-add">＋ 追加</button>
+      </div>
+      <div id="acc-settings-list"></div>
+    </div>
 
     <div class="card anim-in">
       <label class="field-label" for="payday-select">給料日</label>
@@ -487,6 +512,48 @@
   </div>
 </div>
 
+<!-- ── 口座の追加・編集シート ── -->
+<div class="overlay" id="sheet-acc" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="acc-form-title">
+    <div class="grip" aria-hidden="true"></div>
+    <h2 id="acc-form-title">口座を追加</h2>
+    <div class="fields">
+      <div>
+        <label class="field-label" for="acc-name-input">口座名 *</label>
+        <input id="acc-name-input" class="input" type="text" placeholder="例：現金・銀行・PayPay">
+      </div>
+      <div>
+        <label class="field-label" for="acc-amount-input">今ある金額</label>
+        <div class="money-wrap">
+          <span class="yen">¥</span>
+          <input id="acc-amount-input" class="input pl-8" type="text" inputmode="numeric" autocomplete="off" placeholder="0" style="padding-left: 32px;">
+        </div>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn-ghost" data-close="sheet-acc">キャンセル</button>
+      <button class="btn-primary" id="acc-save">追加する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 口座の削除確認シート ── -->
+<div class="overlay" id="sheet-acc-delete" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="acc-del-title">
+    <div class="grip" aria-hidden="true"></div>
+    <h2 id="acc-del-title">口座を削除しますか？</h2>
+    <div class="del-summary">
+      <b id="acc-del-name"></b>
+      <span id="acc-del-detail"></span>
+    </div>
+    <p class="del-note">削除すると、この口座の残高も一緒に消えます。元に戻せません。</p>
+    <div class="actions">
+      <button class="btn-ghost" data-close="sheet-acc-delete">キャンセル</button>
+      <button class="btn-primary btn-danger" id="acc-del-confirm">削除する</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── 削除確認シート ── -->
 <div class="overlay" id="sheet-delete" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="del-title">
@@ -511,6 +578,9 @@
   'use strict';
 
   var KEYS = {
+    /** 口座ごとの残高 [{id, name, amount}]。amount は数字のみの文字列（'' は未入力） */
+    accounts: 'oshi-money-accounts',
+    /** 旧・単一口座時代の所持金。accounts へ引き継いだあとは参照しない */
     balance: 'oshi-money-balance',
     costs: 'oshi-money-fixedcosts',
     month: 'oshi-money-month',
@@ -534,16 +604,33 @@
   }
 
   /* ── state ── */
-  var balanceRaw = load(KEYS.balance, '');   // 数字のみの文字列。'' は未入力
+  var accounts = load(KEYS.accounts, null);  // [{id, name, amount}]
   var costs = load(KEYS.costs, []);          // {id, name, amount, payDay, paid}
   var savedMonth = load(KEYS.month, '');
   var payday = load(KEYS.payday, 0);         // 給料日（1〜31）。0 は未設定
   var editId = null;
   var deleteId = null;
+  var accEditId = null;
+  var accDeleteId = null;
 
   if (typeof payday !== 'number' || payday < 0 || payday > 31) payday = 0;
 
-  if (typeof balanceRaw !== 'string') balanceRaw = String(balanceRaw || '');
+  if (Array.isArray(accounts)) {
+    accounts = accounts.map(function (a) {
+      a = a || {};
+      return {
+        id: a.id || uid(),
+        name: typeof a.name === 'string' && a.name ? a.name : '口座',
+        amount: digitsOnly(String(a.amount == null ? '' : a.amount))
+      };
+    });
+  } else {
+    // 旧バージョン（単一の所持金）からの引き継ぎ。以前の金額を「現金」として残す
+    var legacy = load(KEYS.balance, '');
+    accounts = [{ id: uid(), name: '現金', amount: digitsOnly(String(legacy == null ? '' : legacy)) }];
+    save(KEYS.accounts, accounts);
+  }
+
   if (!Array.isArray(costs)) costs = [];
 
   /* ── utils ── */
@@ -583,11 +670,18 @@
   }
   var STATUS_LABEL = { safe: '安心', warn: '少し注意', tight: '節約モード' };
 
+  function accAmount(a) { return a.amount === '' ? 0 : parseInt(a.amount, 10) || 0; }
+
+  /** 全口座の合計 */
+  function totalBalance() {
+    return accounts.reduce(function (s, a) { return s + accAmount(a); }, 0);
+  }
+
   function calc() {
-    var empty = balanceRaw === '';
-    var balance = empty ? 0 : parseInt(balanceRaw, 10) || 0;
+    // どの口座も未入力なら結果を 0 円として扱う
+    var empty = !accounts.some(function (a) { return a.amount !== ''; });
+    var balance = empty ? 0 : totalBalance();
     var unpaid = unpaidTotal();
-    // 所持金が未入力のときは結果を 0 円として扱う
     return { empty: empty, balance: balance, unpaid: unpaid, spendable: empty ? 0 : balance - unpaid };
   }
 
@@ -724,7 +818,53 @@
   }
 
   /* ── ホーム描画 ── */
-  var balanceInput = document.getElementById('balance');
+
+  /** 口座リスト。入力中は再描画しないので、フォーカスとカーソルは保たれる */
+  function renderAccounts() {
+    var box = document.getElementById('account-list');
+    if (accounts.length === 0) {
+      box.innerHTML =
+        '<div class="acc-empty">' +
+          '<p>口座がまだありません。現金・銀行・PayPayなど、<br>持っているお金を分けて登録できます</p>' +
+          '<button class="cta" data-nav="settings" style="margin:0;">＋ 口座を追加する</button>' +
+        '</div>';
+      return;
+    }
+    var rows = accounts.map(function (a) {
+      return '<div class="acc-row">' +
+        '<label class="acc-name" for="acc-' + a.id + '">' + esc(a.name) + '</label>' +
+        '<div class="money-wrap acc-input-wrap">' +
+          '<span class="yen">¥</span>' +
+          '<input id="acc-' + a.id + '" data-acc="' + a.id + '" class="input acc-input" type="text" ' +
+            'inputmode="numeric" autocomplete="off" placeholder="0" style="padding-left:30px;" ' +
+            'value="' + (a.amount === '' ? '' : accAmount(a).toLocaleString('ja-JP')) + '">' +
+        '</div>' +
+      '</div>';
+    }).join('');
+    var total = accounts.length > 1
+      ? '<div class="acc-total"><span>合計</span><b class="serif-num" id="acc-total">' + yen(totalBalance()) + '</b></div>'
+      : '';
+    box.innerHTML = rows + total;
+  }
+
+  /** 合計だけを更新（入力中に使う） */
+  function refreshAccountTotal() {
+    var el = document.getElementById('acc-total');
+    if (el) el.textContent = yen(totalBalance());
+  }
+
+  document.addEventListener('input', function (e) {
+    var id = e.target.dataset && e.target.dataset.acc;
+    if (!id) return;
+    var raw = digitsOnly(e.target.value);
+    e.target.value = raw === '' ? '' : parseInt(raw, 10).toLocaleString('ja-JP');
+    accounts = accounts.map(function (a) {
+      return a.id === id ? { id: a.id, name: a.name, amount: raw } : a;
+    });
+    save(KEYS.accounts, accounts);
+    refreshAccountTotal();
+    renderHero();
+  });
 
   function statusPillHTML(st) {
     return '<div><span class="status-pill pill-' + st + '"><i class="dot" aria-hidden="true"></i>' + STATUS_LABEL[st] + '</span></div>';
@@ -800,7 +940,7 @@
   }
 
   function renderHome() {
-    balanceInput.value = balanceRaw === '' ? '' : parseInt(balanceRaw, 10).toLocaleString('ja-JP');
+    renderAccounts();
     renderPayday();
     renderHero();
     renderHomeCosts();
@@ -837,11 +977,102 @@
     toast(payday ? '給料日を毎月' + payday + '日に設定しました' : '給料日の設定を解除しました');
   });
 
+  /* ── 口座の設定（追加・編集・削除） ── */
+  var accNameInput = document.getElementById('acc-name-input');
+  var accAmountInput = document.getElementById('acc-amount-input');
+  var accSaveBtn = document.getElementById('acc-save');
+
+  function renderAccountSettings() {
+    var box = document.getElementById('acc-settings-list');
+    if (accounts.length === 0) {
+      box.innerHTML = '<div class="acc-empty"><p>現金・銀行・PayPayなど、持っているお金を<br>分けて登録できます</p>' +
+        '<button class="cta" id="acc-add-empty" style="margin:0;">＋ 最初の口座を追加</button></div>';
+      var b = document.getElementById('acc-add-empty');
+      if (b) b.addEventListener('click', function () { openAccForm(null); });
+      return;
+    }
+    box.innerHTML = accounts.map(function (a) {
+      return '<div class="acc-row" style="margin-bottom:14px;">' +
+        '<div style="flex:1; min-width:0;">' +
+          '<p class="setting-name">' + esc(a.name) + '</p>' +
+          '<p class="setting-sub">' + (a.amount === '' ? '未入力' : yen(accAmount(a))) + '</p>' +
+        '</div>' +
+        '<div class="setting-side">' +
+          '<button class="rowbtn edit" data-acc-edit="' + a.id + '" aria-label="' + esc(a.name) + 'を編集">編集</button>' +
+          '<button class="rowbtn del" data-acc-del="' + a.id + '" aria-label="' + esc(a.name) + 'を削除">削除</button>' +
+        '</div>' +
+      '</div>';
+    }).join('') +
+    (accounts.length > 1
+      ? '<div class="acc-total"><span>合計</span><b class="serif-num">' + yen(totalBalance()) + '</b></div>'
+      : '');
+  }
+
+  function accFormAmount() {
+    var raw = digitsOnly(accAmountInput.value);
+    return raw === '' ? '' : raw;
+  }
+  function validateAccForm() {
+    accSaveBtn.disabled = accNameInput.value.trim() === '';
+  }
+  function openAccForm(acc) {
+    accEditId = acc ? acc.id : null;
+    document.getElementById('acc-form-title').textContent = acc ? '口座を編集' : '口座を追加';
+    accSaveBtn.textContent = acc ? '保存する' : '追加する';
+    accNameInput.value = acc ? acc.name : '';
+    accAmountInput.value = acc && acc.amount !== '' ? accAmount(acc).toLocaleString('ja-JP') : '';
+    validateAccForm();
+    document.getElementById('sheet-acc').hidden = false;
+    accNameInput.focus();
+  }
+
+  accNameInput.addEventListener('input', validateAccForm);
+  accAmountInput.addEventListener('input', function () {
+    var raw = digitsOnly(accAmountInput.value);
+    accAmountInput.value = raw === '' ? '' : parseInt(raw, 10).toLocaleString('ja-JP');
+  });
+
+  accSaveBtn.addEventListener('click', function () {
+    var name = accNameInput.value.trim();
+    if (!name) return;
+    var amount = accFormAmount();
+    if (accEditId) {
+      accounts = accounts.map(function (a) {
+        return a.id === accEditId ? { id: a.id, name: name, amount: amount } : a;
+      });
+      toast('口座を更新しました');
+    } else {
+      accounts.push({ id: uid(), name: name, amount: amount });
+      toast('口座を追加しました');
+    }
+    save(KEYS.accounts, accounts);
+    closeSheet('sheet-acc');
+    renderAccountSettings();
+  });
+
+  function openAccDelete(acc) {
+    accDeleteId = acc.id;
+    document.getElementById('acc-del-name').textContent = acc.name;
+    document.getElementById('acc-del-detail').textContent =
+      acc.amount === '' ? '残高は未入力' : '残高 ' + yen(accAmount(acc));
+    document.getElementById('sheet-acc-delete').hidden = false;
+  }
+  document.getElementById('acc-del-confirm').addEventListener('click', function () {
+    var target = accounts.find(function (a) { return a.id === accDeleteId; });
+    accounts = accounts.filter(function (a) { return a.id !== accDeleteId; });
+    save(KEYS.accounts, accounts);
+    closeSheet('sheet-acc-delete');
+    renderAccountSettings();
+    if (target) toast('「' + target.name + '」を削除しました');
+  });
+  document.getElementById('acc-add').addEventListener('click', function () { openAccForm(null); });
+
   function renderSettings() {
     var listEl = document.getElementById('settings-list');
     var summary = document.getElementById('summary');
     paydaySelect.value = String(payday || 0);
     renderPaydayNote();
+    renderAccountSettings();
 
     if (costs.length === 0) {
       summary.hidden = true;
@@ -1015,17 +1246,9 @@
     simInput.blur();
   });
 
-  /* ── 所持金入力（入力中に自動計算） ── */
-  balanceInput.addEventListener('input', function () {
-    balanceRaw = digitsOnly(balanceInput.value);
-    balanceInput.value = balanceRaw === '' ? '' : parseInt(balanceRaw, 10).toLocaleString('ja-JP');
-    save(KEYS.balance, balanceRaw);
-    renderHero();
-  });
-
   /* ── クリック委譲 ── */
   document.addEventListener('click', function (e) {
-    var t = e.target.closest('[data-nav], [data-toggle], [data-edit], [data-del], [data-close], .overlay');
+    var t = e.target.closest('[data-nav], [data-toggle], [data-edit], [data-del], [data-acc-edit], [data-acc-del], [data-close], .overlay');
     if (!t) return;
 
     if (t.dataset && t.dataset.nav) { show(t.dataset.nav); return; }
@@ -1050,6 +1273,16 @@
     if (t.dataset && t.dataset.del) {
       var cd = costs.find(function (c) { return c.id === t.dataset.del; });
       if (cd) openDelete(cd);
+      return;
+    }
+    if (t.dataset && t.dataset.accEdit) {
+      var ae = accounts.find(function (a) { return a.id === t.dataset.accEdit; });
+      if (ae) openAccForm(ae);
+      return;
+    }
+    if (t.dataset && t.dataset.accDel) {
+      var ad = accounts.find(function (a) { return a.id === t.dataset.accDel; });
+      if (ad) openAccDelete(ad);
     }
   });
 
@@ -1057,6 +1290,8 @@
     if (e.key !== 'Escape') return;
     closeSheet('sheet-form');
     closeSheet('sheet-delete');
+    closeSheet('sheet-acc');
+    closeSheet('sheet-acc-delete');
   });
 
   document.getElementById('add-btn').addEventListener('click', function () { openForm(null); });

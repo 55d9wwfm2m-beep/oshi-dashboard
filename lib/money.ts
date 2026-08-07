@@ -1,4 +1,4 @@
-import { FixedCost, MoneyAccount } from '@/types';
+import { FixedCost, MoneyAccount, MonthlyRecord } from '@/types';
 import { generateId } from '@/lib/utils';
 
 /** やりくり電卓で使う localStorage キー */
@@ -13,7 +13,32 @@ export const MONEY_KEYS = {
   month: 'oshi-money-month',
   /** 給料日（1〜31）。0 は未設定 */
   payday: 'oshi-money-payday',
+  /** 月末に自動保存した各月の記録 */
+  history: 'oshi-money-history',
 } as const;
+
+/** 履歴に残す最大月数（古いものから捨てる） */
+export const HISTORY_LIMIT = 24;
+
+/** 「2026年8月」形式 */
+export function formatMonthLabel(month: string): string {
+  const [y, m] = month.split('-');
+  return `${y}年${parseInt(m, 10)}月`;
+}
+
+/** 直前の月（YYYY-MM）を返す */
+export function previousMonth(month: string): string {
+  const [y, m] = month.split('-').map(Number);
+  const d = new Date(y, m - 2, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/** 新しい月を先頭に、同じ月は上書きして履歴へ追加する */
+export function addMonthlyRecord(history: MonthlyRecord[], record: MonthlyRecord): MonthlyRecord[] {
+  return [record, ...history.filter(r => r.month !== record.month)]
+    .sort((a, b) => b.month.localeCompare(a.month))
+    .slice(0, HISTORY_LIMIT);
+}
 
 export const WEEKDAY_JA = ['日', '月', '火', '水', '木', '金', '土'];
 

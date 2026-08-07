@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { FixedCost, MoneyAccount } from '@/types';
+import { FixedCost, MoneyAccount, MonthlyRecord } from '@/types';
 import { formatYen, getCurrentMonth } from '@/lib/utils';
 import {
   MONEY_KEYS,
@@ -23,9 +23,12 @@ import {
   budgetTotal,
   isBudgetAccount,
   legacyAccountSeed,
+  addMonthlyRecord,
+  formatMonthLabel,
 } from '@/lib/money';
 import { showToast } from '@/components/ui/Toast';
 import BudgetToggle from '@/components/ui/BudgetToggle';
+import MonthlyRecap from '@/components/ui/MonthlyRecap';
 
 /** ステータスの丸ドット付きピル（🟢安心 / 🟡少し注意 / 🔴節約モード） */
 function StatusPill({ color, bg, label }: { color: string; bg: string; label: string }) {
@@ -45,6 +48,8 @@ export default function MoneyPage() {
   const [costs, setCosts, costsLoaded] = useLocalStorage<FixedCost[]>(MONEY_KEYS.fixedCosts, []);
   const [month, setMonth, monthLoaded] = useLocalStorage<string>(MONEY_KEYS.month, '');
   const [payday, , paydayLoaded] = useLocalStorage<number>(MONEY_KEYS.payday, 0);
+  const [history, setHistory, historyLoaded] = useLocalStorage<MonthlyRecord[]>(MONEY_KEYS.history, []);
+  const [recap, setRecap] = useState<MonthlyRecord | null>(null);
   const [showResetNotice, setShowResetNotice] = useState(false);
   const [simRaw, setSimRaw] = useState('');
   const [simOpen, setSimOpen] = useState(false);
@@ -56,20 +61,37 @@ export default function MoneyPage() {
     if (seed) setAccounts(seed);
   }, [accountsLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 月が変わっていたら支払い状況をすべて「未払い」に戻す（固定費の登録内容は残す）
+  // 月が変わったら前月の記録を残し、支払い状況をすべて「未払い」に戻す
+  // （固定費の登録内容はそのまま）
   useEffect(() => {
-    if (!costsLoaded || !monthLoaded) return;
+    if (!costsLoaded || !monthLoaded || !accountsLoaded || !historyLoaded) return;
     const current = getCurrentMonth();
     if (month === current) return;
+
+    // 前月の締めくくりを記録に残す（初回起動時は実績がないので保存しない）
+    let saved = false;
+    if (month && accounts.some(a => a.amount !== '')) {
+      const record: MonthlyRecord = {
+        month,
+        spendable: budgetTotal(accounts) - unpaidTotal(costs),
+        assets: accountsTotal(accounts),
+        fixedCosts: costs.reduce((s, c) => s + c.amount, 0),
+        savedAt: new Date().toISOString(),
+      };
+      setHistory(prev => addMonthlyRecord(prev, record));
+      setRecap(record);
+      saved = true;
+    }
+
     if (month && costs.some(c => c.paid)) {
       setCosts(prev => prev.map(c => ({ ...c, paid: false })));
       setShowResetNotice(true);
-      showToast('新しい月になったので、支払い状況をリセットしました');
+      if (!saved) showToast('新しい月になったので、支払い状況をリセットしました');
     }
     setMonth(current);
-  }, [costsLoaded, monthLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [costsLoaded, monthLoaded, accountsLoaded, historyLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!accountsLoaded || !costsLoaded || !monthLoaded || !paydayLoaded) return null;
+  if (!accountsLoaded || !costsLoaded || !monthLoaded || !paydayLoaded || !historyLoaded) return null;
 
   const paydayInfo = payday ? nextPaydayInfo(payday) : null;
 
@@ -561,6 +583,50 @@ export default function MoneyPage() {
           )}
         </div>
 
+        {/* これまでの記録 */}
+        {history.length > 0 && (
+          <div className="card p-5 anim-fadeInUp">
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-sm font-medium" style={{ color: '#78716C' }}>これまでの記録</p>
+              <span
+                className="text-[10px] font-bold px-2 py-[3px] rounded-full"
+                style={{ background: '#F0EBE6', color: '#A8A29E' }}
+              >
+                {history.length}か月分
+              </span>
+            </div>
+            <div>
+              {history.map((r, i) => (
+                <div
+                  key={r.month}
+                  className="flex items-center gap-3 py-3"
+                  style={{ borderBottom: i === history.length - 1 ? 'none' : '1px solid rgba(28,18,12,0.06)' }}
+                >
+                  <div className="shrink-0">
+                    <p className="text-[13px] font-bold" style={{ color: '#1C1917' }}>
+                      {formatMonthLabel(r.month)}
+                    </p>
+                    <p className="text-[10.5px] mt-0.5" style={{ color: '#A8A29E' }}>
+                      総資産 {formatYen(r.assets)}
+                    </p>
+                  </div>
+                  <div className="flex-1 min-w-0 text-right">
+                    <p
+                      className="text-base font-bold"
+                      style={{ color: r.spendable < 0 ? MONEY_DANGER : '#1C1917', fontVariantNumeric: 'tabular-nums' }}
+                    >
+                      {formatYenSigned(r.spendable)}
+                    </p>
+                    <p className="text-[10.5px] mt-0.5" style={{ color: '#A8A29E' }}>
+                      固定費 {formatYen(r.fixedCosts)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* 固定費設定画面へ */}
         <Link
           href="/money/settings"
@@ -570,6 +636,9 @@ export default function MoneyPage() {
           固定費を設定する
         </Link>
       </div>
+
+      {/* 月末の振り返り */}
+      <MonthlyRecap record={recap} onClose={() => setRecap(null)} />
     </div>
   );
 }

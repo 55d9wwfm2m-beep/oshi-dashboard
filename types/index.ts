@@ -201,6 +201,20 @@ export interface FixedCost {
   paid: boolean;
 }
 
+/** 月が変わったときに自動保存される、その月の締めくくり記録 */
+export interface MonthlyRecord {
+  /** YYYY-MM */
+  month: string;
+  /** 締め時点の使っていいお金（予算対象残高 − 未払い固定費） */
+  spendable: number;
+  /** 締め時点の総資産（全口座の合計） */
+  assets: number;
+  /** その月の固定費の合計 */
+  fixedCosts: number;
+  /** 保存した日時（ISO文字列） */
+  savedAt: string;
+}
+
 // DiceBear Adventurer の hair 値にマッピング
 export const HAIR_STYLES: { id: string; label: string }[] = [
   { id: 'long01',  label: 'ロング' },

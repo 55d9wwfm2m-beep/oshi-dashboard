@@ -386,6 +386,50 @@
   .del-summary span { font-size: 12px; color: var(--sub); }
   .del-note { font-size: 12px; color: var(--muted); margin: 12px 0 0; }
 
+  /* ── 月末の振り返りポップアップ ── */
+  .recap-card {
+    width: 100%; max-width: 400px; margin: auto;
+    background: var(--surface); border-radius: 28px;
+    padding: 0 0 24px; overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.28);
+    animation: recapIn 0.42s cubic-bezier(0.2, 1.1, 0.35, 1) both;
+  }
+  @keyframes recapIn {
+    from { opacity: 0; transform: translateY(24px) scale(0.94); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .recap-hero {
+    padding: 26px 24px 22px; text-align: center;
+    background: linear-gradient(165deg, var(--accent-soft-2, rgba(53,146,119,0.18)), var(--surface) 78%);
+  }
+  .recap-emoji { font-size: 40px; line-height: 1; }
+  .recap-title { font-size: 13px; font-weight: 700; letter-spacing: 0.06em; color: var(--accent-ink); margin: 10px 0 0; }
+  .recap-month { font-size: 26px; font-weight: 700; margin: 4px 0 0; letter-spacing: -0.01em; }
+  .recap-body { padding: 4px 24px 0; }
+  .recap-main { text-align: center; padding: 16px 0 14px; }
+  .recap-main .k { font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: var(--sub); }
+  .recap-main .v { font-size: 40px; font-weight: 600; line-height: 1.2; margin: 2px 0 0; color: var(--accent-ink); }
+  .recap-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
+  .recap-cell { background: var(--bg); border-radius: 16px; padding: 12px 14px; text-align: center; }
+  .recap-cell .k { font-size: 11px; color: var(--sub); }
+  .recap-cell .v { font-size: 17px; font-weight: 700; margin-top: 3px; font-variant-numeric: tabular-nums; }
+  .recap-note {
+    margin: 14px 0 0; padding: 12px 14px; border-radius: 14px;
+    background: var(--accent-soft); color: var(--accent-ink);
+    font-size: 12.5px; font-weight: 600; text-align: center; line-height: 1.5;
+  }
+  .recap-actions { display: flex; gap: 10px; margin: 18px 24px 0; }
+
+  /* ── 振り返り（履歴一覧） ── */
+  .hist-row { display: flex; align-items: center; gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--line); }
+  .hist-row:last-child { border-bottom: none; }
+  .hist-month { font-size: 13px; font-weight: 700; flex-shrink: 0; width: 84px; }
+  .hist-sub { font-size: 10.5px; color: var(--muted); margin-top: 2px; }
+  .hist-main { flex: 1; min-width: 0; text-align: right; }
+  .hist-amount { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .hist-amount.minus { color: var(--danger); }
+  .hist-meta { font-size: 10.5px; color: var(--muted); margin-top: 2px; font-variant-numeric: tabular-nums; }
+
   /* ── toast ── */
   .toast {
     position: fixed; left: 50%; bottom: calc(28px + env(safe-area-inset-bottom));
@@ -483,6 +527,14 @@
       <div id="home-costs"></div>
     </div>
 
+    <div class="card anim-in" id="history-card" hidden>
+      <div class="card-head" style="margin-bottom: 6px;">
+        <p class="card-title">これまでの記録</p>
+        <span class="acc-off-tag" id="history-count"></span>
+      </div>
+      <div id="history-list"></div>
+    </div>
+
     <button class="btn-primary anim-in" data-nav="settings">固定費を設定する</button>
 
     <p class="footnote">データはこの端末のブラウザ内にのみ保存されます</p>
@@ -551,6 +603,37 @@
     <div class="actions">
       <button class="btn-ghost" data-close="sheet-form">キャンセル</button>
       <button class="btn-primary" id="form-save">追加する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 月末の振り返りポップアップ ── -->
+<div class="overlay" id="sheet-recap" hidden style="align-items: center; padding: 20px;">
+  <div class="recap-card" role="dialog" aria-modal="true" aria-labelledby="recap-month">
+    <div class="recap-hero">
+      <div class="recap-emoji" id="recap-emoji" aria-hidden="true">🎉</div>
+      <p class="recap-title">今月の振り返り</p>
+      <h2 class="recap-month" id="recap-month"></h2>
+    </div>
+    <div class="recap-body">
+      <div class="recap-main">
+        <p class="k">使っていいお金</p>
+        <p class="v serif-num" id="recap-spendable"></p>
+      </div>
+      <div class="recap-grid">
+        <div class="recap-cell">
+          <p class="k">総資産</p>
+          <p class="v serif-num" id="recap-assets"></p>
+        </div>
+        <div class="recap-cell">
+          <p class="k">固定費</p>
+          <p class="v serif-num" id="recap-fixed"></p>
+        </div>
+      </div>
+      <p class="recap-note" id="recap-note"></p>
+    </div>
+    <div class="recap-actions">
+      <button class="btn-primary" id="recap-close" style="width:100%;">今月もがんばる！</button>
     </div>
   </div>
 </div>
@@ -627,8 +710,13 @@
     balance: 'oshi-money-balance',
     costs: 'oshi-money-fixedcosts',
     month: 'oshi-money-month',
-    payday: 'oshi-money-payday'
+    payday: 'oshi-money-payday',
+    /** 月末に自動保存した各月の記録 */
+    history: 'oshi-money-history'
   };
+
+  /** 履歴に残す最大月数（古いものから捨てる） */
+  var HISTORY_LIMIT = 24;
 
   /* ── storage（使えない環境ではメモリに退避） ── */
   var storageOk = true;
@@ -651,6 +739,8 @@
   var costs = load(KEYS.costs, []);          // {id, name, amount, payDay, paid}
   var savedMonth = load(KEYS.month, '');
   var payday = load(KEYS.payday, 0);         // 給料日（1〜31）。0 は未設定
+  var history = load(KEYS.history, []);      // [{month, spendable, assets, fixedCosts, savedAt}]
+  if (!Array.isArray(history)) history = [];
   var editId = null;
   var deleteId = null;
   var accEditId = null;
@@ -756,16 +846,34 @@
     toastTimer = setTimeout(function () { el.classList.remove('show'); }, 2200);
   }
 
-  /* ── 月替わり検知：支払い状況だけ未払いへ戻す ── */
+  /* ── 月替わり検知：前月の記録を保存し、支払い状況を未払いへ戻す ── */
   var nowMonth = currentMonth();
+  var recapRecord = null;
+
   if (savedMonth !== nowMonth) {
+    // 前月の締めくくりを記録に残す（初回起動時は前月の実績がないので保存しない）
+    if (savedMonth && accounts.some(function (a) { return a.amount !== ''; })) {
+      recapRecord = {
+        month: savedMonth,
+        spendable: budgetBalance() - unpaidTotal(),
+        assets: totalBalance(),
+        fixedCosts: costs.reduce(function (s, c) { return s + c.amount; }, 0),
+        savedAt: new Date().toISOString()
+      };
+      history = [recapRecord]
+        .concat(history.filter(function (r) { return r && r.month !== recapRecord.month; }))
+        .sort(function (a, b) { return b.month.localeCompare(a.month); })
+        .slice(0, HISTORY_LIMIT);
+      save(KEYS.history, history);
+    }
+
     if (savedMonth && costs.some(function (c) { return c.paid; })) {
       costs = costs.map(function (c) {
         return { id: c.id, name: c.name, amount: c.amount, payDay: c.payDay, paid: false };
       });
       save(KEYS.costs, costs);
       document.getElementById('reset-banner').hidden = false;
-      setTimeout(function () { toast('新しい月になったので、支払い状況をリセットしました'); }, 400);
+      if (!recapRecord) setTimeout(function () { toast('新しい月になったので、支払い状況をリセットしました'); }, 400);
     }
     save(KEYS.month, nowMonth);
   }
@@ -1030,7 +1138,64 @@
     box.innerHTML = '<ul class="cost-list">' + rows + '</ul>' + totals;
   }
 
+  /* ── 月末の振り返り ── */
+
+  /** 「2026年8月」形式 */
+  function monthLabel(m) {
+    var p = m.split('-');
+    return p[0] + '年' + parseInt(p[1], 10) + '月';
+  }
+
+  /** 結果に合わせた絵文字とねぎらいの言葉 */
+  function recapMood(rec) {
+    if (rec.spendable < 0) {
+      return { emoji: '💪', note: '今月はちょっと厳しめでした。<br>来月は固定費の見直しから始めてみよう' };
+    }
+    if (rec.spendable >= 30000) {
+      return { emoji: '🎉', note: 'よゆうを持ってやりくりできました！<br>この調子でいきましょう' };
+    }
+    if (rec.spendable >= 10000) {
+      return { emoji: '✨', note: 'しっかりやりくりできた1か月でした<br>おつかれさまでした' };
+    }
+    return { emoji: '🌱', note: 'きゅうくつな月をよく乗り切りました<br>記録が残ると次に活かせます' };
+  }
+
+  function showRecap(rec) {
+    var mood = recapMood(rec);
+    document.getElementById('recap-emoji').textContent = mood.emoji;
+    document.getElementById('recap-month').textContent = monthLabel(rec.month);
+    document.getElementById('recap-spendable').textContent = yenSigned(rec.spendable);
+    document.getElementById('recap-assets').textContent = yen(rec.assets);
+    document.getElementById('recap-fixed').textContent = yen(rec.fixedCosts);
+    document.getElementById('recap-note').innerHTML = mood.note;
+    document.getElementById('sheet-recap').hidden = false;
+  }
+
+  function renderHistory() {
+    var card = document.getElementById('history-card');
+    if (history.length === 0) { card.hidden = true; return; }
+    card.hidden = false;
+    document.getElementById('history-count').textContent = history.length + 'か月分';
+    document.getElementById('history-list').innerHTML = history.map(function (r) {
+      return '<div class="hist-row">' +
+        '<div style="flex-shrink:0;">' +
+          '<div class="hist-month">' + monthLabel(r.month) + '</div>' +
+          '<div class="hist-sub">総資産 ' + yen(r.assets) + '</div>' +
+        '</div>' +
+        '<div class="hist-main">' +
+          '<div class="hist-amount' + (r.spendable < 0 ? ' minus' : '') + '">' + yenSigned(r.spendable) + '</div>' +
+          '<div class="hist-meta">固定費 ' + yen(r.fixedCosts) + '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  document.getElementById('recap-close').addEventListener('click', function () {
+    document.getElementById('sheet-recap').hidden = true;
+  });
+
   function renderHome() {
+    renderHistory();
     renderAccounts();
     renderPayday();
     renderHero();
@@ -1427,6 +1592,7 @@
     closeSheet('sheet-delete');
     closeSheet('sheet-acc');
     closeSheet('sheet-acc-delete');
+    closeSheet('sheet-recap');
   });
 
   document.getElementById('add-btn').addEventListener('click', function () { openForm(null); });
@@ -1436,6 +1602,9 @@
 
   if (!storageOk) showStorageWarn();
   show('home');
+
+  // 月が変わって前月の記録を保存したときだけ、振り返りを開く
+  if (recapRecord) setTimeout(function () { showRecap(recapRecord); }, 450);
 
   /* ── オフライン対応（ホーム画面アプリとして電波がなくても開けるように） ── */
   if ('serviceWorker' in navigator) {

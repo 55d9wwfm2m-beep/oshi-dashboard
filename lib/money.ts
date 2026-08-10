@@ -205,9 +205,37 @@ export function legacyAccountSeed(): MoneyAccount[] | null {
   }
 }
 
-/** 未払い固定費の合計 */
+/** 毎月金額が変わる項目か（既存データは false 扱い） */
+export function isVariable(c: FixedCost): boolean {
+  return c.variable === true;
+}
+
+/** 今月の請求額が確定しているか */
+export function hasActual(c: FixedCost): boolean {
+  return isVariable(c) && typeof c.actual === 'number';
+}
+
+/**
+ * 計算に使う金額。
+ * 通常の固定費は登録金額、変動費は確定額があればそれ、なければ予想額。
+ */
+export function effectiveAmount(c: FixedCost): number {
+  return hasActual(c) ? (c.actual as number) : c.amount;
+}
+
+/** 確定額 − 予想額。確定していなければ null */
+export function actualDiff(c: FixedCost): number | null {
+  return hasActual(c) ? (c.actual as number) - c.amount : null;
+}
+
+/** 未払い固定費の合計（支払い済みは含めない） */
 export function unpaidTotal(costs: FixedCost[]): number {
-  return costs.filter(c => !c.paid).reduce((sum, c) => sum + c.amount, 0);
+  return costs.filter(c => !c.paid).reduce((sum, c) => sum + effectiveAmount(c), 0);
+}
+
+/** 月替わりで確定額と支払い状況だけを初期化する（項目名・予想額・支払日・種類は残す） */
+export function resetCostsForNewMonth(costs: FixedCost[]): FixedCost[] {
+  return costs.map(c => ({ ...c, paid: false, actual: isVariable(c) ? null : c.actual }));
 }
 
 /** マイナスも自然に読める円表記（-¥5,000） */

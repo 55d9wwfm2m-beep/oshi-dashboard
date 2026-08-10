@@ -386,6 +386,37 @@
   .del-summary span { font-size: 12px; color: var(--sub); }
   .del-note { font-size: 12px; color: var(--muted); margin: 12px 0 0; }
 
+  /* ── 変動固定費（予想額・確定額） ── */
+  .seg { display: flex; gap: 6px; background: var(--surface-2); border-radius: 14px; padding: 4px; }
+  .seg button {
+    flex: 1; border: none; border-radius: 11px; padding: 10px 8px;
+    font-size: 13px; font-weight: 600; font-family: inherit;
+    background: transparent; color: var(--muted); transition: all 0.18s ease;
+  }
+  .seg button[aria-pressed="true"] {
+    background: var(--surface); color: var(--ink);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .seg-hint { font-size: 11px; color: var(--muted); margin: 6px 0 0; }
+
+  .cost-tag {
+    font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 999px;
+    margin-left: 6px; vertical-align: middle; white-space: nowrap;
+  }
+  .tag-pending { background: var(--warn-soft); color: var(--warn); }
+  .tag-fixed   { background: var(--accent-soft); color: var(--accent-ink); }
+  .cost-diff { font-size: 10.5px; margin-top: 2px; }
+  .cost-diff.cheap { color: var(--accent-ink); }
+  .cost-diff.over  { color: var(--danger); }
+  .cost-actual-btn {
+    border: none; border-radius: 999px; padding: 7px 14px; margin: 0 0 12px 36px;
+    font-size: 11px; font-weight: 700; font-family: inherit;
+    background: var(--warn-soft); color: var(--warn);
+  }
+  .cost-row-wrap .cost-row { padding-bottom: 8px; }
+  .cost-row-wrap .cost-day.cheap { color: var(--accent-ink); font-weight: 600; }
+  .cost-row-wrap .cost-day.over  { color: var(--danger); font-weight: 600; }
+
   /* ── 月末の振り返りポップアップ ── */
   .recap-card {
     width: 100%; max-width: 400px; margin: auto;
@@ -585,11 +616,19 @@
     <h2 id="form-title">固定費を追加</h2>
     <div class="fields">
       <div>
+        <label class="field-label">種類</label>
+        <div class="seg" id="f-kind" role="group" aria-label="固定費の種類">
+          <button type="button" data-kind="fixed" aria-pressed="true">固定</button>
+          <button type="button" data-kind="variable" aria-pressed="false">変動</button>
+        </div>
+        <p class="seg-hint" id="f-kind-hint">毎月ほぼ同じ金額の支出（家賃・サブスク・保険など）</p>
+      </div>
+      <div>
         <label class="field-label" for="f-name">固定費名 *</label>
         <input id="f-name" class="input" type="text" placeholder="例：家賃・スマホ代・サブスク">
       </div>
       <div>
-        <label class="field-label" for="f-amount">金額 *</label>
+        <label class="field-label" for="f-amount" id="f-amount-label">金額 *</label>
         <div class="money-wrap">
           <span class="yen">¥</span>
           <input id="f-amount" class="input" type="text" inputmode="numeric" autocomplete="off" placeholder="45,000">
@@ -603,6 +642,30 @@
     <div class="actions">
       <button class="btn-ghost" data-close="sheet-form">キャンセル</button>
       <button class="btn-primary" id="form-save">追加する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 請求額（確定額）の入力シート ── -->
+<div class="overlay" id="sheet-actual" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="actual-title">
+    <div class="grip" aria-hidden="true"></div>
+    <h2 id="actual-title">請求額を入力</h2>
+    <div class="del-summary" style="background: var(--warn-soft);">
+      <b id="actual-name"></b>
+      <span id="actual-sub"></span>
+    </div>
+    <div style="margin-top: 16px;">
+      <label class="field-label" for="actual-input">確定した請求額</label>
+      <div class="money-wrap">
+        <span class="yen">¥</span>
+        <input id="actual-input" class="input" type="text" inputmode="numeric" autocomplete="off" placeholder="0" style="padding-left: 32px;">
+      </div>
+      <p class="seg-hint" id="actual-diff"></p>
+    </div>
+    <div class="actions">
+      <button class="btn-ghost" id="actual-clear">未確定に戻す</button>
+      <button class="btn-primary" id="actual-save">保存する</button>
     </div>
   </div>
 </div>
@@ -766,7 +829,20 @@
     save(KEYS.accounts, accounts);
   }
 
+  // 既存データを壊さないよう、足りないフィールドだけ補う
   if (!Array.isArray(costs)) costs = [];
+  costs = costs.map(function (c) {
+    c = c || {};
+    return {
+      id: c.id || uid(),
+      name: typeof c.name === 'string' ? c.name : '固定費',
+      amount: typeof c.amount === 'number' ? c.amount : parseInt(c.amount, 10) || 0,
+      payDay: typeof c.payDay === 'number' ? c.payDay : parseInt(c.payDay, 10) || 1,
+      paid: c.paid === true,
+      variable: c.variable === true,          // 既存データは「固定」扱い
+      actual: typeof c.actual === 'number' ? c.actual : null
+    };
+  });
 
   /* ── utils ── */
   function digitsOnly(v) {
@@ -793,8 +869,18 @@
       return a.payDay - b.payDay || a.name.localeCompare(b.name, 'ja');
     });
   }
+  /** 今月の請求額が確定しているか */
+  function hasActual(c) { return c.variable === true && typeof c.actual === 'number'; }
+
+  /** 計算に使う金額。変動費は確定額があればそれ、なければ予想額 */
+  function effAmount(c) { return hasActual(c) ? c.actual : c.amount; }
+
+  /** 確定額 − 予想額。未確定なら null */
+  function actualDiff(c) { return hasActual(c) ? c.actual - c.amount : null; }
+
+  /** 未払い固定費の合計（支払い済みは含めない） */
   function unpaidTotal() {
-    return costs.reduce(function (s, c) { return s + (c.paid ? 0 : c.amount); }, 0);
+    return costs.reduce(function (s, c) { return s + (c.paid ? 0 : effAmount(c)); }, 0);
   }
 
   /* 残額のステータス（🟢安心 / 🟡少し注意 / 🔴節約モード） */
@@ -857,7 +943,7 @@
         month: savedMonth,
         spendable: budgetBalance() - unpaidTotal(),
         assets: totalBalance(),
-        fixedCosts: costs.reduce(function (s, c) { return s + c.amount; }, 0),
+        fixedCosts: costs.reduce(function (s, c) { return s + effAmount(c); }, 0),
         savedAt: new Date().toISOString()
       };
       history = [recapRecord]
@@ -867,9 +953,14 @@
       save(KEYS.history, history);
     }
 
-    if (savedMonth && costs.some(function (c) { return c.paid; })) {
+    // 支払い状況と、変動費の確定額だけを初期化する
+    // （項目名・予想額・支払日・変動費の設定はそのまま翌月へ引き継ぐ）
+    if (savedMonth && costs.some(function (c) { return c.paid || hasActual(c); })) {
       costs = costs.map(function (c) {
-        return { id: c.id, name: c.name, amount: c.amount, payDay: c.payDay, paid: false };
+        return {
+          id: c.id, name: c.name, amount: c.amount, payDay: c.payDay,
+          paid: false, variable: c.variable, actual: c.variable ? null : c.actual
+        };
       });
       save(KEYS.costs, costs);
       document.getElementById('reset-banner').hidden = false;
@@ -1116,17 +1207,48 @@
 
     var check = '<svg viewBox="0 0 20 20" fill="none" stroke="#fff" stroke-width="2.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 10.5l3.5 3.5 7.5-8.5"></path></svg>';
     var rows = sorted().map(function (c) {
-      return '<li><button class="cost-row" data-toggle="' + c.id + '" aria-pressed="' + c.paid + '" ' +
-        'aria-label="' + esc(c.name) + ' を' + (c.paid ? '未払い' : '支払い済み') + 'にする">' +
-        '<span class="checkmark">' + check + '</span>' +
-        '<span class="cost-main"><span class="cost-name">' + esc(c.name) + '</span>' +
-        '<span class="cost-day">毎月' + c.payDay + '日</span></span>' +
-        '<span class="cost-side"><span class="cost-amount">' + yen(c.amount) + '</span>' +
-        '<span class="cost-status">' + (c.paid ? '支払い済み' : '未払い') + '</span></span>' +
-        '</button></li>';
+      var variable = c.variable === true;
+      var fixedNow = hasActual(c);
+      var diff = actualDiff(c);
+
+      // 名前の右のバッジ：未確定 / 確定
+      var tag = !variable ? ''
+        : fixedNow ? '<span class="cost-tag tag-fixed">確定</span>'
+                   : '<span class="cost-tag tag-pending">未確定</span>';
+
+      // 金額の下の補助情報（小さく1行だけ）
+      var sub;
+      if (!variable) sub = '毎月' + c.payDay + '日';
+      else if (!fixedNow) sub = '予想 ' + yen(c.amount) + '・' + c.payDay + '日 支払い予定';
+      else if (diff === 0) sub = '予想どおりの金額でした';
+      else if (diff < 0) sub = '予想より ' + yen(-diff) + ' 安くなりました';
+      else sub = '予想より ' + yen(diff) + ' 高くなりました';
+
+      var diffClass = (variable && fixedNow && diff !== 0) ? (diff < 0 ? ' cheap' : ' over') : '';
+
+      return '<li><div class="cost-row-wrap">' +
+        '<button class="cost-row" data-toggle="' + c.id + '" aria-pressed="' + c.paid + '" ' +
+          'aria-label="' + esc(c.name) + ' を' + (c.paid ? '未払い' : '支払い済み') + 'にする">' +
+          '<span class="checkmark">' + check + '</span>' +
+          '<span class="cost-main">' +
+            '<span class="cost-name">' + (variable ? '⚡ ' : '') + esc(c.name) + tag + '</span>' +
+            '<span class="cost-day' + diffClass + '">' + sub + '</span>' +
+          '</span>' +
+          '<span class="cost-side">' +
+            '<span class="cost-amount">' + yen(effAmount(c)) + '</span>' +
+            '<span class="cost-status">' + (c.paid ? '支払い済み' : '未払い') + '</span>' +
+          '</span>' +
+        '</button>' +
+        (variable && !fixedNow
+          ? '<button class="cost-actual-btn" data-actual="' + c.id + '">請求額を入力</button>'
+          : variable
+            ? '<button class="cost-actual-btn" data-actual="' + c.id + '" ' +
+              'style="background:var(--surface-2); color:var(--sub);">請求額を修正</button>'
+            : '') +
+      '</div></li>';
     }).join('');
 
-    var paidTotal = costs.reduce(function (s, c) { return s + (c.paid ? c.amount : 0); }, 0);
+    var paidTotal = costs.reduce(function (s, c) { return s + (c.paid ? effAmount(c) : 0); }, 0);
     var totals =
       '<div class="totals">' +
         '<div class="totals-row"><span class="k">未払いの合計</span><span class="v serif-num">' + yen(unpaidTotal()) + '</span></div>' +
@@ -1352,16 +1474,24 @@
     }
 
     summary.hidden = false;
-    var total = costs.reduce(function (s, c) { return s + c.amount; }, 0);
+    var total = costs.reduce(function (s, c) { return s + effAmount(c); }, 0);
     document.getElementById('summary-total').textContent = yen(total);
     document.getElementById('summary-count').textContent = costs.length + '件';
 
     listEl.innerHTML = sorted().map(function (c) {
+      var variable = c.variable === true;
+      var sub = !variable ? '毎月' + c.payDay + '日に支払い'
+        : hasActual(c) ? '確定 ' + yen(c.actual) + '（予想 ' + yen(c.amount) + '）'
+                       : '予想 ' + yen(c.amount) + '・' + c.payDay + '日 支払い予定';
       return '<div class="card setting-row">' +
         '<div class="daybadge"><b>' + c.payDay + '</b><span>日</span></div>' +
-        '<div class="setting-main"><p class="setting-name">' + esc(c.name) + '</p>' +
-        '<p class="setting-sub">毎月' + c.payDay + '日に支払い</p></div>' +
-        '<div class="setting-side"><p class="setting-amount">' + yen(c.amount) + '</p>' +
+        '<div class="setting-main">' +
+          '<p class="setting-name">' + (variable ? '⚡ ' : '') + esc(c.name) +
+            (variable ? '<span class="cost-tag ' + (hasActual(c) ? 'tag-fixed">確定' : 'tag-pending">未確定') + '</span>' : '') +
+          '</p>' +
+          '<p class="setting-sub">' + sub + '</p>' +
+        '</div>' +
+        '<div class="setting-side"><p class="setting-amount">' + yen(effAmount(c)) + '</p>' +
         '<button class="rowbtn edit" data-edit="' + c.id + '" aria-label="' + esc(c.name) + 'を編集">編集</button>' +
         '<button class="rowbtn del" data-del="' + c.id + '" aria-label="' + esc(c.name) + 'を削除">削除</button></div>' +
         '</div>';
@@ -1388,6 +1518,28 @@
   var nameInput = document.getElementById('f-name');
   var amountInput = document.getElementById('f-amount');
   var saveBtn = document.getElementById('form-save');
+  var formVariable = false;
+
+  var KIND_HINT = {
+    fixed: '毎月ほぼ同じ金額の支出（家賃・サブスク・保険など）',
+    variable: '毎月金額が変わる支出（電気代・ガス代・水道代など）'
+  };
+
+  /** 種類セグメントの見た目とラベルを切り替える */
+  function applyKind(variable) {
+    formVariable = variable;
+    document.querySelectorAll('#f-kind button').forEach(function (b) {
+      b.setAttribute('aria-pressed', String((b.dataset.kind === 'variable') === variable));
+    });
+    document.getElementById('f-kind-hint').textContent = KIND_HINT[variable ? 'variable' : 'fixed'];
+    document.getElementById('f-amount-label').textContent = variable ? '予想額 *' : '金額 *';
+    amountInput.placeholder = variable ? '8,000' : '45,000';
+  }
+
+  document.getElementById('f-kind').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-kind]');
+    if (b) applyKind(b.dataset.kind === 'variable');
+  });
 
   function openForm(cost) {
     editId = cost ? cost.id : null;
@@ -1396,6 +1548,7 @@
     nameInput.value = cost ? cost.name : '';
     amountInput.value = cost ? cost.amount.toLocaleString('ja-JP') : '';
     daySelect.value = cost ? String(cost.payDay) : '1';
+    applyKind(cost ? cost.variable === true : false);
     validateForm();
     document.getElementById('sheet-form').hidden = false;
     nameInput.focus();
@@ -1423,16 +1576,81 @@
     var payDay = Math.min(Math.max(parseInt(daySelect.value, 10) || 1, 1), 31);
     if (editId) {
       costs = costs.map(function (c) {
-        return c.id === editId ? { id: c.id, name: name, amount: amount, payDay: payDay, paid: c.paid } : c;
+        // 「変動」から「固定」に変えたときは、残っている確定額を捨てる
+        return c.id === editId
+          ? {
+              id: c.id, name: name, amount: amount, payDay: payDay, paid: c.paid,
+              variable: formVariable, actual: formVariable ? (c.actual != null ? c.actual : null) : null
+            }
+          : c;
       });
       toast('固定費を更新しました');
     } else {
-      costs.push({ id: uid(), name: name, amount: amount, payDay: payDay, paid: false });
+      costs.push({
+        id: uid(), name: name, amount: amount, payDay: payDay,
+        paid: false, variable: formVariable, actual: null
+      });
       toast('固定費を追加しました');
     }
     save(KEYS.costs, costs);
     closeSheet('sheet-form');
     renderSettings();
+  });
+
+  /* ── 請求額（確定額）の入力 ── */
+  var actualId = null;
+  var actualInput = document.getElementById('actual-input');
+
+  function renderActualDiff() {
+    var c = costs.find(function (x) { return x.id === actualId; });
+    var note = document.getElementById('actual-diff');
+    if (!c) { note.textContent = ''; return; }
+    var raw = digitsOnly(actualInput.value);
+    if (raw === '') { note.textContent = '空のまま保存すると未確定に戻ります'; return; }
+    var diff = (parseInt(raw, 10) || 0) - c.amount;
+    note.textContent = diff === 0 ? '予想どおりの金額です'
+      : diff < 0 ? '予想より ' + yen(-diff) + ' 安くなります'
+      : '予想より ' + yen(diff) + ' 高くなります';
+  }
+
+  function openActual(cost) {
+    actualId = cost.id;
+    document.getElementById('actual-name').textContent = '⚡ ' + cost.name;
+    document.getElementById('actual-sub').textContent =
+      '予想 ' + yen(cost.amount) + '・毎月' + cost.payDay + '日';
+    actualInput.value = hasActual(cost) ? cost.actual.toLocaleString('ja-JP') : '';
+    renderActualDiff();
+    document.getElementById('sheet-actual').hidden = false;
+    actualInput.focus();
+  }
+
+  actualInput.addEventListener('input', function () {
+    var raw = digitsOnly(actualInput.value);
+    actualInput.value = raw === '' ? '' : parseInt(raw, 10).toLocaleString('ja-JP');
+    renderActualDiff();
+  });
+
+  function setActual(value) {
+    costs = costs.map(function (c) {
+      return c.id === actualId
+        ? { id: c.id, name: c.name, amount: c.amount, payDay: c.payDay,
+            paid: c.paid, variable: c.variable, actual: value }
+        : c;
+    });
+    save(KEYS.costs, costs);
+    closeSheet('sheet-actual');
+    renderHome();
+  }
+
+  document.getElementById('actual-save').addEventListener('click', function () {
+    var raw = digitsOnly(actualInput.value);
+    if (raw === '') { setActual(null); toast('未確定に戻しました'); return; }
+    setActual(parseInt(raw, 10) || 0);
+    toast('請求額を反映しました');
+  });
+  document.getElementById('actual-clear').addEventListener('click', function () {
+    setActual(null);
+    toast('未確定に戻しました');
   });
 
   /* ── 削除確認シート ── */
@@ -1511,8 +1729,14 @@
 
   /* ── クリック委譲 ── */
   document.addEventListener('click', function (e) {
-    var t = e.target.closest('[data-nav], [data-toggle], [data-edit], [data-del], [data-acc-toggle], [data-acc-toggle-settings], [data-acc-edit], [data-acc-del], [data-close], .overlay');
+    var t = e.target.closest('[data-nav], [data-toggle], [data-actual], [data-edit], [data-del], [data-acc-toggle], [data-acc-toggle-settings], [data-acc-edit], [data-acc-del], [data-close], .overlay');
     if (!t) return;
+
+    if (t.dataset && t.dataset.actual) {
+      var ac = costs.find(function (c) { return c.id === t.dataset.actual; });
+      if (ac) openActual(ac);
+      return;
+    }
 
     // 設定画面の計算対象トグル
     if (t.dataset && t.dataset.accToggleSettings) {
@@ -1557,8 +1781,12 @@
 
     if (t.dataset && t.dataset.toggle) {
       costs = costs.map(function (c) {
+        // 他のフィールド（variable / actual）を落とさないよう、paid だけ差し替える
         return c.id === t.dataset.toggle
-          ? { id: c.id, name: c.name, amount: c.amount, payDay: c.payDay, paid: !c.paid }
+          ? {
+              id: c.id, name: c.name, amount: c.amount, payDay: c.payDay,
+              paid: !c.paid, variable: c.variable, actual: c.actual
+            }
           : c;
       });
       save(KEYS.costs, costs);
@@ -1593,6 +1821,7 @@
     closeSheet('sheet-acc');
     closeSheet('sheet-acc-delete');
     closeSheet('sheet-recap');
+    closeSheet('sheet-actual');
   });
 
   document.getElementById('add-btn').addEventListener('click', function () { openForm(null); });

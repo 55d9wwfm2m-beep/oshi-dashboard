@@ -194,11 +194,25 @@ export interface MoneyAccount {
 export interface FixedCost {
   id: string;
   name: string;
+  /**
+   * 固定費の金額。
+   * variable な項目ではこれが「予想額」になる。
+   */
   amount: number;
   /** 毎月の支払日（1〜31） */
   payDay: number;
   /** 今月支払い済みか。月が変わると自動で false に戻る */
   paid: boolean;
+  /**
+   * 毎月金額が変わる項目（電気代・ガス代など）か。
+   * 省略時（既存データ）は false ＝これまでどおりの固定費。
+   */
+  variable?: boolean;
+  /**
+   * 今月の確定した請求額。未確定なら null / undefined。
+   * 月が変わると未確定に戻る。
+   */
+  actual?: number | null;
 }
 
 /** 月が変わったときに自動保存される、その月の締めくくり記録 */

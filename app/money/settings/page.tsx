@@ -20,6 +20,9 @@ import {
   budgetTotal,
   isBudgetAccount,
   legacyAccountSeed,
+  isVariable,
+  hasActual,
+  effectiveAmount,
 } from '@/lib/money';
 import BudgetToggle from '@/components/ui/BudgetToggle';
 import BottomSheet from '@/components/ui/BottomSheet';
@@ -46,6 +49,7 @@ export default function MoneySettingsPage() {
   const [nameInput, setNameInput] = useState('');
   const [amountRaw, setAmountRaw] = useState('');
   const [dayInput, setDayInput] = useState('1');
+  const [formVariable, setFormVariable] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<FixedCost | null>(null);
 
   if (!loaded || !paydayLoaded || !accountsLoaded) return null;
@@ -74,7 +78,7 @@ export default function MoneySettingsPage() {
   };
 
   const sorted = sortByPayDay(costs);
-  const total = costs.reduce((s, c) => s + c.amount, 0);
+  const total = costs.reduce((s, c) => s + effectiveAmount(c), 0);
 
   const amount = amountRaw === '' ? 0 : parseInt(amountRaw, 10) || 0;
   const canSave = nameInput.trim().length > 0 && amount > 0;
@@ -84,6 +88,7 @@ export default function MoneySettingsPage() {
     setNameInput('');
     setAmountRaw('');
     setDayInput('1');
+    setFormVariable(false);
     setShowForm(true);
   };
 
@@ -92,6 +97,7 @@ export default function MoneySettingsPage() {
     setNameInput(cost.name);
     setAmountRaw(String(cost.amount));
     setDayInput(String(cost.payDay));
+    setFormVariable(isVariable(cost));
     setShowForm(true);
   };
 
@@ -100,10 +106,24 @@ export default function MoneySettingsPage() {
     const name = nameInput.trim();
     const payDay = Math.min(Math.max(parseInt(dayInput, 10) || 1, 1), 31);
     if (editId) {
-      setCosts(prev => prev.map(c => (c.id === editId ? { ...c, name, amount, payDay } : c)));
+      setCosts(prev =>
+        prev.map(c =>
+          c.id === editId
+            ? {
+                ...c, name, amount, payDay,
+                variable: formVariable,
+                // 「変動」から「固定」に変えたときは、残っている確定額を捨てる
+                actual: formVariable ? (c.actual ?? null) : null,
+              }
+            : c
+        )
+      );
       showToast('固定費を更新しました');
     } else {
-      setCosts(prev => [...prev, { id: generateId(), name, amount, payDay, paid: false }]);
+      setCosts(prev => [
+        ...prev,
+        { id: generateId(), name, amount, payDay, paid: false, variable: formVariable, actual: null },
+      ]);
       showToast('固定費を追加しました');
     }
     setShowForm(false);
@@ -347,11 +367,32 @@ export default function MoneySettingsPage() {
                   <span className="text-[9px] leading-none mt-0.5" style={{ color: MONEY_ACCENT }}>日</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate" style={{ color: '#1C1917' }}>{cost.name}</p>
-                  <p className="text-[11px] mt-0.5" style={{ color: '#A8A29E' }}>毎月{cost.payDay}日に支払い</p>
+                  <p className="text-sm font-medium truncate" style={{ color: '#1C1917' }}>
+                    {isVariable(cost) && '⚡ '}
+                    {cost.name}
+                    {isVariable(cost) && (
+                      <span
+                        className="ml-1.5 text-[9.5px] font-bold px-1.5 py-[2px] rounded-full align-middle"
+                        style={
+                          hasActual(cost)
+                            ? { background: MONEY_ACCENT_BG, color: MONEY_ACCENT }
+                            : { background: 'rgba(168,119,14,0.10)', color: '#A8770E' }
+                        }
+                      >
+                        {hasActual(cost) ? '確定' : '未確定'}
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-[11px] mt-0.5" style={{ color: '#A8A29E' }}>
+                    {!isVariable(cost)
+                      ? `毎月${cost.payDay}日に支払い`
+                      : hasActual(cost)
+                        ? `確定 ${formatYen(cost.actual as number)}（予想 ${formatYen(cost.amount)}）`
+                        : `予想 ${formatYen(cost.amount)}・${cost.payDay}日 支払い予定`}
+                  </p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="font-semibold text-sm" style={{ color: '#1C1917' }}>{formatYen(cost.amount)}</p>
+                  <p className="font-semibold text-sm" style={{ color: '#1C1917' }}>{formatYen(effectiveAmount(cost))}</p>
                   <button
                     onClick={() => openEdit(cost)}
                     className="text-[11px] mt-0.5 px-2 py-1.5 -my-1 rounded-lg"
@@ -478,6 +519,36 @@ export default function MoneySettingsPage() {
       >
         <div className="space-y-4">
           <div>
+            <label className="field-label">種類</label>
+            <div className="flex gap-1.5 p-1 rounded-2xl" style={{ background: '#F0EBE6' }} role="group" aria-label="固定費の種類">
+              {([
+                { key: false, label: '固定' },
+                { key: true, label: '変動' },
+              ] as const).map(opt => (
+                <button
+                  key={opt.label}
+                  type="button"
+                  aria-pressed={formVariable === opt.key}
+                  onClick={() => setFormVariable(opt.key)}
+                  className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold transition-all"
+                  style={
+                    formVariable === opt.key
+                      ? { background: 'white', color: '#1C1917', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }
+                      : { color: '#A8A29E' }
+                  }
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] mt-1.5" style={{ color: '#A8A29E' }}>
+              {formVariable
+                ? '毎月金額が変わる支出（電気代・ガス代・水道代など）'
+                : '毎月ほぼ同じ金額の支出（家賃・サブスク・保険など）'}
+            </p>
+          </div>
+
+          <div>
             <label className="field-label" htmlFor="fixed-cost-name">固定費名 *</label>
             <input
               id="fixed-cost-name"
@@ -490,7 +561,7 @@ export default function MoneySettingsPage() {
           </div>
 
           <div>
-            <label className="field-label" htmlFor="fixed-cost-amount">金額 *</label>
+            <label className="field-label" htmlFor="fixed-cost-amount">{formVariable ? '予想額 *' : '金額 *'}</label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#A8A29E' }}>¥</span>
               <input

@@ -1,4 +1,7 @@
-import { FixedCost, MoneyAccount, MonthlyRecord } from '@/types';
+import {
+  FixedCost, MoneyAccount, MonthlyRecord,
+  MonthlyBudget, BudgetCategory, PlannedExpense, DEFAULT_BUDGET_CATEGORIES,
+} from '@/types';
 import { generateId } from '@/lib/utils';
 
 /** やりくり電卓で使う localStorage キー */
@@ -15,6 +18,10 @@ export const MONEY_KEYS = {
   payday: 'oshi-money-payday',
   /** 月末に自動保存した各月の記録 */
   history: 'oshi-money-history',
+  /** 今月の予算計画（給料の振り分け） */
+  budget: 'oshi-money-budget',
+  /** 過去の月予算の履歴 */
+  budgetHistory: 'oshi-money-budget-history',
 } as const;
 
 /** 履歴に残す最大月数（古いものから捨てる） */
@@ -231,6 +238,111 @@ export function actualDiff(c: FixedCost): number | null {
 /** 未払い固定費の合計（支払い済みは含めない） */
 export function unpaidTotal(costs: FixedCost[]): number {
   return costs.filter(c => !c.paid).reduce((sum, c) => sum + effectiveAmount(c), 0);
+}
+
+// ──── 月予算 ────
+// 「使っていいお金」（口座残高ベース）とは別の計画用データ。
+// 給料は口座残高に一切加算しない（二重計上の防止）。
+
+/** 初期カテゴリー一式を作る */
+export function createDefaultCategories(): BudgetCategory[] {
+  return DEFAULT_BUDGET_CATEGORIES.map(c => ({
+    id: generateId(),
+    name: c.name,
+    emoji: c.emoji,
+    amount: 0,
+  }));
+}
+
+/** その月の空の予算計画 */
+export function createEmptyBudget(month: string, categories?: BudgetCategory[]): MonthlyBudget {
+  return {
+    month,
+    income: '',
+    savingGoal: '',
+    planned: [],
+    categories: categories ?? createDefaultCategories(),
+  };
+}
+
+/** 未払いの予定支出の合計 */
+export function plannedUnpaidTotal(planned: PlannedExpense[]): number {
+  return planned.filter(p => !p.paid).reduce((s, p) => s + p.amount, 0);
+}
+
+/** 予定支出の総額（支払い済みも含む。月予算の「確保」はこちらを使う） */
+export function plannedTotal(planned: PlannedExpense[]): number {
+  return planned.reduce((s, p) => s + p.amount, 0);
+}
+
+/** カテゴリーへ振り分け済みの合計 */
+export function allocatedTotal(categories: BudgetCategory[]): number {
+  return categories.reduce((s, c) => s + c.amount, 0);
+}
+
+export interface BudgetBreakdown {
+  income: number;
+  saving: number;
+  /** 今月の固定費合計（変動費は確定額があればそれ、なければ予想額） */
+  fixed: number;
+  /** 今月の予定支出合計 */
+  planned: number;
+  /** 生活費として振り分け可能な金額 */
+  living: number;
+  /** 振り分け済み */
+  allocated: number;
+  /** まだ振り分けていないお金（マイナスなら予算オーバー） */
+  unallocated: number;
+  /** 予算オーバーしている金額（0 なら超過なし） */
+  over: number;
+}
+
+/**
+ * 月予算の内訳を計算する。
+ * 給料 − 貯金目標 − 固定費 − 予定支出 ＝ 生活費として振り分け可能な金額
+ */
+export function budgetBreakdown(budget: MonthlyBudget, costs: FixedCost[]): BudgetBreakdown {
+  const income = budget.income === '' ? 0 : parseInt(budget.income, 10) || 0;
+  const saving = budget.savingGoal === '' ? 0 : parseInt(budget.savingGoal, 10) || 0;
+  const fixed = costs.reduce((s, c) => s + effectiveAmount(c), 0);
+  const planned = plannedTotal(budget.planned);
+  const living = income - saving - fixed - planned;
+  const allocated = allocatedTotal(budget.categories);
+  const unallocated = living - allocated;
+  return {
+    income, saving, fixed, planned, living, allocated,
+    unallocated,
+    over: unallocated < 0 ? -unallocated : 0,
+  };
+}
+
+/**
+ * 月が変わったときの新しい予算。
+ * カテゴリーの構成は引き継ぎ、金額・給料・貯金目標・予定支出はリセットする。
+ */
+export function rolloverBudget(prev: MonthlyBudget, month: string): MonthlyBudget {
+  return {
+    month,
+    income: '',
+    savingGoal: '',
+    planned: [],
+    categories: prev.categories.map(c => ({ ...c, amount: 0 })),
+  };
+}
+
+/**
+ * 「先月の予算をコピー」。
+ * 貯金目標とカテゴリー予算額を引き継ぐ。給料は月ごとに変わるためコピーしない。
+ */
+export function copyFromBudget(current: MonthlyBudget, source: MonthlyBudget): MonthlyBudget {
+  return {
+    ...current,
+    savingGoal: source.savingGoal,
+    categories: current.categories.map(c => {
+      const prev = source.categories.find(p => p.name === c.name);
+      return prev ? { ...c, amount: prev.amount } : c;
+    }),
+  };
 }
 
 /** 月替わりで確定額と支払い状況だけを初期化する（項目名・予想額・支払日・種類は残す） */

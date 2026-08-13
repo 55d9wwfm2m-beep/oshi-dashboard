@@ -417,6 +417,68 @@
   .cost-row-wrap .cost-day.cheap { color: var(--accent-ink); font-weight: 600; }
   .cost-row-wrap .cost-day.over  { color: var(--danger); font-weight: 600; }
 
+  /* ── 月予算（給料の振り分け） ── */
+  .step-flow { display: block; }
+  .flow-arrow { text-align: center; color: var(--muted); font-size: 15px; margin: -6px 0 8px; line-height: 1; }
+  .step-head { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
+  .step-no {
+    width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--accent); color: #fff; font-size: 11px; font-weight: 700;
+  }
+  .step-label { font-size: 13.5px; font-weight: 700; margin: 0; }
+
+  .auto-row { display: flex; justify-content: space-between; align-items: baseline; padding: 7px 0; }
+  .auto-row .k { font-size: 12.5px; color: var(--sub); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .auto-row .v { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; flex-shrink: 0; margin-left: 12px; }
+  .auto-total {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--line);
+  }
+  .auto-total .k { font-size: 12.5px; font-weight: 600; }
+  .auto-total .v { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .auto-empty { font-size: 12px; color: var(--muted); text-align: center; padding: 10px 0; }
+
+  .living-hero {
+    text-align: center; border-radius: 18px; padding: 16px 12px; margin-bottom: 16px;
+    background: linear-gradient(165deg, var(--accent-soft), transparent 85%);
+  }
+  .living-hero .k { font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em; color: var(--sub); }
+  .living-hero .v { font-size: 32px; font-weight: 600; line-height: 1.2; margin-top: 2px; color: var(--accent-ink); }
+  .living-hero.is-neg .v { color: var(--danger); }
+
+  .cat-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+  .cat-name { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cat-input-wrap { width: 46%; max-width: 150px; flex-shrink: 0; }
+  .cat-input { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; padding: 10px 12px 10px 28px; }
+  .cat-edit { border: none; background: none; color: var(--muted); font-size: 15px; padding: 6px; flex-shrink: 0; }
+
+  .alloc-summary { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); display: grid; gap: 7px; }
+  .alloc-line { display: flex; justify-content: space-between; align-items: baseline; }
+  .alloc-line .k { font-size: 12.5px; color: var(--sub); }
+  .alloc-line .v { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .alloc-line.rest .k { font-weight: 600; color: var(--ink); }
+  .alloc-line.rest .v { font-size: 19px; color: var(--accent-ink); }
+  .alloc-warn {
+    margin-top: 10px; padding: 11px 14px; border-radius: 14px; text-align: center;
+    background: var(--danger-soft); color: var(--danger); font-size: 12.5px; font-weight: 700;
+  }
+
+  /* ── ホームの月予算カード ── */
+  .bud-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .bud-line { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 0; }
+  .bud-line .k { font-size: 12.5px; color: var(--sub); }
+  .bud-line .v { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .bud-living {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-top: 10px; padding-top: 11px; border-top: 1px solid var(--line);
+  }
+  .bud-living .k { font-size: 13px; font-weight: 700; }
+  .bud-living .v { font-size: 24px; font-weight: 600; color: var(--accent-ink); }
+  .bud-cats { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 12px; }
+  .bud-cats span { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .bud-more { font-size: 11px; font-weight: 700; color: var(--accent-ink); }
+
   /* ── 月末の振り返りポップアップ ── */
   .recap-card {
     width: 100%; max-width: 400px; margin: auto;
@@ -558,6 +620,14 @@
       <div id="home-costs"></div>
     </div>
 
+    <div class="card anim-in" id="budget-card" data-nav="budget" style="cursor:pointer;">
+      <div class="bud-card-head">
+        <p class="card-title">今月のお金</p>
+        <span class="bud-more">開く →</span>
+      </div>
+      <div id="budget-card-body"></div>
+    </div>
+
     <div class="card anim-in" id="history-card" hidden>
       <div class="card-head" style="margin-bottom: 6px;">
         <p class="card-title">これまでの記録</p>
@@ -569,6 +639,84 @@
     <button class="btn-primary anim-in" data-nav="settings">固定費を設定する</button>
 
     <p class="footnote">データはこの端末のブラウザ内にのみ保存されます</p>
+  </section>
+
+  <!-- ══════════ 今月の予算画面 ══════════ -->
+  <section id="view-budget" hidden>
+    <header class="head">
+      <div>
+        <button class="back" data-nav="home">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"></path></svg>
+          やりくり電卓へ戻る
+        </button>
+        <h1 id="budget-title">今月の予算</h1>
+      </div>
+      <button class="chipbtn" id="budget-copy">先月をコピー</button>
+    </header>
+
+    <div class="step-flow">
+      <!-- STEP 1 給料 -->
+      <div class="card anim-in">
+        <div class="step-head"><span class="step-no">1</span><p class="step-label">今月もらった給料</p></div>
+        <div class="money-wrap">
+          <span class="yen">¥</span>
+          <input id="budget-income" class="input" type="text" inputmode="numeric" autocomplete="off" placeholder="250,000" style="padding-left:32px; font-size:18px; font-weight:600;">
+        </div>
+      </div>
+
+      <div class="flow-arrow" aria-hidden="true">↓</div>
+
+      <!-- STEP 2 貯金 -->
+      <div class="card anim-in">
+        <div class="step-head"><span class="step-no">2</span><p class="step-label">今月の貯金目標</p></div>
+        <div class="money-wrap">
+          <span class="yen">¥</span>
+          <input id="budget-saving" class="input" type="text" inputmode="numeric" autocomplete="off" placeholder="30,000" style="padding-left:32px; font-size:18px; font-weight:600;">
+        </div>
+        <p class="formula" id="after-saving"></p>
+      </div>
+
+      <div class="flow-arrow" aria-hidden="true">↓</div>
+
+      <!-- STEP 3 固定費（自動反映） -->
+      <div class="card anim-in">
+        <div class="step-head">
+          <span class="step-no">3</span><p class="step-label">固定費</p>
+          <button class="textlink" data-nav="settings" style="margin-left:auto;">編集</button>
+        </div>
+        <div id="budget-fixed"></div>
+      </div>
+
+      <div class="flow-arrow" aria-hidden="true">↓</div>
+
+      <!-- STEP 4 予定支出 -->
+      <div class="card anim-in">
+        <div class="step-head">
+          <span class="step-no">4</span><p class="step-label">今月の予定支出</p>
+          <button class="textlink" id="planned-add" style="margin-left:auto;">＋ 追加</button>
+        </div>
+        <div id="budget-planned"></div>
+      </div>
+
+      <div class="flow-arrow" aria-hidden="true">↓</div>
+
+      <!-- STEP 5 生活費の振り分け -->
+      <div class="card anim-in" style="padding-bottom:20px;">
+        <div class="step-head">
+          <span class="step-no">5</span><p class="step-label">生活費に振り分け</p>
+          <button class="textlink" id="cat-add" style="margin-left:auto;">＋ カテゴリー</button>
+        </div>
+
+        <div class="living-hero" id="living-hero">
+          <p class="k">生活費として振り分け可能</p>
+          <p class="v serif-num" id="living-amount">¥0</p>
+        </div>
+
+        <div id="budget-cats"></div>
+
+        <div class="alloc-summary" id="alloc-summary"></div>
+      </div>
+    </div>
   </section>
 
   <!-- ══════════ 固定費設定画面 ══════════ -->
@@ -642,6 +790,59 @@
     <div class="actions">
       <button class="btn-ghost" data-close="sheet-form">キャンセル</button>
       <button class="btn-primary" id="form-save">追加する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 予定支出の追加・編集シート ── -->
+<div class="overlay" id="sheet-planned" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="planned-title">
+    <div class="grip" aria-hidden="true"></div>
+    <h2 id="planned-title">予定支出を追加</h2>
+    <div class="fields">
+      <div>
+        <label class="field-label" for="planned-name">内容 *</label>
+        <input id="planned-name" class="input" type="text" placeholder="例：福岡旅行・美容院">
+      </div>
+      <div>
+        <label class="field-label" for="planned-amount">金額 *</label>
+        <div class="money-wrap">
+          <span class="yen">¥</span>
+          <input id="planned-amount" class="input" type="text" inputmode="numeric" autocomplete="off" placeholder="30,000" style="padding-left:32px;">
+        </div>
+      </div>
+      <div>
+        <label class="field-label" for="planned-date">予定日</label>
+        <input id="planned-date" class="input" type="date">
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn-ghost" id="planned-delete" hidden>削除</button>
+      <button class="btn-ghost" data-close="sheet-planned">キャンセル</button>
+      <button class="btn-primary" id="planned-save">追加する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── カテゴリーの追加・編集シート ── -->
+<div class="overlay" id="sheet-cat" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="cat-title">
+    <div class="grip" aria-hidden="true"></div>
+    <h2 id="cat-title">カテゴリーを追加</h2>
+    <div class="fields">
+      <div>
+        <label class="field-label" for="cat-emoji">アイコン</label>
+        <input id="cat-emoji" class="input" type="text" maxlength="4" placeholder="🍚" style="text-align:center; font-size:22px;">
+      </div>
+      <div>
+        <label class="field-label" for="cat-name">カテゴリー名 *</label>
+        <input id="cat-name" class="input" type="text" placeholder="例：食費・日用品">
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn-ghost" id="cat-delete" hidden>削除</button>
+      <button class="btn-ghost" data-close="sheet-cat">キャンセル</button>
+      <button class="btn-primary" id="cat-save">追加する</button>
     </div>
   </div>
 </div>
@@ -775,8 +976,19 @@
     month: 'oshi-money-month',
     payday: 'oshi-money-payday',
     /** 月末に自動保存した各月の記録 */
-    history: 'oshi-money-history'
+    history: 'oshi-money-history',
+    /** 今月の予算計画（給料の振り分け） */
+    budget: 'oshi-money-budget',
+    /** 過去の月予算 */
+    budgetHistory: 'oshi-money-budget-history'
   };
+
+  var DEFAULT_CATEGORIES = [
+    { name: '食費', emoji: '🍚' }, { name: '日用品', emoji: '🧻' },
+    { name: '交通費', emoji: '🚃' }, { name: '外食・カフェ', emoji: '☕' },
+    { name: '趣味', emoji: '🎮' }, { name: '交際費', emoji: '👫' },
+    { name: '衣服・美容', emoji: '👕' }, { name: 'その他', emoji: '📦' }
+  ];
 
   /** 履歴に残す最大月数（古いものから捨てる） */
   var HISTORY_LIMIT = 24;
@@ -804,6 +1016,20 @@
   var payday = load(KEYS.payday, 0);         // 給料日（1〜31）。0 は未設定
   var history = load(KEYS.history, []);      // [{month, spendable, assets, fixedCosts, savedAt}]
   if (!Array.isArray(history)) history = [];
+
+  // ── 月予算（給料の振り分け計画）。口座残高とは独立したデータ ──
+  var budget = load(KEYS.budget, null);
+  var budgetHistory = load(KEYS.budgetHistory, []);
+  if (!Array.isArray(budgetHistory)) budgetHistory = [];
+
+  function defaultCategories() {
+    return DEFAULT_CATEGORIES.map(function (c) {
+      return { id: uid(), name: c.name, emoji: c.emoji, amount: 0 };
+    });
+  }
+  function emptyBudget(month, cats) {
+    return { month: month, income: '', savingGoal: '', planned: [], categories: cats || defaultCategories() };
+  }
   var editId = null;
   var deleteId = null;
   var accEditId = null;
@@ -859,6 +1085,13 @@
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
   }
   function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
+  /** 'YYYY-MM-DD' → '8/18' */
+  function formatDateShort(d) {
+    if (!d) return '';
+    var p = d.split('-');
+    return parseInt(p[1], 10) + '/' + parseInt(p[2], 10);
+  }
   function esc(s) {
     return s.replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -881,6 +1114,37 @@
   /** 未払い固定費の合計（支払い済みは含めない） */
   function unpaidTotal() {
     return costs.reduce(function (s, c) { return s + (c.paid ? 0 : effAmount(c)); }, 0);
+  }
+
+  /** 未払いの予定支出の合計 */
+  function plannedUnpaid() {
+    return budget.planned.reduce(function (s, p) { return s + (p.paid ? 0 : p.amount); }, 0);
+  }
+
+  /** 予定支出の総額（月予算の「確保」はこちら） */
+  function plannedAll() {
+    return budget.planned.reduce(function (s, p) { return s + p.amount; }, 0);
+  }
+
+  /** カテゴリーへ振り分け済みの合計 */
+  function allocatedTotal() {
+    return budget.categories.reduce(function (s, c) { return s + c.amount; }, 0);
+  }
+
+  /** 月予算の内訳。給料 − 貯金 − 固定費 − 予定支出 ＝ 生活費 */
+  function budgetCalc() {
+    var income = budget.income === '' ? 0 : parseInt(budget.income, 10) || 0;
+    var saving = budget.savingGoal === '' ? 0 : parseInt(budget.savingGoal, 10) || 0;
+    var fixed = costs.reduce(function (s, c) { return s + effAmount(c); }, 0);
+    var planned = plannedAll();
+    var living = income - saving - fixed - planned;
+    var allocated = allocatedTotal();
+    var unallocated = living - allocated;
+    return {
+      income: income, saving: saving, fixed: fixed, planned: planned,
+      living: living, allocated: allocated, unallocated: unallocated,
+      over: unallocated < 0 ? -unallocated : 0
+    };
   }
 
   /* 残額のステータス（🟢安心 / 🟡少し注意 / 🔴節約モード） */
@@ -914,12 +1178,14 @@
     var assets = empty ? 0 : totalBalance();
     var balance = empty ? 0 : budgetBalance();
     var unpaid = unpaidTotal();
+    var upPlanned = plannedUnpaid();
     return {
       empty: empty,
       assets: assets,
       balance: balance,
       unpaid: unpaid,
-      spendable: empty ? 0 : balance - unpaid
+      plannedUnpaid: upPlanned,
+      spendable: empty ? 0 : balance - unpaid - upPlanned
     };
   }
 
@@ -935,6 +1201,27 @@
   /* ── 月替わり検知：前月の記録を保存し、支払い状況を未払いへ戻す ── */
   var nowMonth = currentMonth();
   var recapRecord = null;
+
+  // 月予算の初期化・繰り越し（前月分は履歴に残してから新しい月を作る）
+  if (!budget || typeof budget !== 'object' || !budget.month) {
+    budget = emptyBudget(nowMonth);
+    save(KEYS.budget, budget);
+  } else if (budget.month !== nowMonth) {
+    budgetHistory = [budget]
+      .concat(budgetHistory.filter(function (b) { return b && b.month !== budget.month; }))
+      .sort(function (a, b) { return b.month.localeCompare(a.month); })
+      .slice(0, HISTORY_LIMIT);
+    save(KEYS.budgetHistory, budgetHistory);
+    // カテゴリー構成は引き継ぎ、金額・給料・貯金目標・予定支出はリセット
+    budget = emptyBudget(nowMonth, budget.categories.map(function (c) {
+      return { id: c.id, name: c.name, emoji: c.emoji, amount: 0 };
+    }));
+    save(KEYS.budget, budget);
+  }
+  if (!Array.isArray(budget.planned)) budget.planned = [];
+  if (!Array.isArray(budget.categories) || budget.categories.length === 0) {
+    budget.categories = defaultCategories();
+  }
 
   if (savedMonth !== nowMonth) {
     // 前月の締めくくりを記録に残す（初回起動時は前月の実績がないので保存しない）
@@ -1184,6 +1471,9 @@
               '<div class="breakdown-row"><span class="k">予算対象残高</span><span class="v">' + yen(c.balance) + '</span></div>'
             : '<div class="breakdown-row"><span class="k">今持っているお金</span><span class="v">' + yen(c.balance) + '</span></div>') +
           '<div class="breakdown-row"><span class="k">未払いの固定費</span><span class="v">−' + yen(c.unpaid) + '</span></div>' +
+          (c.plannedUnpaid > 0
+            ? '<div class="breakdown-row"><span class="k">未払いの予定支出</span><span class="v">−' + yen(c.plannedUnpaid) + '</span></div>'
+            : '') +
         '</div>';
     }
 
@@ -1317,11 +1607,256 @@
   });
 
   function renderHome() {
+    renderBudgetCard();
     renderHistory();
     renderAccounts();
     renderPayday();
     renderHero();
     renderHomeCosts();
+  }
+
+  /* ── 月予算画面の描画 ── */
+
+  function saveBudget() { save(KEYS.budget, budget); }
+
+  /** 合計・警告など、入力欄を作り直さずに更新できる部分だけ描き直す */
+  function refreshBudgetTotals() {
+    var b = budgetCalc();
+    var hero = document.getElementById('living-hero');
+    hero.classList.toggle('is-neg', b.living < 0);
+    document.getElementById('living-amount').textContent = yenSigned(b.living);
+    document.getElementById('after-saving').textContent =
+      b.income > 0 ? '貯金を引いた残り ' + yenSigned(b.income - b.saving) : '給料を入力すると残りが表示されます';
+
+    document.getElementById('alloc-summary').innerHTML =
+      '<div class="alloc-line"><span class="k">振り分け済み</span><span class="v">' + yen(b.allocated) + '</span></div>' +
+      '<div class="alloc-line rest"><span class="k">まだ振り分けていないお金</span>' +
+        '<span class="v"' + (b.unallocated < 0 ? ' style="color:var(--danger);"' : '') + '>' + yenSigned(b.unallocated) + '</span></div>' +
+      (b.over > 0 ? '<div class="alloc-warn">予算を ' + yen(b.over) + ' オーバーしています</div>' : '');
+  }
+
+  function renderBudgetFixed() {
+    var box = document.getElementById('budget-fixed');
+    if (costs.length === 0) {
+      box.innerHTML = '<p class="auto-empty">固定費が登録されていません</p>';
+      return;
+    }
+    var rows = sorted().map(function (c) {
+      var label = (c.variable ? '⚡ ' : '') + esc(c.name) +
+        (c.variable ? (hasActual(c) ? '（確定）' : '（予想）') : '');
+      return '<div class="auto-row"><span class="k">' + label + '</span>' +
+        '<span class="v">' + yen(effAmount(c)) + '</span></div>';
+    }).join('');
+    box.innerHTML = rows +
+      '<div class="auto-total"><span class="k">固定費合計</span>' +
+      '<span class="v serif-num">' + yen(budgetCalc().fixed) + '</span></div>';
+  }
+
+  function renderBudgetPlanned() {
+    var box = document.getElementById('budget-planned');
+    if (budget.planned.length === 0) {
+      box.innerHTML = '<p class="auto-empty">旅行や美容院など、その月だけの出費を登録できます</p>';
+      return;
+    }
+    var rows = budget.planned.slice().sort(function (a, b) {
+      return (a.date || '9999').localeCompare(b.date || '9999');
+    }).map(function (p) {
+      var when = p.date ? formatDateShort(p.date) : '日付未定';
+      return '<div class="auto-row" data-planned-edit="' + p.id + '" style="cursor:pointer;">' +
+        '<span class="k"' + (p.paid ? ' style="text-decoration:line-through; opacity:0.6;"' : '') + '>' +
+          esc(p.name) + ' <span style="color:var(--muted); font-size:11px;">' + when + '</span>' +
+          (p.paid ? ' <span class="cost-tag tag-fixed">支払い済み</span>' : '') +
+        '</span>' +
+        '<span class="v">' + yen(p.amount) + '</span></div>';
+    }).join('');
+    box.innerHTML = rows +
+      '<div class="auto-total"><span class="k">予定支出合計</span>' +
+      '<span class="v serif-num">' + yen(plannedAll()) + '</span></div>';
+  }
+
+  function renderBudgetCats() {
+    document.getElementById('budget-cats').innerHTML = budget.categories.map(function (c) {
+      return '<div class="cat-row">' +
+        '<span class="acc-icon" aria-hidden="true">' + esc(c.emoji || '📦') + '</span>' +
+        '<label class="cat-name" for="cat-' + c.id + '">' + esc(c.name) + '</label>' +
+        '<div class="money-wrap cat-input-wrap">' +
+          '<span class="yen" style="left:12px;">¥</span>' +
+          '<input id="cat-' + c.id + '" data-cat="' + c.id + '" class="input cat-input" type="text" ' +
+            'inputmode="numeric" autocomplete="off" placeholder="0" ' +
+            'value="' + (c.amount ? c.amount.toLocaleString('ja-JP') : '') + '">' +
+        '</div>' +
+        '<button class="cat-edit" data-cat-edit="' + c.id + '" aria-label="' + esc(c.name) + 'を編集">⚙</button>' +
+      '</div>';
+    }).join('');
+  }
+
+  function renderBudget() {
+    document.getElementById('budget-title').textContent = monthLabel(budget.month) + 'の予算';
+    document.getElementById('budget-income').value =
+      budget.income === '' ? '' : parseInt(budget.income, 10).toLocaleString('ja-JP');
+    document.getElementById('budget-saving').value =
+      budget.savingGoal === '' ? '' : parseInt(budget.savingGoal, 10).toLocaleString('ja-JP');
+    document.getElementById('budget-copy').hidden = budgetHistory.length === 0;
+    renderBudgetFixed();
+    renderBudgetPlanned();
+    renderBudgetCats();
+    refreshBudgetTotals();
+  }
+
+  /* 給料・貯金・カテゴリーの入力（入力中は該当欄を作り直さない） */
+  document.getElementById('budget-income').addEventListener('input', function (e) {
+    var raw = digitsOnly(e.target.value);
+    e.target.value = raw === '' ? '' : parseInt(raw, 10).toLocaleString('ja-JP');
+    budget.income = raw;
+    saveBudget();
+    refreshBudgetTotals();
+  });
+  document.getElementById('budget-saving').addEventListener('input', function (e) {
+    var raw = digitsOnly(e.target.value);
+    e.target.value = raw === '' ? '' : parseInt(raw, 10).toLocaleString('ja-JP');
+    budget.savingGoal = raw;
+    saveBudget();
+    refreshBudgetTotals();
+  });
+  document.addEventListener('input', function (e) {
+    var id = e.target.dataset && e.target.dataset.cat;
+    if (!id) return;
+    var raw = digitsOnly(e.target.value);
+    e.target.value = raw === '' ? '' : parseInt(raw, 10).toLocaleString('ja-JP');
+    budget.categories = budget.categories.map(function (c) {
+      return c.id === id ? { id: c.id, name: c.name, emoji: c.emoji, amount: raw === '' ? 0 : parseInt(raw, 10) || 0 } : c;
+    });
+    saveBudget();
+    refreshBudgetTotals();
+  });
+
+  /* 先月をコピー（給料は月ごとに変わるためコピーしない） */
+  document.getElementById('budget-copy').addEventListener('click', function () {
+    var src = budgetHistory[0];
+    if (!src) return;
+    budget.savingGoal = src.savingGoal;
+    budget.categories = budget.categories.map(function (c) {
+      var prev = src.categories.find(function (p) { return p.name === c.name; });
+      return prev ? { id: c.id, name: c.name, emoji: c.emoji, amount: prev.amount } : c;
+    });
+    saveBudget();
+    renderBudget();
+    toast('先月の貯金目標と振り分けをコピーしました。給料は入力してください');
+  });
+
+  /* ── 予定支出の追加・編集 ── */
+  var plannedId = null;
+  var pName = document.getElementById('planned-name');
+  var pAmount = document.getElementById('planned-amount');
+  var pDate = document.getElementById('planned-date');
+
+  function openPlanned(item) {
+    plannedId = item ? item.id : null;
+    document.getElementById('planned-title').textContent = item ? '予定支出を編集' : '予定支出を追加';
+    document.getElementById('planned-save').textContent = item ? '保存する' : '追加する';
+    document.getElementById('planned-delete').hidden = !item;
+    pName.value = item ? item.name : '';
+    pAmount.value = item ? item.amount.toLocaleString('ja-JP') : '';
+    pDate.value = item ? item.date : '';
+    document.getElementById('sheet-planned').hidden = false;
+    pName.focus();
+  }
+  pAmount.addEventListener('input', function () {
+    var raw = digitsOnly(pAmount.value);
+    pAmount.value = raw === '' ? '' : parseInt(raw, 10).toLocaleString('ja-JP');
+  });
+  document.getElementById('planned-add').addEventListener('click', function () { openPlanned(null); });
+  document.getElementById('planned-save').addEventListener('click', function () {
+    var name = pName.value.trim();
+    var amount = parseInt(digitsOnly(pAmount.value), 10) || 0;
+    if (!name || amount <= 0) { toast('内容と金額を入力してください'); return; }
+    if (plannedId) {
+      budget.planned = budget.planned.map(function (p) {
+        return p.id === plannedId ? { id: p.id, name: name, amount: amount, date: pDate.value, paid: p.paid } : p;
+      });
+      toast('予定支出を更新しました');
+    } else {
+      budget.planned.push({ id: uid(), name: name, amount: amount, date: pDate.value, paid: false });
+      toast('予定支出を追加しました');
+    }
+    saveBudget();
+    closeSheet('sheet-planned');
+    renderBudget();
+  });
+  document.getElementById('planned-delete').addEventListener('click', function () {
+    budget.planned = budget.planned.filter(function (p) { return p.id !== plannedId; });
+    saveBudget();
+    closeSheet('sheet-planned');
+    renderBudget();
+    toast('予定支出を削除しました');
+  });
+
+  /* ── カテゴリーの追加・編集 ── */
+  var catId = null;
+  var cName = document.getElementById('cat-name');
+  var cEmoji = document.getElementById('cat-emoji');
+
+  function openCat(cat) {
+    catId = cat ? cat.id : null;
+    document.getElementById('cat-title').textContent = cat ? 'カテゴリーを編集' : 'カテゴリーを追加';
+    document.getElementById('cat-save').textContent = cat ? '保存する' : '追加する';
+    document.getElementById('cat-delete').hidden = !cat;
+    cName.value = cat ? cat.name : '';
+    cEmoji.value = cat ? (cat.emoji || '') : '📦';
+    document.getElementById('sheet-cat').hidden = false;
+    cName.focus();
+  }
+  document.getElementById('cat-add').addEventListener('click', function () { openCat(null); });
+  document.getElementById('cat-save').addEventListener('click', function () {
+    var name = cName.value.trim();
+    if (!name) { toast('カテゴリー名を入力してください'); return; }
+    var emoji = cEmoji.value.trim() || '📦';
+    if (catId) {
+      budget.categories = budget.categories.map(function (c) {
+        return c.id === catId ? { id: c.id, name: name, emoji: emoji, amount: c.amount } : c;
+      });
+      toast('カテゴリーを更新しました');
+    } else {
+      budget.categories.push({ id: uid(), name: name, emoji: emoji, amount: 0 });
+      toast('カテゴリーを追加しました');
+    }
+    saveBudget();
+    closeSheet('sheet-cat');
+    renderBudget();
+  });
+  document.getElementById('cat-delete').addEventListener('click', function () {
+    budget.categories = budget.categories.filter(function (c) { return c.id !== catId; });
+    saveBudget();
+    closeSheet('sheet-cat');
+    renderBudget();
+    toast('カテゴリーを削除しました');
+  });
+
+  /* ── ホームの月予算カード ── */
+  function renderBudgetCard() {
+    var b = budgetCalc();
+    var body = document.getElementById('budget-card-body');
+    if (b.income === 0) {
+      body.innerHTML = '<p class="auto-empty" style="padding:6px 0 2px;">' +
+        '給料を入力すると、貯金・固定費・予定支出を差し引いた<br>生活費の予算を計算します</p>';
+      return;
+    }
+    var top = budget.categories.filter(function (c) { return c.amount > 0; })
+      .sort(function (a, b2) { return b2.amount - a.amount; }).slice(0, 3);
+    body.innerHTML =
+      '<div class="bud-line"><span class="k">給料</span><span class="v">' + yen(b.income) + '</span></div>' +
+      '<div class="bud-line"><span class="k">貯金確保</span><span class="v">−' + yen(b.saving) + '</span></div>' +
+      '<div class="bud-line"><span class="k">固定費確保</span><span class="v">−' + yen(b.fixed) + '</span></div>' +
+      (b.planned > 0 ? '<div class="bud-line"><span class="k">予定支出確保</span><span class="v">−' + yen(b.planned) + '</span></div>' : '') +
+      '<div class="bud-living"><span class="k">生活費予算</span>' +
+        '<span class="v serif-num"' + (b.living < 0 ? ' style="color:var(--danger);"' : '') + '>' + yenSigned(b.living) + '</span></div>' +
+      (top.length
+        ? '<div class="bud-cats">' +
+            top.map(function (c) { return '<span>' + esc(c.emoji) + ' ' + esc(c.name) + ' ' + yen(c.amount) + '</span>'; }).join('') +
+            '<span class="bud-more">その他を見る →</span>' +
+          '</div>'
+        : '') +
+      (b.over > 0 ? '<div class="alloc-warn" style="margin-top:10px;">予算を ' + yen(b.over) + ' オーバーしています</div>' : '');
   }
 
   /* ── 設定画面描画 ── */
@@ -1502,7 +2037,10 @@
   function show(view) {
     document.getElementById('view-home').hidden = view !== 'home';
     document.getElementById('view-settings').hidden = view !== 'settings';
-    if (view === 'home') renderHome(); else renderSettings();
+    document.getElementById('view-budget').hidden = view !== 'budget';
+    if (view === 'home') renderHome();
+    else if (view === 'budget') renderBudget();
+    else renderSettings();
     window.scrollTo(0, 0);
   }
 
@@ -1729,8 +2267,19 @@
 
   /* ── クリック委譲 ── */
   document.addEventListener('click', function (e) {
-    var t = e.target.closest('[data-nav], [data-toggle], [data-actual], [data-edit], [data-del], [data-acc-toggle], [data-acc-toggle-settings], [data-acc-edit], [data-acc-del], [data-close], .overlay');
+    var t = e.target.closest('[data-nav], [data-toggle], [data-actual], [data-edit], [data-del], [data-acc-toggle], [data-acc-toggle-settings], [data-acc-edit], [data-acc-del], [data-planned-edit], [data-cat-edit], [data-close], .overlay');
     if (!t) return;
+
+    if (t.dataset && t.dataset.plannedEdit) {
+      var pe = budget.planned.find(function (p) { return p.id === t.dataset.plannedEdit; });
+      if (pe) openPlanned(pe);
+      return;
+    }
+    if (t.dataset && t.dataset.catEdit) {
+      var ce2 = budget.categories.find(function (c) { return c.id === t.dataset.catEdit; });
+      if (ce2) openCat(ce2);
+      return;
+    }
 
     if (t.dataset && t.dataset.actual) {
       var ac = costs.find(function (c) { return c.id === t.dataset.actual; });
@@ -1822,6 +2371,8 @@
     closeSheet('sheet-acc-delete');
     closeSheet('sheet-recap');
     closeSheet('sheet-actual');
+    closeSheet('sheet-planned');
+    closeSheet('sheet-cat');
   });
 
   document.getElementById('add-btn').addEventListener('click', function () { openForm(null); });

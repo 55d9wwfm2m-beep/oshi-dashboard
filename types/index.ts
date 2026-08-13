@@ -215,6 +215,53 @@ export interface FixedCost {
   actual?: number | null;
 }
 
+// ──── 月予算（給料をどう振り分けるかの計画） ────
+// 口座残高ベースの「使っていいお金」とは別物。給料は口座残高に加算しない。
+
+/** その月だけの予定支出（旅行・美容院など。毎月繰り返す固定費とは別管理） */
+export interface PlannedExpense {
+  id: string;
+  name: string;
+  amount: number;
+  /** 予定日（YYYY-MM-DD）。未定なら '' */
+  date: string;
+  paid: boolean;
+}
+
+/** 生活費の振り分け先カテゴリー */
+export interface BudgetCategory {
+  id: string;
+  name: string;
+  emoji: string;
+  /** 今月このカテゴリーに振り分けた金額 */
+  amount: number;
+}
+
+/** 1か月分の予算計画 */
+export interface MonthlyBudget {
+  /** YYYY-MM */
+  month: string;
+  /** 今月もらった給料。数字のみの文字列（'' は未入力） */
+  income: string;
+  /** 今月の貯金目標。数字のみの文字列（'' は未入力） */
+  savingGoal: string;
+  /** その月の予定支出 */
+  planned: PlannedExpense[];
+  /** 生活費の振り分け */
+  categories: BudgetCategory[];
+}
+
+export const DEFAULT_BUDGET_CATEGORIES: { name: string; emoji: string }[] = [
+  { name: '食費', emoji: '🍚' },
+  { name: '日用品', emoji: '🧻' },
+  { name: '交通費', emoji: '🚃' },
+  { name: '外食・カフェ', emoji: '☕' },
+  { name: '趣味', emoji: '🎮' },
+  { name: '交際費', emoji: '👫' },
+  { name: '衣服・美容', emoji: '👕' },
+  { name: 'その他', emoji: '📦' },
+];
+
 /** 月が変わったときに自動保存される、その月の締めくくり記録 */
 export interface MonthlyRecord {
   /** YYYY-MM */

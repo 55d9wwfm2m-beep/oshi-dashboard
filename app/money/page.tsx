@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { FixedCost, MoneyAccount, MonthlyRecord } from '@/types';
+import { FixedCost, MoneyAccount, MonthlyRecord, MonthlyBudget } from '@/types';
 import { formatYen, getCurrentMonth } from '@/lib/utils';
 import {
   MONEY_KEYS,
@@ -30,6 +30,8 @@ import {
   effectiveAmount,
   actualDiff,
   resetCostsForNewMonth,
+  budgetBreakdown,
+  plannedUnpaidTotal,
 } from '@/lib/money';
 import { showToast } from '@/components/ui/Toast';
 import BudgetToggle from '@/components/ui/BudgetToggle';
@@ -55,6 +57,7 @@ export default function MoneyPage() {
   const [month, setMonth, monthLoaded] = useLocalStorage<string>(MONEY_KEYS.month, '');
   const [payday, , paydayLoaded] = useLocalStorage<number>(MONEY_KEYS.payday, 0);
   const [history, setHistory, historyLoaded] = useLocalStorage<MonthlyRecord[]>(MONEY_KEYS.history, []);
+  const [budget, , budgetLoaded] = useLocalStorage<MonthlyBudget | null>(MONEY_KEYS.budget, null);
   const [recap, setRecap] = useState<MonthlyRecord | null>(null);
   const [showResetNotice, setShowResetNotice] = useState(false);
   const [actualTarget, setActualTarget] = useState<FixedCost | null>(null);
@@ -100,7 +103,12 @@ export default function MoneyPage() {
     setMonth(current);
   }, [costsLoaded, monthLoaded, accountsLoaded, historyLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!accountsLoaded || !costsLoaded || !monthLoaded || !paydayLoaded || !historyLoaded) return null;
+  if (!accountsLoaded || !costsLoaded || !monthLoaded || !paydayLoaded || !historyLoaded || !budgetLoaded) return null;
+
+  // 月予算（給料ベースの計画）。口座残高とは別データで、給料は残高に加算しない
+  const plan = budget && budget.month === getCurrentMonth() ? budget : null;
+  const planBreakdown = plan ? budgetBreakdown(plan, costs) : null;
+  const unpaidPlanned = plan ? plannedUnpaidTotal(plan.planned) : 0;
 
   const paydayInfo = payday ? nextPaydayInfo(payday) : null;
 
@@ -113,7 +121,7 @@ export default function MoneyPage() {
   const unpaid = unpaidTotal(costs);
   const paidTotal = costs.filter(c => c.paid).reduce((s, c) => s + effectiveAmount(c), 0);
   // 所持金が未入力のときは結果を 0 円として扱う
-  const spendable = balanceEmpty ? 0 : balance - unpaid;
+  const spendable = balanceEmpty ? 0 : balance - unpaid - unpaidPlanned;
   const isShort = !balanceEmpty && spendable < 0;
   const heroMeta = STATUS_META[isShort ? 'tight' : statusOf(spendable)];
 
@@ -293,6 +301,12 @@ export default function MoneyPage() {
                   <span style={{ color: '#78716C' }}>未払いの固定費</span>
                   <span className="font-medium" style={{ color: '#1C1917' }}>−{formatYen(unpaid)}</span>
                 </div>
+                {unpaidPlanned > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span style={{ color: '#78716C' }}>未払いの予定支出</span>
+                    <span className="font-medium" style={{ color: '#1C1917' }}>−{formatYen(unpaidPlanned)}</span>
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -662,6 +676,75 @@ export default function MoneyPage() {
             </>
           )}
         </div>
+
+        {/* 今月のお金（月予算の要約） */}
+        <Link href="/money/budget" className="block card card-hover p-5 anim-fadeInUp active:scale-[0.985]">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-medium" style={{ color: '#78716C' }}>今月のお金</p>
+            <span className="text-[11px] font-bold" style={{ color: MONEY_ACCENT }}>開く →</span>
+          </div>
+
+          {!planBreakdown || planBreakdown.income === 0 ? (
+            <p className="text-xs text-center leading-relaxed py-1.5" style={{ color: '#A8A29E' }}>
+              給料を入力すると、貯金・固定費・予定支出を差し引いた<br />生活費の予算を計算します
+            </p>
+          ) : (
+            <>
+              {[
+                { k: '給料', v: formatYen(planBreakdown.income) },
+                { k: '貯金確保', v: `−${formatYen(planBreakdown.saving)}` },
+                { k: '固定費確保', v: `−${formatYen(planBreakdown.fixed)}` },
+                ...(planBreakdown.planned > 0
+                  ? [{ k: '予定支出確保', v: `−${formatYen(planBreakdown.planned)}` }]
+                  : []),
+              ].map(row => (
+                <div key={row.k} className="flex justify-between items-baseline py-1">
+                  <span className="text-[12.5px]" style={{ color: '#78716C' }}>{row.k}</span>
+                  <span className="text-[13px] font-semibold" style={{ color: '#1C1917', fontVariantNumeric: 'tabular-nums' }}>
+                    {row.v}
+                  </span>
+                </div>
+              ))}
+
+              <div
+                className="flex justify-between items-baseline mt-2.5 pt-3"
+                style={{ borderTop: '1px solid rgba(28,18,12,0.06)' }}
+              >
+                <span className="text-[13px] font-bold" style={{ color: '#1C1917' }}>生活費予算</span>
+                <span
+                  className="text-2xl font-semibold font-serif-num"
+                  style={{ color: planBreakdown.living < 0 ? MONEY_DANGER : MONEY_ACCENT }}
+                >
+                  {formatYenSigned(planBreakdown.living)}
+                </span>
+              </div>
+
+              {plan && plan.categories.some(c => c.amount > 0) && (
+                <div className="flex flex-wrap gap-x-3 gap-y-1.5 mt-3">
+                  {plan.categories
+                    .filter(c => c.amount > 0)
+                    .sort((a, c) => c.amount - a.amount)
+                    .slice(0, 3)
+                    .map(c => (
+                      <span key={c.id} className="text-[11px]" style={{ color: '#A8A29E', fontVariantNumeric: 'tabular-nums' }}>
+                        {c.emoji} {c.name} {formatYen(c.amount)}
+                      </span>
+                    ))}
+                  <span className="text-[11px] font-bold" style={{ color: MONEY_ACCENT }}>その他を見る →</span>
+                </div>
+              )}
+
+              {planBreakdown.over > 0 && (
+                <div
+                  className="mt-3 px-3.5 py-2.5 rounded-2xl text-center text-[12.5px] font-bold"
+                  style={{ background: MONEY_DANGER_BG, color: MONEY_DANGER }}
+                >
+                  予算を {formatYen(planBreakdown.over)} オーバーしています
+                </div>
+              )}
+            </>
+          )}
+        </Link>
 
         {/* これまでの記録 */}
         {history.length > 0 && (

@@ -23,6 +23,7 @@ import {
   ALERT_MIN_RATIO,
 } from '@/lib/money';
 import ExpenseSheet from '@/components/ui/ExpenseSheet';
+import MoneyTabs from '@/components/ui/MoneyTabs';
 
 const WARN = '#A8770E';
 type Range = 'month' | '3m' | 'all';
@@ -141,6 +142,8 @@ export default function ReviewPage() {
         <h1 className="text-2xl font-semibold mt-1" style={{ color: '#1C1917' }}>振り返り</h1>
       </div>
 
+      <MoneyTabs />
+
       {/* 月を選ぶ */}
       <div className="flex gap-1.5 overflow-x-auto px-4 pb-1 mb-3.5" role="group" aria-label="月を選ぶ">
         {months.map(m => (
@@ -210,15 +213,22 @@ export default function ReviewPage() {
                   <div className="flex items-center gap-2.5">
                     <span className="text-[15px] leading-none shrink-0" aria-hidden="true">{c.emoji}</span>
                     <span className="text-[13.5px] font-semibold truncate" style={{ color: '#1C1917' }}>{c.name}</span>
-                    <span className="ml-auto text-right shrink-0">
-                      <b className="block text-[13.5px] font-bold" style={{ color: '#1C1917', fontVariantNumeric: 'tabular-nums' }}>
-                        {formatYen(used)}
-                      </b>
-                      <span className="text-[10.5px]" style={{ color: '#A8A29E', fontVariantNumeric: 'tabular-nums' }}>
-                        予算 {formatYen(c.amount)}
-                      </span>
+                  </div>
+
+                  {/* 使った金額は一番読みたい数字なので大きく出す */}
+                  <div className="flex items-baseline justify-between gap-2.5 mt-2">
+                    <span
+                      className="text-[21px] font-bold leading-tight"
+                      style={{ color: over ? MONEY_DANGER : '#1C1917', fontVariantNumeric: 'tabular-nums' }}
+                    >
+                      <small className="text-[11px] font-semibold mr-1.5" style={{ color: '#A8A29E' }}>使った</small>
+                      {formatYen(used)}
+                    </span>
+                    <span className="text-[11.5px] shrink-0" style={{ color: '#A8A29E', fontVariantNumeric: 'tabular-nums' }}>
+                      予算 {formatYen(c.amount)}
                     </span>
                   </div>
+
                   <Meter used={used} budgeted={c.amount} label={c.name} />
                   {over && (
                     <p className="text-[10.5px] mt-1.5 font-bold" style={{ color: MONEY_DANGER }}>

@@ -27,6 +27,7 @@ import {
 import BudgetToggle from '@/components/ui/BudgetToggle';
 import BottomSheet from '@/components/ui/BottomSheet';
 import { showToast } from '@/components/ui/Toast';
+import MoneyTabs from '@/components/ui/MoneyTabs';
 
 const PAY_DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
 const PAYDAY_RULE = '土日・祝日にあたる月は、その前の平日に自動で前倒しします。';
@@ -162,6 +163,8 @@ export default function MoneySettingsPage() {
           +
         </button>
       </div>
+
+      <MoneyTabs />
 
       <div className="px-4 space-y-4">
         {/* 口座 */}

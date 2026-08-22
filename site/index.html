@@ -359,6 +359,27 @@
 
   .footnote { font-size: 11px; color: var(--muted); text-align: center; margin: 20px 8px 0; }
 
+  /* ── 下部メニューバー ── */
+  .tabbar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    display: flex; background: var(--surface);
+    border-top: 1px solid var(--line);
+    padding-bottom: env(safe-area-inset-bottom);
+    box-shadow: 0 -2px 16px rgba(33, 38, 31, 0.05);
+  }
+  .tab {
+    flex: 1; border: none; background: none; font-family: inherit;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 9px 2px 8px; color: var(--muted);
+    transition: color 0.15s ease;
+  }
+  .tab-icon { font-size: 19px; line-height: 1; filter: grayscale(1); opacity: 0.55; transition: all 0.15s ease; }
+  .tab-label { font-size: 10px; font-weight: 700; letter-spacing: 0.02em; }
+  .tab[aria-current="page"] { color: var(--accent-ink); }
+  .tab[aria-current="page"] .tab-icon { filter: none; opacity: 1; }
+  /* メニューバーに隠れないよう、本文の下に余白を足す */
+  .app { padding-bottom: calc(78px + env(safe-area-inset-bottom)); }
+
   /* ── bottom sheet ── */
   .overlay {
     position: fixed; inset: 0; z-index: 60;
@@ -490,7 +511,20 @@
   .meter { height: 6px; border-radius: 4px; background: var(--surface-2); margin-top: 7px; overflow: hidden; }
   .meter i { display: block; height: 100%; border-radius: 4px; background: var(--accent); transition: width 0.25s ease; }
   .meter.over i { background: var(--danger); }
-  .cat-note { font-size: 10.5px; margin-top: 5px; display: flex; align-items: center; gap: 4px; }
+  /* 使った金額は一番読みたい数字なので大きく出す */
+  .cat-used {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 10px; margin-top: 8px;
+  }
+  .cat-used .used {
+    font-size: 21px; font-weight: 700; line-height: 1.2;
+    font-variant-numeric: tabular-nums; color: var(--ink);
+  }
+  .cat-used.over .used { color: var(--danger); }
+  .cat-used .used small { font-size: 11px; font-weight: 600; color: var(--muted); margin-right: 5px; }
+  .cat-used .rest { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; flex-shrink: 0; }
+
+  .cat-note { font-size: 11px; margin-top: 5px; display: flex; align-items: center; gap: 4px; }
   .cat-note.over { color: var(--danger); font-weight: 700; }
   .cat-note.high { color: var(--warn); font-weight: 700; }
   .cat-note.calm { color: var(--muted); }
@@ -667,6 +701,29 @@
       </div>
     </div>
 
+    <div class="alert-card anim-in" id="alert-card" hidden></div>
+
+    <div class="card anim-in" id="budget-card" data-nav="budget" style="cursor:pointer;">
+      <div class="bud-card-head">
+        <p class="card-title">今月のお金</p>
+        <span class="bud-more">開く →</span>
+      </div>
+      <div id="budget-card-body"></div>
+    </div>
+
+    <p class="footnote">データはこの端末のブラウザ内にのみ保存されます</p>
+  </section>
+
+  <!-- ══════════ 残高と支払い ══════════ -->
+  <section id="view-balance" hidden>
+    <header class="head">
+      <div>
+        <p class="eyebrow">Balance</p>
+        <h1>残高と支払い</h1>
+      </div>
+      <button class="chipbtn" data-nav="settings">口座を編集</button>
+    </header>
+
     <div class="card anim-in">
       <div class="card-head" style="margin-bottom: 14px;">
         <p class="card-title">今持っているお金</p>
@@ -683,27 +740,6 @@
       </div>
       <div id="home-costs"></div>
     </div>
-
-    <div class="alert-card anim-in" id="alert-card" hidden></div>
-
-    <div class="card anim-in" id="budget-card" data-nav="budget" style="cursor:pointer;">
-      <div class="bud-card-head">
-        <p class="card-title">今月のお金</p>
-        <span class="bud-more">開く →</span>
-      </div>
-      <div id="budget-card-body"></div>
-    </div>
-
-    <div class="card anim-in" id="history-card" hidden>
-      <div class="card-head" style="margin-bottom: 6px;">
-        <p class="card-title">これまでの記録</p>
-        <button class="textlink" data-nav="review">振り返る →</button>
-      </div>
-      <p class="formula" style="margin:0 0 4px;" id="history-count"></p>
-      <div id="history-list"></div>
-    </div>
-
-    <button class="log-btn anim-in" data-nav="review" style="margin-bottom:12px;">📊 振り返りを見る</button>
 
     <button class="btn-primary anim-in" data-nav="settings">固定費を設定する</button>
 
@@ -821,6 +857,12 @@
       <div class="trend" id="review-trend-x" style="height:auto; align-items:flex-start; padding-top:0;"></div>
     </div>
 
+    <div class="card anim-in" id="history-card" hidden>
+      <p class="card-title" style="margin-bottom:4px;">これまでの記録</p>
+      <p class="formula" style="margin:0 0 4px;" id="history-count"></p>
+      <div id="history-list"></div>
+    </div>
+
     <div class="card anim-in">
       <div class="card-head" style="margin-bottom:10px;">
         <p class="card-title">支出の記録</p>
@@ -909,6 +951,25 @@
     </div>
   </div>
 </div>
+
+<!-- ══════════ 下部メニューバー ══════════ -->
+<nav class="tabbar" id="tabbar" aria-label="メインメニュー">
+  <button class="tab" data-tab="home" aria-current="page">
+    <span class="tab-icon" aria-hidden="true">🏠</span><span class="tab-label">ホーム</span>
+  </button>
+  <button class="tab" data-tab="balance">
+    <span class="tab-icon" aria-hidden="true">💴</span><span class="tab-label">残高</span>
+  </button>
+  <button class="tab" data-tab="budget">
+    <span class="tab-icon" aria-hidden="true">📅</span><span class="tab-label">予算</span>
+  </button>
+  <button class="tab" data-tab="review">
+    <span class="tab-icon" aria-hidden="true">📊</span><span class="tab-label">振り返り</span>
+  </button>
+  <button class="tab" data-tab="settings">
+    <span class="tab-icon" aria-hidden="true">⚙️</span><span class="tab-label">設定</span>
+  </button>
+</nav>
 
 <!-- ── 支出の記録シート ── -->
 <div class="overlay" id="sheet-expense" hidden>
@@ -1662,6 +1723,8 @@
     save(KEYS.accounts, accounts);
     refreshAccountTotal();
     renderHero();
+    renderAlerts();
+    renderBudgetCard();
   });
 
   function statusPillHTML(st) {
@@ -1847,13 +1910,17 @@
       }).join('');
   }
 
+  /** ホームタブ：今いくら使っていいかに集中する */
   function renderHome() {
     renderAlerts();
     renderBudgetCard();
-    renderHistory();
-    renderAccounts();
     renderPayday();
     renderHero();
+  }
+
+  /** 残高タブ：口座残高の入力と、今月の固定費の支払いチェック */
+  function renderBalance() {
+    renderAccounts();
     renderHomeCosts();
   }
 
@@ -1932,8 +1999,6 @@
         if (used > 0 && avg.months >= ALERT_MIN_MONTHS && avg.average > 0 &&
             used - avg.average >= ALERT_MIN_DIFF && used / avg.average >= ALERT_MIN_RATIO) {
           note = '<p class="cat-note high">📈 いつもより約 ' + yen(used - avg.average) + ' 多め</p>';
-        } else if (used > 0) {
-          note = '<p class="cat-note calm">残り ' + yen(Math.max(0, c.amount - used)) + '</p>';
         }
       }
 
@@ -1952,8 +2017,10 @@
         '<div class="meter' + (over ? ' over' : '') + '" role="img" ' +
           'aria-label="' + esc(c.name) + ' 予算 ' + yen(c.amount) + ' のうち ' + yen(used) + ' 使用">' +
           '<i style="width:' + pct + '%;"></i></div>' +
-        '<div class="cat-note calm" style="display:flex; justify-content:space-between;">' +
-          '<span>使った ' + yen(used) + '</span><span>予算 ' + yen(c.amount) + '</span></div>' +
+        '<div class="cat-used' + (over ? ' over' : '') + '">' +
+          '<span class="used"><small>使った</small>' + yen(used) + '</span>' +
+          '<span class="rest">' + (over ? '予算 ' + yen(c.amount) : '残り ' + yen(Math.max(0, c.amount - used))) + '</span>' +
+        '</div>' +
         note +
       '</div>';
     }).join('') +
@@ -2163,9 +2230,16 @@
   });
 
   function rerenderCurrentView() {
+    // ホームの表示は他タブの操作でも変わるため、隠れていても先に同期しておく
+    // （タブを切り替えた瞬間に古い金額が見えないようにする）
+    renderHero();
+    renderAlerts();
+    renderBudgetCard();
+
     if (!document.getElementById('view-budget').hidden) renderBudget();
     else if (!document.getElementById('view-review').hidden) renderReview();
-    else renderHome();
+    else if (!document.getElementById('view-balance').hidden) renderBalance();
+    else if (!document.getElementById('view-settings').hidden) renderSettings();
   }
 
   /* ── 振り返りページ ── */
@@ -2294,7 +2368,10 @@
         '<div class="cat-top">' +
           '<span class="acc-icon" aria-hidden="true">' + esc(c.emoji || '📦') + '</span>' +
           '<span class="cat-name">' + esc(c.name) + '</span>' +
-          '<span class="cat-figs"><b>' + yen(used) + '</b><br><span>予算 ' + yen(c.amount) + '</span></span>' +
+        '</div>' +
+        '<div class="cat-used' + (over ? ' over' : '') + '">' +
+          '<span class="used"><small>使った</small>' + yen(used) + '</span>' +
+          '<span class="rest">予算 ' + yen(c.amount) + '</span>' +
         '</div>' +
         '<div class="meter' + (over ? ' over' : '') + '" role="img" ' +
           'aria-label="' + esc(c.name) + ' 予算 ' + yen(c.amount) + ' のうち ' + yen(used) + ' 使用">' +
@@ -2362,6 +2439,7 @@
     document.querySelectorAll('#range-seg button').forEach(function (b) {
       b.setAttribute('aria-pressed', String(b.dataset.range === reviewRange));
     });
+    renderHistory();
     renderReviewSummary(reviewMonth);
     renderReviewCats(reviewMonth);
     renderReviewTrend(reviewMonth);
@@ -2578,17 +2656,29 @@
   }
 
   /* ── 画面切り替え ── */
+  var VIEWS = ['home', 'balance', 'budget', 'review', 'settings'];
+
   function show(view) {
-    document.getElementById('view-home').hidden = view !== 'home';
-    document.getElementById('view-settings').hidden = view !== 'settings';
-    document.getElementById('view-budget').hidden = view !== 'budget';
-    document.getElementById('view-review').hidden = view !== 'review';
+    if (VIEWS.indexOf(view) === -1) view = 'home';
+    VIEWS.forEach(function (v) {
+      document.getElementById('view-' + v).hidden = v !== view;
+    });
+    document.querySelectorAll('#tabbar .tab').forEach(function (t) {
+      if (t.dataset.tab === view) t.setAttribute('aria-current', 'page');
+      else t.removeAttribute('aria-current');
+    });
     if (view === 'home') renderHome();
+    else if (view === 'balance') renderBalance();
     else if (view === 'budget') renderBudget();
     else if (view === 'review') renderReview();
     else renderSettings();
     window.scrollTo(0, 0);
   }
+
+  document.getElementById('tabbar').addEventListener('click', function (e) {
+    var t = e.target.closest('[data-tab]');
+    if (t) show(t.dataset.tab);
+  });
 
   /* ── 追加・編集シート ── */
   var daySelect = document.getElementById('f-day');
@@ -2723,7 +2813,7 @@
     });
     save(KEYS.costs, costs);
     closeSheet('sheet-actual');
-    renderHome();
+    rerenderCurrentView();
   }
 
   document.getElementById('actual-save').addEventListener('click', function () {
@@ -2878,6 +2968,7 @@
       }
       refreshAccountTotal();
       renderHero();
+      renderBudgetCard();
       return;
     }
 
@@ -2896,7 +2987,7 @@
           : c;
       });
       save(KEYS.costs, costs);
-      renderHome();
+      rerenderCurrentView();
       return;
     }
     if (t.dataset && t.dataset.edit) {

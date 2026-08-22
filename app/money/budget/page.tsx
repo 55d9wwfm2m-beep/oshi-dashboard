@@ -31,6 +31,7 @@ import {
 import BottomSheet from '@/components/ui/BottomSheet';
 import ExpenseSheet from '@/components/ui/ExpenseSheet';
 import { showToast } from '@/components/ui/Toast';
+import MoneyTabs from '@/components/ui/MoneyTabs';
 
 const WARN = '#A8770E';
 
@@ -210,6 +211,8 @@ export default function BudgetPage() {
           </button>
         )}
       </div>
+
+      <MoneyTabs />
 
       <div className="px-4">
         {/* STEP 1 給料 */}
@@ -400,18 +403,27 @@ export default function BudgetPage() {
                   />
                 </div>
 
-                <div className="flex justify-between text-[10.5px] mt-1.5" style={{ color: '#A8A29E' }}>
-                  <span>使った {formatYen(used)}</span>
-                  <span>予算 {formatYen(c.amount)}</span>
+                {/* 使った金額は一番読みたい数字なので大きく出す */}
+                <div className="flex items-baseline justify-between gap-2.5 mt-2">
+                  <span
+                    className="text-[21px] font-bold leading-tight"
+                    style={{ color: over ? MONEY_DANGER : '#1C1917', fontVariantNumeric: 'tabular-nums' }}
+                  >
+                    <small className="text-[11px] font-semibold mr-1.5" style={{ color: '#A8A29E' }}>使った</small>
+                    {formatYen(used)}
+                  </span>
+                  <span className="text-[11.5px] shrink-0" style={{ color: '#A8A29E', fontVariantNumeric: 'tabular-nums' }}>
+                    {over ? `予算 ${formatYen(c.amount)}` : `残り ${formatYen(Math.max(0, c.amount - used))}`}
+                  </span>
                 </div>
 
                 {over && (
-                  <p className="text-[10.5px] mt-1 font-bold" style={{ color: MONEY_DANGER }}>
+                  <p className="text-[11px] mt-1 font-bold" style={{ color: MONEY_DANGER }}>
                     ⚠ 予算を {formatYen(used - c.amount)} オーバー
                   </p>
                 )}
                 {high && (
-                  <p className="text-[10.5px] mt-1 font-bold" style={{ color: WARN }}>
+                  <p className="text-[11px] mt-1 font-bold" style={{ color: WARN }}>
                     📈 いつもより約 {formatYen(used - avg.average)} 多め
                   </p>
                 )}

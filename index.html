@@ -479,6 +479,70 @@
   .bud-cats span { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
   .bud-more { font-size: 11px; font-weight: 700; color: var(--accent-ink); }
 
+  /* ── 支出記録とメーター ── */
+  .cat-block { padding: 11px 0; border-bottom: 1px solid var(--line); }
+  .cat-block:last-child { border-bottom: none; }
+  .cat-top { display: flex; align-items: center; gap: 9px; }
+  .cat-figs { margin-left: auto; text-align: right; flex-shrink: 0; }
+  .cat-figs b { font-size: 13.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .cat-figs span { font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  /* メーター：トラックが予算、塗りが実績 */
+  .meter { height: 6px; border-radius: 4px; background: var(--surface-2); margin-top: 7px; overflow: hidden; }
+  .meter i { display: block; height: 100%; border-radius: 4px; background: var(--accent); transition: width 0.25s ease; }
+  .meter.over i { background: var(--danger); }
+  .cat-note { font-size: 10.5px; margin-top: 5px; display: flex; align-items: center; gap: 4px; }
+  .cat-note.over { color: var(--danger); font-weight: 700; }
+  .cat-note.high { color: var(--warn); font-weight: 700; }
+  .cat-note.calm { color: var(--muted); }
+
+  .log-btn {
+    width: 100%; border: 1.5px dashed var(--line); background: transparent;
+    border-radius: 14px; padding: 12px; margin-top: 14px;
+    font-family: inherit; font-size: 13px; font-weight: 700; color: var(--accent-ink);
+  }
+  .exp-row { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+  .exp-row:last-child { border-bottom: none; }
+  .exp-main { flex: 1; min-width: 0; }
+  .exp-name { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .exp-sub { font-size: 10.5px; color: var(--muted); margin-top: 2px; }
+  .exp-amount { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+
+  /* ── いつもより高いカード ── */
+  .alert-card { background: var(--warn-soft); border-radius: 18px; padding: 15px 16px; margin-bottom: 14px; }
+  .alert-head { font-size: 12px; font-weight: 700; color: var(--warn); margin: 0 0 10px; }
+  .alert-item { padding: 8px 0; border-top: 1px solid rgba(168,119,14,0.18); }
+  .alert-item:first-of-type { border-top: none; padding-top: 0; }
+  .alert-name { font-size: 13px; font-weight: 700; }
+  .alert-figs { font-size: 11px; color: var(--sub); margin-top: 3px; font-variant-numeric: tabular-nums; }
+  .alert-diff { font-size: 12px; font-weight: 700; color: var(--warn); margin-top: 3px; }
+
+  /* ── 振り返りページ ── */
+  .seg-months { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 14px; }
+  .seg-months button {
+    flex-shrink: 0; border: none; border-radius: 999px; padding: 8px 15px;
+    font-family: inherit; font-size: 12px; font-weight: 700;
+    background: var(--surface-2); color: var(--sub);
+  }
+  .seg-months button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+
+  .review-line { display: flex; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+  .review-line:last-child { border-bottom: none; }
+  .review-emoji { font-size: 16px; line-height: 1.3; flex-shrink: 0; }
+  .review-label { font-size: 13px; font-weight: 700; }
+  .review-text { font-size: 12px; margin-top: 2px; color: var(--sub); }
+  .review-line.good .review-text { color: var(--accent-ink); font-weight: 600; }
+  .review-line.warn .review-text { color: var(--danger); font-weight: 600; }
+
+  /* 月次推移（単一系列の縦棒。軸ラベル込みの高さを確保する） */
+  .trend { display: flex; align-items: flex-end; gap: 8px; height: 132px; padding-top: 6px; }
+  .trend-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; min-width: 0; }
+  .trend-val { font-size: 9.5px; color: var(--sub); margin-bottom: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .trend-bar { width: 100%; max-width: 34px; border-radius: 4px 4px 0 0; background: var(--accent); min-height: 3px; }
+  .trend-col.is-current .trend-bar { background: var(--accent-ink); }
+  .trend-col.is-dim .trend-bar { background: var(--surface-2); }
+  .trend-x { font-size: 10px; color: var(--muted); margin-top: 7px; white-space: nowrap; }
+  .trend-base { height: 1px; background: var(--line); margin-top: 0; }
+
   /* ── 月末の振り返りポップアップ ── */
   .recap-card {
     width: 100%; max-width: 400px; margin: auto;
@@ -620,6 +684,8 @@
       <div id="home-costs"></div>
     </div>
 
+    <div class="alert-card anim-in" id="alert-card" hidden></div>
+
     <div class="card anim-in" id="budget-card" data-nav="budget" style="cursor:pointer;">
       <div class="bud-card-head">
         <p class="card-title">今月のお金</p>
@@ -631,10 +697,13 @@
     <div class="card anim-in" id="history-card" hidden>
       <div class="card-head" style="margin-bottom: 6px;">
         <p class="card-title">これまでの記録</p>
-        <span class="acc-off-tag" id="history-count"></span>
+        <button class="textlink" data-nav="review">振り返る →</button>
       </div>
+      <p class="formula" style="margin:0 0 4px;" id="history-count"></p>
       <div id="history-list"></div>
     </div>
+
+    <button class="log-btn anim-in" data-nav="review" style="margin-bottom:12px;">📊 振り返りを見る</button>
 
     <button class="btn-primary anim-in" data-nav="settings">固定費を設定する</button>
 
@@ -719,6 +788,53 @@
     </div>
   </section>
 
+  <!-- ══════════ 振り返りページ ══════════ -->
+  <section id="view-review" hidden>
+    <header class="head">
+      <div>
+        <button class="back" data-nav="home">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"></path></svg>
+          やりくり電卓へ戻る
+        </button>
+        <h1>振り返り</h1>
+      </div>
+    </header>
+
+    <div class="seg-months" id="review-months" role="group" aria-label="月を選ぶ"></div>
+
+    <div class="card anim-in">
+      <p class="card-title" id="review-title">まとめ</p>
+      <div id="review-summary"></div>
+    </div>
+
+    <div class="card anim-in">
+      <p class="card-title" style="margin-bottom:4px;">生活費の使いみち</p>
+      <p class="formula" style="margin-top:0;">バーは予算に対して使った割合です</p>
+      <div id="review-cats"></div>
+    </div>
+
+    <div class="card anim-in">
+      <p class="card-title" style="margin-bottom:4px;">月ごとの生活費</p>
+      <p class="formula" style="margin-top:0;" id="trend-caption"></p>
+      <div class="trend" id="review-trend"></div>
+      <div class="trend-base" aria-hidden="true"></div>
+      <div class="trend" id="review-trend-x" style="height:auto; align-items:flex-start; padding-top:0;"></div>
+    </div>
+
+    <div class="card anim-in">
+      <div class="card-head" style="margin-bottom:10px;">
+        <p class="card-title">支出の記録</p>
+        <button class="textlink" id="review-log">＋ 記録する</button>
+      </div>
+      <div class="seg" id="range-seg" role="group" aria-label="期間を選ぶ" style="margin-bottom:12px;">
+        <button type="button" data-range="month" aria-pressed="true">この月</button>
+        <button type="button" data-range="3m" aria-pressed="false">過去3か月</button>
+        <button type="button" data-range="all" aria-pressed="false">すべて</button>
+      </div>
+      <div id="review-expenses"></div>
+    </div>
+  </section>
+
   <!-- ══════════ 固定費設定画面 ══════════ -->
   <section id="view-settings" hidden>
     <header class="head">
@@ -790,6 +906,40 @@
     <div class="actions">
       <button class="btn-ghost" data-close="sheet-form">キャンセル</button>
       <button class="btn-primary" id="form-save">追加する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 支出の記録シート ── -->
+<div class="overlay" id="sheet-expense" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="expense-title">
+    <div class="grip" aria-hidden="true"></div>
+    <h2 id="expense-title">支出を記録</h2>
+    <div class="fields">
+      <div>
+        <label class="field-label" for="expense-cat">カテゴリー *</label>
+        <select id="expense-cat" class="input"></select>
+      </div>
+      <div>
+        <label class="field-label" for="expense-amount">使った金額 *</label>
+        <div class="money-wrap">
+          <span class="yen">¥</span>
+          <input id="expense-amount" class="input" type="text" inputmode="numeric" autocomplete="off" placeholder="1,200" style="padding-left:32px;">
+        </div>
+      </div>
+      <div>
+        <label class="field-label" for="expense-date">使った日</label>
+        <input id="expense-date" class="input" type="date">
+      </div>
+      <div>
+        <label class="field-label" for="expense-memo">メモ</label>
+        <input id="expense-memo" class="input" type="text" placeholder="例：スーパー・ランチ">
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn-ghost" id="expense-delete" hidden>削除</button>
+      <button class="btn-ghost" data-close="sheet-expense">キャンセル</button>
+      <button class="btn-primary" id="expense-save">記録する</button>
     </div>
   </div>
 </div>
@@ -980,8 +1130,15 @@
     /** 今月の予算計画（給料の振り分け） */
     budget: 'oshi-money-budget',
     /** 過去の月予算 */
-    budgetHistory: 'oshi-money-budget-history'
+    budgetHistory: 'oshi-money-budget-history',
+    /** 生活費の支出記録（全期間を1つの配列で保持） */
+    expenses: 'oshi-money-expenses'
   };
+
+  /** 「いつもより高い」の判定条件（両方を満たしたときだけ知らせる） */
+  var ALERT_MIN_MONTHS = 2;
+  var ALERT_MIN_DIFF = 1000;
+  var ALERT_MIN_RATIO = 1.2;
 
   var DEFAULT_CATEGORIES = [
     { name: '食費', emoji: '🍚' }, { name: '日用品', emoji: '🧻' },
@@ -1021,6 +1178,21 @@
   var budget = load(KEYS.budget, null);
   var budgetHistory = load(KEYS.budgetHistory, []);
   if (!Array.isArray(budgetHistory)) budgetHistory = [];
+
+  // 生活費の支出記録。全期間を1つの配列で持ち、日付で任意の期間を集計する
+  var expenses = load(KEYS.expenses, []);
+  if (!Array.isArray(expenses)) expenses = [];
+  expenses = expenses.filter(function (e) {
+    return e && typeof e.date === 'string' && e.date.length === 10;
+  }).map(function (e) {
+    return {
+      id: e.id || uid(),
+      categoryId: String(e.categoryId || ''),
+      amount: typeof e.amount === 'number' ? e.amount : parseInt(e.amount, 10) || 0,
+      date: e.date,
+      memo: typeof e.memo === 'string' ? e.memo : ''
+    };
+  });
 
   function defaultCategories() {
     return DEFAULT_CATEGORIES.map(function (c) {
@@ -1124,6 +1296,59 @@
   /** 予定支出の総額（月予算の「確保」はこちら） */
   function plannedAll() {
     return budget.planned.reduce(function (s, p) { return s + p.amount; }, 0);
+  }
+
+  /* ── 支出記録の集計 ── */
+
+  function monthOf(d) { return d.slice(0, 7); }
+
+  function expensesInMonth(m) {
+    return expenses.filter(function (e) { return monthOf(e.date) === m; });
+  }
+
+  /** カテゴリーidごとの合計 */
+  function totalsByCategory(list) {
+    var out = {};
+    list.forEach(function (e) { out[e.categoryId] = (out[e.categoryId] || 0) + e.amount; });
+    return out;
+  }
+
+  /** その月の生活費支出の合計 */
+  function spentInMonth(m) {
+    return expensesInMonth(m).reduce(function (s, e) { return s + e.amount; }, 0);
+  }
+
+  /**
+   * そのカテゴリーの「普段の月平均」。
+   * 対象月は除き、支出があった月だけで平均する（使わなかった月を0円で混ぜない）
+   */
+  function categoryAverage(categoryId, excludeMonth) {
+    var byMonth = {};
+    expenses.forEach(function (e) {
+      if (e.categoryId !== categoryId) return;
+      var m = monthOf(e.date);
+      if (m === excludeMonth) return;
+      byMonth[m] = (byMonth[m] || 0) + e.amount;
+    });
+    var vals = Object.keys(byMonth).map(function (k) { return byMonth[k]; });
+    if (vals.length === 0) return { average: 0, months: 0 };
+    var sum = vals.reduce(function (s, v) { return s + v; }, 0);
+    return { average: Math.round(sum / vals.length), months: vals.length };
+  }
+
+  /** 「いつもより明らかに多い」カテゴリー。超過額の大きい順 */
+  function spendingAlerts(m) {
+    var cur = totalsByCategory(expensesInMonth(m));
+    return budget.categories.map(function (c) {
+      var spent = cur[c.id] || 0;
+      if (spent <= 0) return null;
+      var avg = categoryAverage(c.id, m);
+      if (avg.months < ALERT_MIN_MONTHS || avg.average <= 0) return null;
+      var diff = spent - avg.average;
+      var ratio = spent / avg.average;
+      if (diff < ALERT_MIN_DIFF || ratio < ALERT_MIN_RATIO) return null;
+      return { category: c, current: spent, average: avg.average, diff: diff, months: avg.months };
+    }).filter(Boolean).sort(function (a, b) { return b.diff - a.diff; });
   }
 
   /** カテゴリーへ振り分け済みの合計 */
@@ -1606,7 +1831,24 @@
     document.getElementById('sheet-recap').hidden = true;
   });
 
+  /** 「いつもより高い」カード。色だけでなく金額と平均を文言で示す */
+  function renderAlerts() {
+    var card = document.getElementById('alert-card');
+    var alerts = spendingAlerts(budget.month);
+    if (alerts.length === 0) { card.hidden = true; return; }
+    card.hidden = false;
+    card.innerHTML = '<p class="alert-head">📈 いつもより多めの支出があります</p>' +
+      alerts.slice(0, 3).map(function (a) {
+        return '<div class="alert-item">' +
+          '<p class="alert-name">' + esc(a.category.emoji || '📦') + ' ' + esc(a.category.name) + '</p>' +
+          '<p class="alert-figs">普段の月平均 ' + yen(a.average) + '（' + a.months + 'か月）／今月 ' + yen(a.current) + '</p>' +
+          '<p class="alert-diff">いつもより約 ' + yen(a.diff) + ' 多め</p>' +
+        '</div>';
+      }).join('');
+  }
+
   function renderHome() {
+    renderAlerts();
     renderBudgetCard();
     renderHistory();
     renderAccounts();
@@ -1675,19 +1917,47 @@
   }
 
   function renderBudgetCats() {
+    var spent = totalsByCategory(expensesInMonth(budget.month));
     document.getElementById('budget-cats').innerHTML = budget.categories.map(function (c) {
-      return '<div class="cat-row">' +
-        '<span class="acc-icon" aria-hidden="true">' + esc(c.emoji || '📦') + '</span>' +
-        '<label class="cat-name" for="cat-' + c.id + '">' + esc(c.name) + '</label>' +
-        '<div class="money-wrap cat-input-wrap">' +
-          '<span class="yen" style="left:12px;">¥</span>' +
-          '<input id="cat-' + c.id + '" data-cat="' + c.id + '" class="input cat-input" type="text" ' +
-            'inputmode="numeric" autocomplete="off" placeholder="0" ' +
-            'value="' + (c.amount ? c.amount.toLocaleString('ja-JP') : '') + '">' +
+      var used = spent[c.id] || 0;
+      var over = c.amount > 0 && used > c.amount;
+      var pct = c.amount > 0 ? Math.min(100, Math.round(used / c.amount * 100)) : (used > 0 ? 100 : 0);
+
+      // 使いすぎ / いつもより高い を、色だけでなく文言でも伝える
+      var note = '';
+      if (over) {
+        note = '<p class="cat-note over">⚠ 予算を ' + yen(used - c.amount) + ' オーバー</p>';
+      } else {
+        var avg = categoryAverage(c.id, budget.month);
+        if (used > 0 && avg.months >= ALERT_MIN_MONTHS && avg.average > 0 &&
+            used - avg.average >= ALERT_MIN_DIFF && used / avg.average >= ALERT_MIN_RATIO) {
+          note = '<p class="cat-note high">📈 いつもより約 ' + yen(used - avg.average) + ' 多め</p>';
+        } else if (used > 0) {
+          note = '<p class="cat-note calm">残り ' + yen(Math.max(0, c.amount - used)) + '</p>';
+        }
+      }
+
+      return '<div class="cat-block">' +
+        '<div class="cat-top">' +
+          '<span class="acc-icon" aria-hidden="true">' + esc(c.emoji || '📦') + '</span>' +
+          '<label class="cat-name" for="cat-' + c.id + '" style="flex:0 1 auto;">' + esc(c.name) + '</label>' +
+          '<button class="cat-edit" data-cat-edit="' + c.id + '" aria-label="' + esc(c.name) + 'を編集">⚙</button>' +
+          '<div class="money-wrap cat-input-wrap" style="margin-left:auto;">' +
+            '<span class="yen" style="left:12px;">¥</span>' +
+            '<input id="cat-' + c.id + '" data-cat="' + c.id + '" class="input cat-input" type="text" ' +
+              'inputmode="numeric" autocomplete="off" placeholder="0" ' +
+              'value="' + (c.amount ? c.amount.toLocaleString('ja-JP') : '') + '">' +
+          '</div>' +
         '</div>' +
-        '<button class="cat-edit" data-cat-edit="' + c.id + '" aria-label="' + esc(c.name) + 'を編集">⚙</button>' +
+        '<div class="meter' + (over ? ' over' : '') + '" role="img" ' +
+          'aria-label="' + esc(c.name) + ' 予算 ' + yen(c.amount) + ' のうち ' + yen(used) + ' 使用">' +
+          '<i style="width:' + pct + '%;"></i></div>' +
+        '<div class="cat-note calm" style="display:flex; justify-content:space-between;">' +
+          '<span>使った ' + yen(used) + '</span><span>予算 ' + yen(c.amount) + '</span></div>' +
+        note +
       '</div>';
-    }).join('');
+    }).join('') +
+    '<button class="log-btn" id="budget-log">＋ 使ったお金を記録する</button>';
   }
 
   function renderBudget() {
@@ -1831,6 +2101,280 @@
     renderBudget();
     toast('カテゴリーを削除しました');
   });
+
+  /* ── 支出の記録 ── */
+  var expenseId = null;
+  var eCat = document.getElementById('expense-cat');
+  var eAmount = document.getElementById('expense-amount');
+  var eDate = document.getElementById('expense-date');
+  var eMemo = document.getElementById('expense-memo');
+
+  function saveExpenses() { save(KEYS.expenses, expenses); }
+
+  function todayISO() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function openExpense(item) {
+    expenseId = item ? item.id : null;
+    document.getElementById('expense-title').textContent = item ? '支出を編集' : '支出を記録';
+    document.getElementById('expense-save').textContent = item ? '保存する' : '記録する';
+    document.getElementById('expense-delete').hidden = !item;
+    eCat.innerHTML = budget.categories.map(function (c) {
+      return '<option value="' + c.id + '">' + esc(c.emoji || '📦') + ' ' + esc(c.name) + '</option>';
+    }).join('');
+    if (item) eCat.value = item.categoryId;
+    eAmount.value = item ? item.amount.toLocaleString('ja-JP') : '';
+    eDate.value = item ? item.date : todayISO();
+    eMemo.value = item ? item.memo : '';
+    document.getElementById('sheet-expense').hidden = false;
+    eAmount.focus();
+  }
+  eAmount.addEventListener('input', function () {
+    var raw = digitsOnly(eAmount.value);
+    eAmount.value = raw === '' ? '' : parseInt(raw, 10).toLocaleString('ja-JP');
+  });
+  document.getElementById('expense-save').addEventListener('click', function () {
+    var amount = parseInt(digitsOnly(eAmount.value), 10) || 0;
+    if (!eCat.value || amount <= 0) { toast('カテゴリーと金額を入力してください'); return; }
+    var date = eDate.value || todayISO();
+    if (expenseId) {
+      expenses = expenses.map(function (e) {
+        return e.id === expenseId
+          ? { id: e.id, categoryId: eCat.value, amount: amount, date: date, memo: eMemo.value.trim() }
+          : e;
+      });
+      toast('支出を更新しました');
+    } else {
+      expenses.push({ id: uid(), categoryId: eCat.value, amount: amount, date: date, memo: eMemo.value.trim() });
+      toast('支出を記録しました');
+    }
+    saveExpenses();
+    closeSheet('sheet-expense');
+    rerenderCurrentView();
+  });
+  document.getElementById('expense-delete').addEventListener('click', function () {
+    expenses = expenses.filter(function (e) { return e.id !== expenseId; });
+    saveExpenses();
+    closeSheet('sheet-expense');
+    rerenderCurrentView();
+    toast('支出を削除しました');
+  });
+
+  function rerenderCurrentView() {
+    if (!document.getElementById('view-budget').hidden) renderBudget();
+    else if (!document.getElementById('view-review').hidden) renderReview();
+    else renderHome();
+  }
+
+  /* ── 振り返りページ ── */
+  var reviewMonth = null;
+  var reviewRange = 'month';
+
+  /** 支出か予算のある月を新しい順に。なければ今月だけ */
+  function reviewMonthList() {
+    var set = {};
+    expenses.forEach(function (e) { set[monthOf(e.date)] = true; });
+    budgetHistory.forEach(function (b) { if (b && b.month) set[b.month] = true; });
+    set[budget.month] = true;
+    return Object.keys(set).sort(function (a, b) { return b.localeCompare(a); }).slice(0, 12);
+  }
+
+  /** その月の予算計画（今月なら現在のもの、過去なら履歴から） */
+  function budgetOf(m) {
+    if (m === budget.month) return budget;
+    return budgetHistory.find(function (b) { return b && b.month === m; }) || null;
+  }
+
+  /** その月の固定費合計（過去分は月次記録から拾う。無ければ null） */
+  function fixedTotalOf(m) {
+    if (m === budget.month) return costs.reduce(function (s, c) { return s + effAmount(c); }, 0);
+    var rec = history.find(function (r) { return r && r.month === m; });
+    return rec ? rec.fixedCosts : null;
+  }
+
+  /** その月の生活費予算（給料 − 貯金 − 固定費 − 予定支出） */
+  function livingOf(m) {
+    var b = budgetOf(m);
+    if (!b) return 0;
+    var income = b.income === '' ? 0 : parseInt(b.income, 10) || 0;
+    var saving = b.savingGoal === '' ? 0 : parseInt(b.savingGoal, 10) || 0;
+    var fixed = fixedTotalOf(m);
+    var planned = (b.planned || []).reduce(function (s, p) { return s + p.amount; }, 0);
+    return income - saving - (fixed == null ? 0 : fixed) - planned;
+  }
+
+  /** 前月（YYYY-MM） */
+  function prevMonthOf(m) {
+    var p = m.split('-').map(Number);
+    var d = new Date(p[0], p[1] - 2, 1);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  }
+
+  /** その月の「大きな変化」だけを文章にする */
+  function buildReview(m) {
+    var b = budgetOf(m);
+    var lines = [];
+    if (!b) return lines;
+
+    (b.planned || []).slice().sort(function (x, y) { return y.amount - x.amount; })
+      .slice(0, 2).filter(function (p) { return p.amount > 0; })
+      .forEach(function (p) {
+        lines.push({ emoji: '📌', label: p.name, text: '予定支出 ' + yen(p.amount), tone: 'neutral' });
+      });
+
+    var spent = totalsByCategory(expensesInMonth(m));
+    b.categories.map(function (c) {
+      return { c: c, diff: (spent[c.id] || 0) - c.amount };
+    }).filter(function (x) {
+      return (x.c.amount > 0 || (spent[x.c.id] || 0) > 0) && Math.abs(x.diff) >= 1000;
+    }).sort(function (x, y) { return Math.abs(y.diff) - Math.abs(x.diff); })
+      .slice(0, 3).forEach(function (x) {
+        lines.push({
+          emoji: x.c.emoji || '📦', label: x.c.name,
+          text: x.diff < 0 ? '予算より ' + yen(-x.diff) + ' 少なかった' : '予算より ' + yen(x.diff) + ' 多かった',
+          tone: x.diff < 0 ? 'good' : 'warn'
+        });
+      });
+
+    var fixedNow = fixedTotalOf(m);
+    var fixedPrev = fixedTotalOf(prevMonthOf(m));
+    if (fixedNow != null && fixedPrev != null && Math.abs(fixedNow - fixedPrev) >= 500) {
+      var fd = fixedNow - fixedPrev;
+      lines.push({
+        emoji: '🏠', label: '固定費',
+        text: fd < 0 ? '先月より ' + yen(-fd) + ' 減少' : '先月より ' + yen(fd) + ' 増加',
+        tone: fd < 0 ? 'good' : 'warn'
+      });
+    }
+
+    var saving = b.savingGoal === '' ? 0 : parseInt(b.savingGoal, 10) || 0;
+    var totalSpent = spentInMonth(m);
+    if (saving > 0 && totalSpent > 0) {
+      var over = totalSpent - livingOf(m);
+      lines.push({
+        emoji: over <= 0 ? '🎉' : '💪', label: '結果',
+        text: over <= 0 ? '貯金目標 ' + yen(saving) + ' を達成 🎉' : '生活費が予算を ' + yen(over) + ' 超えました',
+        tone: over <= 0 ? 'good' : 'warn'
+      });
+    }
+    return lines;
+  }
+
+  function renderReviewSummary(m) {
+    var lines = buildReview(m);
+    document.getElementById('review-title').textContent = monthLabel(m) + 'のまとめ';
+    var box = document.getElementById('review-summary');
+    box.innerHTML = lines.length === 0
+      ? '<p class="auto-empty">給料や支出を記録すると、その月の変化をまとめます</p>'
+      : lines.map(function (l) {
+          return '<div class="review-line ' + l.tone + '">' +
+            '<span class="review-emoji" aria-hidden="true">' + esc(l.emoji) + '</span>' +
+            '<div><p class="review-label">' + esc(l.label) + '</p>' +
+            '<p class="review-text">' + esc(l.text) + '</p></div></div>';
+        }).join('');
+  }
+
+  function renderReviewCats(m) {
+    var b = budgetOf(m);
+    var box = document.getElementById('review-cats');
+    if (!b) { box.innerHTML = '<p class="auto-empty">この月の予算はありません</p>'; return; }
+    var spent = totalsByCategory(expensesInMonth(m));
+    var rows = b.categories.filter(function (c) { return c.amount > 0 || (spent[c.id] || 0) > 0; });
+    if (rows.length === 0) { box.innerHTML = '<p class="auto-empty">まだ支出の記録がありません</p>'; return; }
+    box.innerHTML = rows.map(function (c) {
+      var used = spent[c.id] || 0;
+      var over = c.amount > 0 && used > c.amount;
+      var pct = c.amount > 0 ? Math.min(100, Math.round(used / c.amount * 100)) : (used > 0 ? 100 : 0);
+      var avg = categoryAverage(c.id, m);
+      var high = !over && used > 0 && avg.months >= ALERT_MIN_MONTHS && avg.average > 0 &&
+        used - avg.average >= ALERT_MIN_DIFF && used / avg.average >= ALERT_MIN_RATIO;
+      return '<div class="cat-block">' +
+        '<div class="cat-top">' +
+          '<span class="acc-icon" aria-hidden="true">' + esc(c.emoji || '📦') + '</span>' +
+          '<span class="cat-name">' + esc(c.name) + '</span>' +
+          '<span class="cat-figs"><b>' + yen(used) + '</b><br><span>予算 ' + yen(c.amount) + '</span></span>' +
+        '</div>' +
+        '<div class="meter' + (over ? ' over' : '') + '" role="img" ' +
+          'aria-label="' + esc(c.name) + ' 予算 ' + yen(c.amount) + ' のうち ' + yen(used) + ' 使用">' +
+          '<i style="width:' + pct + '%;"></i></div>' +
+        (over ? '<p class="cat-note over">⚠ 予算を ' + yen(used - c.amount) + ' オーバー</p>'
+              : high ? '<p class="cat-note high">📈 普段の月平均 ' + yen(avg.average) + ' → いつもより約 ' + yen(used - avg.average) + ' 多め</p>'
+              : '') +
+      '</div>';
+    }).join('');
+  }
+
+  /** 月ごとの生活費（単一系列の縦棒）。最大値を基準に高さを決める */
+  function renderReviewTrend(m) {
+    var months = reviewMonthList().slice(0, 6).reverse();
+    var vals = months.map(function (x) { return { month: x, value: spentInMonth(x) }; });
+    var max = Math.max.apply(null, vals.map(function (v) { return v.value; }).concat([1]));
+    document.getElementById('trend-caption').textContent =
+      vals.some(function (v) { return v.value > 0; }) ? '記録した支出の合計です' : 'まだ支出の記録がありません';
+    document.getElementById('review-trend').innerHTML = vals.map(function (v) {
+      var h = Math.max(3, Math.round(v.value / max * 92));
+      var cls = v.month === m ? ' is-current' : (v.value === 0 ? ' is-dim' : '');
+      return '<div class="trend-col' + cls + '">' +
+        (v.value > 0 ? '<span class="trend-val">' + yen(v.value) + '</span>' : '') +
+        '<div class="trend-bar" style="height:' + h + 'px;"></div></div>';
+    }).join('');
+    document.getElementById('review-trend-x').innerHTML = vals.map(function (v) {
+      return '<div class="trend-col"><span class="trend-x">' +
+        parseInt(v.month.split('-')[1], 10) + '月</span></div>';
+    }).join('');
+  }
+
+  function renderReviewExpenses(m) {
+    var list;
+    if (reviewRange === 'month') list = expensesInMonth(m);
+    else if (reviewRange === '3m') {
+      var p = m.split('-').map(Number);
+      var from = new Date(p[0], p[1] - 3, 1);
+      var fromStr = from.getFullYear() + '-' + String(from.getMonth() + 1).padStart(2, '0');
+      list = expenses.filter(function (e) { return monthOf(e.date) >= fromStr && monthOf(e.date) <= m; });
+    } else list = expenses.slice();
+
+    var box = document.getElementById('review-expenses');
+    if (list.length === 0) { box.innerHTML = '<p class="auto-empty">この期間の記録はありません</p>'; return; }
+    var total = list.reduce(function (s, e) { return s + e.amount; }, 0);
+    box.innerHTML = list.slice().sort(function (a, b) { return b.date.localeCompare(a.date); })
+      .slice(0, 60).map(function (e) {
+        var c = budget.categories.find(function (x) { return x.id === e.categoryId; });
+        return '<div class="exp-row" data-expense-edit="' + e.id + '" style="cursor:pointer;">' +
+          '<span class="acc-icon" aria-hidden="true">' + esc(c ? c.emoji : '📦') + '</span>' +
+          '<div class="exp-main"><p class="exp-name">' + esc(c ? c.name : '（削除されたカテゴリー）') + '</p>' +
+          '<p class="exp-sub">' + formatDateShort(e.date) + (e.memo ? '・' + esc(e.memo) : '') + '</p></div>' +
+          '<span class="exp-amount">' + yen(e.amount) + '</span></div>';
+      }).join('') +
+      '<div class="auto-total"><span class="k">この期間の合計</span>' +
+      '<span class="v serif-num">' + yen(total) + '</span></div>';
+  }
+
+  function renderReview() {
+    var months = reviewMonthList();
+    if (!reviewMonth || months.indexOf(reviewMonth) === -1) reviewMonth = months[0];
+    document.getElementById('review-months').innerHTML = months.map(function (m) {
+      return '<button type="button" data-review-month="' + m + '" aria-pressed="' + (m === reviewMonth) + '">' +
+        monthLabel(m) + '</button>';
+    }).join('');
+    document.querySelectorAll('#range-seg button').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.range === reviewRange));
+    });
+    renderReviewSummary(reviewMonth);
+    renderReviewCats(reviewMonth);
+    renderReviewTrend(reviewMonth);
+    renderReviewExpenses(reviewMonth);
+  }
+
+  document.getElementById('range-seg').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-range]');
+    if (!b) return;
+    reviewRange = b.dataset.range;
+    renderReview();
+  });
+  document.getElementById('review-log').addEventListener('click', function () { openExpense(null); });
 
   /* ── ホームの月予算カード ── */
   function renderBudgetCard() {
@@ -2038,8 +2582,10 @@
     document.getElementById('view-home').hidden = view !== 'home';
     document.getElementById('view-settings').hidden = view !== 'settings';
     document.getElementById('view-budget').hidden = view !== 'budget';
+    document.getElementById('view-review').hidden = view !== 'review';
     if (view === 'home') renderHome();
     else if (view === 'budget') renderBudget();
+    else if (view === 'review') renderReview();
     else renderSettings();
     window.scrollTo(0, 0);
   }
@@ -2267,9 +2813,20 @@
 
   /* ── クリック委譲 ── */
   document.addEventListener('click', function (e) {
-    var t = e.target.closest('[data-nav], [data-toggle], [data-actual], [data-edit], [data-del], [data-acc-toggle], [data-acc-toggle-settings], [data-acc-edit], [data-acc-del], [data-planned-edit], [data-cat-edit], [data-close], .overlay');
+    var t = e.target.closest('[data-nav], [data-toggle], [data-actual], [data-edit], [data-del], [data-acc-toggle], [data-acc-toggle-settings], [data-acc-edit], [data-acc-del], [data-planned-edit], [data-cat-edit], [data-review-month], [data-expense-edit], #budget-log, [data-close], .overlay');
+    if (t && t.id === 'budget-log') { openExpense(null); return; }
     if (!t) return;
 
+    if (t.dataset && t.dataset.reviewMonth) {
+      reviewMonth = t.dataset.reviewMonth;
+      renderReview();
+      return;
+    }
+    if (t.dataset && t.dataset.expenseEdit) {
+      var ex = expenses.find(function (x) { return x.id === t.dataset.expenseEdit; });
+      if (ex) openExpense(ex);
+      return;
+    }
     if (t.dataset && t.dataset.plannedEdit) {
       var pe = budget.planned.find(function (p) { return p.id === t.dataset.plannedEdit; });
       if (pe) openPlanned(pe);
@@ -2373,6 +2930,7 @@
     closeSheet('sheet-actual');
     closeSheet('sheet-planned');
     closeSheet('sheet-cat');
+    closeSheet('sheet-expense');
   });
 
   document.getElementById('add-btn').addEventListener('click', function () { openForm(null); });

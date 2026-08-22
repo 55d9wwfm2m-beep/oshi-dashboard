@@ -1,8 +1,8 @@
 import {
   FixedCost, MoneyAccount, MonthlyRecord,
-  MonthlyBudget, BudgetCategory, PlannedExpense, DEFAULT_BUDGET_CATEGORIES,
+  MonthlyBudget, BudgetCategory, PlannedExpense, LivingExpense, DEFAULT_BUDGET_CATEGORIES,
 } from '@/types';
-import { generateId } from '@/lib/utils';
+import { generateId, formatYen } from '@/lib/utils';
 
 /** やりくり電卓で使う localStorage キー */
 export const MONEY_KEYS = {
@@ -22,6 +22,8 @@ export const MONEY_KEYS = {
   budget: 'oshi-money-budget',
   /** 過去の月予算の履歴 */
   budgetHistory: 'oshi-money-budget-history',
+  /** 生活費の支出記録（全期間を1つの配列で保持） */
+  expenses: 'oshi-money-expenses',
 } as const;
 
 /** 履歴に残す最大月数（古いものから捨てる） */
@@ -343,6 +345,196 @@ export function copyFromBudget(current: MonthlyBudget, source: MonthlyBudget): M
       return prev ? { ...c, amount: prev.amount } : c;
     }),
   };
+}
+
+// ──── 支出記録と「いつもより高い」の検知 ────
+
+/** 'YYYY-MM-DD' → 'YYYY-MM' */
+export function monthOf(date: string): string {
+  return date.slice(0, 7);
+}
+
+/** from〜to（両端を含む YYYY-MM-DD）の支出。空文字は無制限 */
+export function expensesInRange(expenses: LivingExpense[], from: string, to: string): LivingExpense[] {
+  return expenses.filter(e => (!from || e.date >= from) && (!to || e.date <= to));
+}
+
+/** その月の支出だけを取り出す */
+export function expensesInMonth(expenses: LivingExpense[], month: string): LivingExpense[] {
+  return expenses.filter(e => monthOf(e.date) === month);
+}
+
+/** カテゴリーidごとの合計 */
+export function totalsByCategory(expenses: LivingExpense[]): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const e of expenses) out[e.categoryId] = (out[e.categoryId] || 0) + e.amount;
+  return out;
+}
+
+/** 支出のある月を新しい順に並べる */
+export function monthsWithExpenses(expenses: LivingExpense[]): string[] {
+  return Array.from(new Set(expenses.map(e => monthOf(e.date)))).sort((a, b) => b.localeCompare(a));
+}
+
+/**
+ * そのカテゴリーの「普段の月平均」。
+ * 対象月は除き、そのカテゴリーに支出があった月だけで平均する
+ * （使わなかった月を 0 円として混ぜると平均が不当に下がるため）。
+ */
+export function categoryMonthlyAverage(
+  expenses: LivingExpense[],
+  categoryId: string,
+  excludeMonth: string
+): { average: number; months: number } {
+  const byMonth: Record<string, number> = {};
+  for (const e of expenses) {
+    if (e.categoryId !== categoryId) continue;
+    const m = monthOf(e.date);
+    if (m === excludeMonth) continue;
+    byMonth[m] = (byMonth[m] || 0) + e.amount;
+  }
+  const values = Object.values(byMonth);
+  if (values.length === 0) return { average: 0, months: 0 };
+  const sum = values.reduce((s, v) => s + v, 0);
+  return { average: Math.round(sum / values.length), months: values.length };
+}
+
+export interface SpendingAlert {
+  category: BudgetCategory;
+  /** 今月の支出 */
+  current: number;
+  /** 普段の月平均 */
+  average: number;
+  /** 平均をどれだけ超えたか */
+  diff: number;
+  /** 平均の何倍か */
+  ratio: number;
+  /** 平均を出すのに使った月数 */
+  months: number;
+}
+
+/** 平均を出すのに必要な最低月数（1か月だけでは「いつも」と言えない） */
+export const ALERT_MIN_MONTHS = 2;
+/** これ以上多ければ知らせる（金額と割合の両方を満たしたときだけ） */
+export const ALERT_MIN_DIFF = 1000;
+export const ALERT_MIN_RATIO = 1.2;
+
+/**
+ * 「いつもより明らかに多い」カテゴリーを検出する。
+ * 金額差と倍率の両方を満たしたものだけを、超過額の大きい順に返す。
+ */
+export function spendingAlerts(
+  expenses: LivingExpense[],
+  categories: BudgetCategory[],
+  month: string
+): SpendingAlert[] {
+  const current = totalsByCategory(expensesInMonth(expenses, month));
+  const out: SpendingAlert[] = [];
+  for (const category of categories) {
+    const spent = current[category.id] || 0;
+    if (spent <= 0) continue;
+    const { average, months } = categoryMonthlyAverage(expenses, category.id, month);
+    if (months < ALERT_MIN_MONTHS || average <= 0) continue;
+    const diff = spent - average;
+    const ratio = spent / average;
+    if (diff >= ALERT_MIN_DIFF && ratio >= ALERT_MIN_RATIO) {
+      out.push({ category, current: spent, average, diff, ratio, months });
+    }
+  }
+  return out.sort((a, b) => b.diff - a.diff);
+}
+
+// ──── 月のまとめの自動生成 ────
+
+export interface ReviewLine {
+  /** 見出し（例：食費） */
+  label: string;
+  /** 本文（例：予算より ¥4,200 少なかった） */
+  text: string;
+  /** 良い変化 / 注意したい変化 / ただの事実 */
+  tone: 'good' | 'warn' | 'neutral';
+  emoji: string;
+}
+
+/**
+ * その月の「大きな変化」だけを文章にする。
+ * 細かい増減は落として、金額の大きいものから数件だけ返す。
+ */
+export function buildReview(
+  month: string,
+  budget: MonthlyBudget | null,
+  expenses: LivingExpense[],
+  /** その月の生活費予算（給料 − 貯金 − 固定費 − 予定支出） */
+  living: number,
+  fixedTotal: number,
+  /** 先月の固定費合計。比較できないときは null */
+  prevFixedTotal: number | null
+): ReviewLine[] {
+  const lines: ReviewLine[] = [];
+  if (!budget) return lines;
+
+  // 予定支出（大きいものから2件まで）
+  [...budget.planned]
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 2)
+    .filter(p => p.amount > 0)
+    .forEach(p => {
+      lines.push({
+        label: p.name,
+        text: `予定支出 ${formatYen(p.amount)}`,
+        tone: 'neutral',
+        emoji: '📌',
+      });
+    });
+
+  // カテゴリーごとの 予算 vs 実績（差が大きい順に3件まで）
+  const spent = totalsByCategory(expensesInMonth(expenses, month));
+  const diffs = budget.categories
+    .map(c => ({ c, budgeted: c.amount, actual: spent[c.id] || 0 }))
+    .filter(x => x.budgeted > 0 || x.actual > 0)
+    .map(x => ({ ...x, diff: x.actual - x.budgeted }))
+    .filter(x => Math.abs(x.diff) >= 1000)
+    .sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff))
+    .slice(0, 3);
+
+  diffs.forEach(({ c, diff }) => {
+    lines.push({
+      label: c.name,
+      text: diff < 0
+        ? `予算より ${formatYen(-diff)} 少なかった`
+        : `予算より ${formatYen(diff)} 多かった`,
+      tone: diff < 0 ? 'good' : 'warn',
+      emoji: c.emoji,
+    });
+  });
+
+  // 固定費の増減
+  if (prevFixedTotal !== null && Math.abs(fixedTotal - prevFixedTotal) >= 500) {
+    const d = fixedTotal - prevFixedTotal;
+    lines.push({
+      label: '固定費',
+      text: d < 0 ? `先月より ${formatYen(-d)} 減少` : `先月より ${formatYen(d)} 増加`,
+      tone: d < 0 ? 'good' : 'warn',
+      emoji: '🏠',
+    });
+  }
+
+  // 貯金目標を守れたか（生活費が予算内に収まっていれば、貯金分は手つかず）
+  const saving = budget.savingGoal === '' ? 0 : parseInt(budget.savingGoal, 10) || 0;
+  const totalSpent = Object.values(spent).reduce((s, v) => s + v, 0);
+  if (saving > 0 && totalSpent > 0) {
+    const over = totalSpent - living;
+    lines.push({
+      label: '結果',
+      text: over <= 0
+        ? `貯金目標 ${formatYen(saving)} を達成 🎉`
+        : `生活費が予算を ${formatYen(over)} 超えました`,
+      tone: over <= 0 ? 'good' : 'warn',
+      emoji: over <= 0 ? '🎉' : '💪',
+    });
+  }
+
+  return lines;
 }
 
 /** 月替わりで確定額と支払い状況だけを初期化する（項目名・予想額・支払日・種類は残す） */

@@ -237,6 +237,18 @@ export interface BudgetCategory {
   amount: number;
 }
 
+/** 生活費として実際に使ったお金の記録（カテゴリー・日付つき）。
+ *  推し活家計簿の Expense とは別物なので名前を分けている */
+export interface LivingExpense {
+  id: string;
+  /** BudgetCategory.id */
+  categoryId: string;
+  amount: number;
+  /** 使った日（YYYY-MM-DD） */
+  date: string;
+  memo: string;
+}
+
 /** 1か月分の予算計画 */
 export interface MonthlyBudget {
   /** YYYY-MM */

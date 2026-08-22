@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { FixedCost, MoneyAccount, MonthlyRecord, MonthlyBudget } from '@/types';
+import { FixedCost, MoneyAccount, MonthlyRecord, MonthlyBudget, LivingExpense } from '@/types';
 import { formatYen, getCurrentMonth } from '@/lib/utils';
 import {
   MONEY_KEYS,
@@ -32,6 +32,7 @@ import {
   resetCostsForNewMonth,
   budgetBreakdown,
   plannedUnpaidTotal,
+  spendingAlerts,
 } from '@/lib/money';
 import { showToast } from '@/components/ui/Toast';
 import BudgetToggle from '@/components/ui/BudgetToggle';
@@ -58,6 +59,7 @@ export default function MoneyPage() {
   const [payday, , paydayLoaded] = useLocalStorage<number>(MONEY_KEYS.payday, 0);
   const [history, setHistory, historyLoaded] = useLocalStorage<MonthlyRecord[]>(MONEY_KEYS.history, []);
   const [budget, , budgetLoaded] = useLocalStorage<MonthlyBudget | null>(MONEY_KEYS.budget, null);
+  const [expenses, , expensesLoaded] = useLocalStorage<LivingExpense[]>(MONEY_KEYS.expenses, []);
   const [recap, setRecap] = useState<MonthlyRecord | null>(null);
   const [showResetNotice, setShowResetNotice] = useState(false);
   const [actualTarget, setActualTarget] = useState<FixedCost | null>(null);
@@ -103,10 +105,13 @@ export default function MoneyPage() {
     setMonth(current);
   }, [costsLoaded, monthLoaded, accountsLoaded, historyLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!accountsLoaded || !costsLoaded || !monthLoaded || !paydayLoaded || !historyLoaded || !budgetLoaded) return null;
+  if (!accountsLoaded || !costsLoaded || !monthLoaded || !paydayLoaded || !historyLoaded
+      || !budgetLoaded || !expensesLoaded) return null;
 
   // 月予算（給料ベースの計画）。口座残高とは別データで、給料は残高に加算しない
   const plan = budget && budget.month === getCurrentMonth() ? budget : null;
+  // いつもより明らかに多いカテゴリー（過去の自分の平均との比較）
+  const alerts = plan ? spendingAlerts(expenses, plan.categories, plan.month) : [];
   const planBreakdown = plan ? budgetBreakdown(plan, costs) : null;
   const unpaidPlanned = plan ? plannedUnpaidTotal(plan.planned) : 0;
 
@@ -677,6 +682,32 @@ export default function MoneyPage() {
           )}
         </div>
 
+        {/* いつもより多めの支出（色だけでなく金額と平均を文言で示す） */}
+        {alerts.length > 0 && (
+          <div className="rounded-[18px] px-4 py-4 anim-fadeInUp" style={{ background: 'rgba(168,119,14,0.10)' }}>
+            <p className="text-xs font-bold mb-2.5" style={{ color: '#A8770E' }}>
+              📈 いつもより多めの支出があります
+            </p>
+            {alerts.slice(0, 3).map((a, i) => (
+              <div
+                key={a.category.id}
+                className="py-2"
+                style={{ borderTop: i === 0 ? 'none' : '1px solid rgba(168,119,14,0.18)', paddingTop: i === 0 ? 0 : undefined }}
+              >
+                <p className="text-[13px] font-bold" style={{ color: '#1C1917' }}>
+                  {a.category.emoji} {a.category.name}
+                </p>
+                <p className="text-[11px] mt-0.5" style={{ color: '#78716C', fontVariantNumeric: 'tabular-nums' }}>
+                  普段の月平均 {formatYen(a.average)}（{a.months}か月）／今月 {formatYen(a.current)}
+                </p>
+                <p className="text-xs font-bold mt-0.5" style={{ color: '#A8770E' }}>
+                  いつもより約 {formatYen(a.diff)} 多め
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* 今月のお金（月予算の要約） */}
         <Link href="/money/budget" className="block card card-hover p-5 anim-fadeInUp active:scale-[0.985]">
           <div className="flex items-center justify-between mb-3">
@@ -789,6 +820,15 @@ export default function MoneyPage() {
             </div>
           </div>
         )}
+
+        {/* 振り返りページへ */}
+        <Link
+          href="/money/review"
+          className="block text-center rounded-2xl py-3 text-[13px] font-bold anim-fadeInUp"
+          style={{ border: '1.5px dashed rgba(28,18,12,0.12)', color: MONEY_ACCENT }}
+        >
+          📊 振り返りを見る
+        </Link>
 
         {/* 固定費設定画面へ */}
         <Link

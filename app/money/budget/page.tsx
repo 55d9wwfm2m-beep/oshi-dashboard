@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { FixedCost, MonthlyBudget, PlannedExpense, BudgetCategory } from '@/types';
+import { FixedCost, MonthlyBudget, PlannedExpense, BudgetCategory, LivingExpense } from '@/types';
 import { formatYen, getCurrentMonth, generateId, formatDateShort } from '@/lib/utils';
 import {
   MONEY_KEYS,
@@ -21,9 +21,18 @@ import {
   isVariable,
   hasActual,
   plannedTotal,
+  expensesInMonth,
+  totalsByCategory,
+  categoryMonthlyAverage,
+  ALERT_MIN_MONTHS,
+  ALERT_MIN_DIFF,
+  ALERT_MIN_RATIO,
 } from '@/lib/money';
 import BottomSheet from '@/components/ui/BottomSheet';
+import ExpenseSheet from '@/components/ui/ExpenseSheet';
 import { showToast } from '@/components/ui/Toast';
+
+const WARN = '#A8770E';
 
 /** 手順の見出し（1 給料 → 2 貯金 → 3 固定費 → 4 予定支出 → 5 生活費） */
 function StepHead({ no, label, action }: { no: number; label: string; action?: React.ReactNode }) {
@@ -49,6 +58,8 @@ export default function BudgetPage() {
   const [budget, setBudget, budgetLoaded] = useLocalStorage<MonthlyBudget | null>(MONEY_KEYS.budget, null);
   const [budgetHistory, setBudgetHistory, historyLoaded] = useLocalStorage<MonthlyBudget[]>(MONEY_KEYS.budgetHistory, []);
   const [costs, , costsLoaded] = useLocalStorage<FixedCost[]>(MONEY_KEYS.fixedCosts, []);
+  const [expenses, setExpenses, expensesLoaded] = useLocalStorage<LivingExpense[]>(MONEY_KEYS.expenses, []);
+  const [expenseSheet, setExpenseSheet] = useState(false);
 
   const [plannedTarget, setPlannedTarget] = useState<PlannedExpense | null>(null);
   const [plannedNew, setPlannedNew] = useState(false);
@@ -79,9 +90,10 @@ export default function BudgetPage() {
     }
   }, [budgetLoaded, historyLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!budgetLoaded || !historyLoaded || !costsLoaded || !budget) return null;
+  if (!budgetLoaded || !historyLoaded || !costsLoaded || !expensesLoaded || !budget) return null;
 
   const b = budgetBreakdown(budget, costs);
+  const spentByCat = totalsByCategory(expensesInMonth(expenses, budget.month));
   const sortedCosts = [...costs].sort((a, c) => a.payDay - c.payDay || a.name.localeCompare(c.name, 'ja'));
   const sortedPlanned = [...budget.planned].sort((x, y) => (x.date || '9999').localeCompare(y.date || '9999'));
 
@@ -328,43 +340,93 @@ export default function BudgetPage() {
             </p>
           </div>
 
-          {budget.categories.map(c => (
-            <div key={c.id} className="flex items-center gap-2.5 py-2">
-              <span className="text-[15px] leading-none shrink-0" aria-hidden="true">{c.emoji}</span>
-              <label htmlFor={`cat-${c.id}`} className="flex-1 min-w-0 text-[13.5px] font-semibold truncate" style={{ color: '#1C1917' }}>
-                {c.name}
-              </label>
-              <div className="relative w-[46%] max-w-[150px] shrink-0">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#A8A29E' }}>¥</span>
-                <input
-                  id={`cat-${c.id}`}
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  value={c.amount ? c.amount.toLocaleString('ja-JP') : ''}
-                  onChange={e => {
-                    const raw = digitsOnly(e.target.value);
-                    update({
-                      categories: budget.categories.map(x =>
-                        x.id === c.id ? { ...x, amount: raw === '' ? 0 : parseInt(raw, 10) || 0 } : x
-                      ),
-                    });
-                  }}
-                  placeholder="0"
-                  className="input text-right font-semibold"
-                  style={{ padding: '10px 12px 10px 28px', fontVariantNumeric: 'tabular-nums' }}
-                />
+          {budget.categories.map(c => {
+            const used = spentByCat[c.id] || 0;
+            const over = c.amount > 0 && used > c.amount;
+            const pct = c.amount > 0 ? Math.min(100, Math.round((used / c.amount) * 100)) : used > 0 ? 100 : 0;
+            const avg = categoryMonthlyAverage(expenses, c.id, budget.month);
+            const high =
+              !over && used > 0 && avg.months >= ALERT_MIN_MONTHS && avg.average > 0 &&
+              used - avg.average >= ALERT_MIN_DIFF && used / avg.average >= ALERT_MIN_RATIO;
+
+            return (
+              <div key={c.id} className="py-2.5" style={{ borderBottom: '1px solid rgba(28,18,12,0.06)' }}>
+                <div className="flex items-center gap-2.5">
+                  <span className="text-[15px] leading-none shrink-0" aria-hidden="true">{c.emoji}</span>
+                  <label htmlFor={`cat-${c.id}`} className="text-[13.5px] font-semibold truncate" style={{ color: '#1C1917' }}>
+                    {c.name}
+                  </label>
+                  <button
+                    onClick={() => openCat(c)}
+                    className="text-[15px] px-1 shrink-0"
+                    style={{ color: '#A8A29E' }}
+                    aria-label={`${c.name}を編集`}
+                  >
+                    ⚙
+                  </button>
+                  <div className="relative w-[46%] max-w-[150px] shrink-0 ml-auto">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#A8A29E' }}>¥</span>
+                    <input
+                      id={`cat-${c.id}`}
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      value={c.amount ? c.amount.toLocaleString('ja-JP') : ''}
+                      onChange={e => {
+                        const raw = digitsOnly(e.target.value);
+                        update({
+                          categories: budget.categories.map(x =>
+                            x.id === c.id ? { ...x, amount: raw === '' ? 0 : parseInt(raw, 10) || 0 } : x
+                          ),
+                        });
+                      }}
+                      placeholder="0"
+                      className="input text-right font-semibold"
+                      style={{ padding: '10px 12px 10px 28px', fontVariantNumeric: 'tabular-nums' }}
+                    />
+                  </div>
+                </div>
+
+                {/* トラックが予算、塗りが実績 */}
+                <div
+                  className="h-1.5 rounded mt-2 overflow-hidden"
+                  style={{ background: '#F0EBE6' }}
+                  role="img"
+                  aria-label={`${c.name} 予算 ${formatYen(c.amount)} のうち ${formatYen(used)} 使用`}
+                >
+                  <div
+                    className="h-full rounded transition-[width] duration-300"
+                    style={{ width: `${pct}%`, background: over ? MONEY_DANGER : MONEY_ACCENT }}
+                  />
+                </div>
+
+                <div className="flex justify-between text-[10.5px] mt-1.5" style={{ color: '#A8A29E' }}>
+                  <span>使った {formatYen(used)}</span>
+                  <span>予算 {formatYen(c.amount)}</span>
+                </div>
+
+                {over && (
+                  <p className="text-[10.5px] mt-1 font-bold" style={{ color: MONEY_DANGER }}>
+                    ⚠ 予算を {formatYen(used - c.amount)} オーバー
+                  </p>
+                )}
+                {high && (
+                  <p className="text-[10.5px] mt-1 font-bold" style={{ color: WARN }}>
+                    📈 いつもより約 {formatYen(used - avg.average)} 多め
+                  </p>
+                )}
               </div>
-              <button
-                onClick={() => openCat(c)}
-                className="text-[15px] px-1.5 shrink-0"
-                style={{ color: '#A8A29E' }}
-                aria-label={`${c.name}を編集`}
-              >
-                ⚙
-              </button>
-            </div>
-          ))}
+            );
+          })}
+
+          <button
+            id="budget-log"
+            onClick={() => setExpenseSheet(true)}
+            className="w-full rounded-2xl py-3 mt-3.5 text-[13px] font-bold"
+            style={{ border: '1.5px dashed rgba(28,18,12,0.12)', color: MONEY_ACCENT }}
+          >
+            ＋ 使ったお金を記録する
+          </button>
 
           <div className="mt-3.5 pt-3 space-y-2" style={{ borderTop: '1px solid rgba(28,18,12,0.06)' }}>
             <div className="flex justify-between items-baseline">
@@ -446,6 +508,16 @@ export default function BudgetPage() {
           </button>
         </div>
       </BottomSheet>
+
+      {/* 使ったお金の記録 */}
+      <ExpenseSheet
+        open={expenseSheet}
+        editing={null}
+        categories={budget.categories}
+        onClose={() => setExpenseSheet(false)}
+        onSave={exp => setExpenses(prev => [...prev, exp])}
+        onDelete={id => setExpenses(prev => prev.filter(x => x.id !== id))}
+      />
 
       {/* カテゴリーの追加・編集 */}
       <BottomSheet

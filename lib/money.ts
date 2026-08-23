@@ -262,9 +262,35 @@ export function createEmptyBudget(month: string, categories?: BudgetCategory[]):
     month,
     income: '',
     savingGoal: '',
+    savedActual: '',
     planned: [],
     categories: categories ?? createDefaultCategories(),
   };
+}
+
+export interface SavingResult {
+  /** 貯金目標 */
+  goal: number;
+  /** 実際に貯金できた金額 */
+  actual: number;
+  /** 実績を入力済みか */
+  entered: boolean;
+  /** 実績 − 目標（プラスなら目標より多く貯金できた） */
+  diff: number;
+  /** 目標を達成したか（未入力のときは false） */
+  achieved: boolean;
+}
+
+/**
+ * 貯金の結果。
+ * 目標（計画）ではなく、入力された実績で達成を判定する。
+ */
+export function savingResult(budget: MonthlyBudget): SavingResult {
+  const goal = budget.savingGoal === '' ? 0 : parseInt(budget.savingGoal, 10) || 0;
+  const raw = budget.savedActual ?? '';
+  const entered = raw !== '';
+  const actual = entered ? parseInt(raw, 10) || 0 : 0;
+  return { goal, actual, entered, diff: actual - goal, achieved: entered && actual >= goal };
 }
 
 /** 未払いの予定支出の合計 */
@@ -327,6 +353,7 @@ export function rolloverBudget(prev: MonthlyBudget, month: string): MonthlyBudge
     month,
     income: '',
     savingGoal: '',
+    savedActual: '',
     planned: [],
     categories: prev.categories.map(c => ({ ...c, amount: 0 })),
   };
@@ -340,6 +367,8 @@ export function copyFromBudget(current: MonthlyBudget, source: MonthlyBudget): M
   return {
     ...current,
     savingGoal: source.savingGoal,
+    // 実際に貯金できた額は「結果」なのでコピーしない
+    savedActual: current.savedActual ?? '',
     categories: current.categories.map(c => {
       const prev = source.categories.find(p => p.name === c.name);
       return prev ? { ...c, amount: prev.amount } : c;
@@ -519,19 +548,54 @@ export function buildReview(
     });
   }
 
-  // 貯金目標を守れたか（生活費が予算内に収まっていれば、貯金分は手つかず）
-  const saving = budget.savingGoal === '' ? 0 : parseInt(budget.savingGoal, 10) || 0;
+  // 生活費が予算に収まったか
   const totalSpent = Object.values(spent).reduce((s, v) => s + v, 0);
-  if (saving > 0 && totalSpent > 0) {
+  if (totalSpent > 0 && living > 0) {
     const over = totalSpent - living;
     lines.push({
-      label: '結果',
+      label: '生活費',
       text: over <= 0
-        ? `貯金目標 ${formatYen(saving)} を達成 🎉`
-        : `生活費が予算を ${formatYen(over)} 超えました`,
+        ? `予算内におさまりました（残り ${formatYen(-over)}）`
+        : `予算を ${formatYen(over)} 超えました`,
       tone: over <= 0 ? 'good' : 'warn',
-      emoji: over <= 0 ? '🎉' : '💪',
+      emoji: '🧮',
     });
+  }
+
+  // 貯金は「実際に貯金できた額」で判定する（目標だけでは達成とは言えない）
+  const s = savingResult(budget);
+  if (s.goal > 0 || s.entered) {
+    if (!s.entered) {
+      lines.push({
+        label: '貯金',
+        text: `目標 ${formatYen(s.goal)}。実際に貯金できた額を入力すると結果が出ます`,
+        tone: 'neutral',
+        emoji: '🐖',
+      });
+    } else if (s.diff > 0) {
+      lines.push({
+        label: '結果',
+        text: `貯金 ${formatYen(s.actual)}。目標より ${formatYen(s.diff)} 多く貯金できました 🎉`,
+        tone: 'good',
+        emoji: '🎉',
+      });
+    } else if (s.diff === 0) {
+      lines.push({
+        label: '結果',
+        text: `貯金目標 ${formatYen(s.goal)} を達成 🎉`,
+        tone: 'good',
+        emoji: '🎉',
+      });
+    } else {
+      lines.push({
+        label: '結果',
+        text: s.actual === 0
+          ? `今月は貯金できませんでした（目標 ${formatYen(s.goal)}）`
+          : `貯金 ${formatYen(s.actual)}。目標より ${formatYen(-s.diff)} 少なかった`,
+        tone: 'warn',
+        emoji: '💪',
+      });
+    }
   }
 
   return lines;

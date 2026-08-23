@@ -257,6 +257,12 @@ export interface MonthlyBudget {
   income: string;
   /** 今月の貯金目標。数字のみの文字列（'' は未入力） */
   savingGoal: string;
+  /**
+   * 実際に貯金できた金額。数字のみの文字列（'' は未入力）。
+   * 目標が「計画」なのに対しこちらは「結果」で、達成判定はこの値で行う。
+   * 月が変わるとリセットする。
+   */
+  savedActual?: string;
   /** その月の予定支出 */
   planned: PlannedExpense[];
   /** 生活費の振り分け */

@@ -21,6 +21,7 @@ import {
   isVariable,
   hasActual,
   plannedTotal,
+  savingResult,
   expensesInMonth,
   totalsByCategory,
   categoryMonthlyAverage,
@@ -94,6 +95,8 @@ export default function BudgetPage() {
   if (!budgetLoaded || !historyLoaded || !costsLoaded || !expensesLoaded || !budget) return null;
 
   const b = budgetBreakdown(budget, costs);
+  // 貯金は目標（計画）ではなく、入力された実績で判定する
+  const saving = savingResult(budget);
   const spentByCat = totalsByCategory(expensesInMonth(expenses, budget.month));
   const sortedCosts = [...costs].sort((a, c) => a.payDay - c.payDay || a.name.localeCompare(c.name, 'ja'));
   const sortedPlanned = [...budget.planned].sort((x, y) => (x.date || '9999').localeCompare(y.date || '9999'));
@@ -222,12 +225,32 @@ export default function BudgetPage() {
         </div>
         <Arrow />
 
-        {/* STEP 2 貯金 */}
+        {/* STEP 2 貯金（目標と、実際に貯金できた額） */}
         <div className="card p-5 anim-fadeInUp">
-          <StepHead no={2} label="今月の貯金目標" />
+          <StepHead no={2} label="今月の貯金" />
+
+          <label className="field-label" htmlFor="budget-saving">目標</label>
           {moneyInput(budget.savingGoal, raw => update({ savingGoal: raw }), '30,000', 'budget-saving')}
           <p className="text-[11px] mt-2" style={{ color: '#A8A29E' }}>
             {b.income > 0 ? `貯金を引いた残り ${formatYenSigned(b.income - b.saving)}` : '給料を入力すると残りが表示されます'}
+          </p>
+
+          <label className="field-label mt-3.5" htmlFor="budget-saved">実際に貯金できた額</label>
+          {moneyInput(budget.savedActual ?? '', raw => update({ savedActual: raw }), '月末に入力', 'budget-saved')}
+          <p
+            className="text-[11px] mt-2"
+            style={{
+              color: !saving.entered ? '#A8A29E' : saving.diff >= 0 ? MONEY_ACCENT : MONEY_DANGER,
+              fontWeight: saving.entered ? 600 : 400,
+            }}
+          >
+            {!saving.entered
+              ? (saving.goal > 0 ? '月末に入力すると、目標を達成できたか分かります' : '実際に貯金できた額を入力できます')
+              : saving.diff > 0
+                ? `🎉 目標より ${formatYen(saving.diff)} 多く貯金できました`
+                : saving.diff === 0
+                  ? '🎉 貯金目標を達成しました'
+                  : `目標より ${formatYen(-saving.diff)} 少なめです`}
           </p>
         </div>
         <Arrow />

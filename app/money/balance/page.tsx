@@ -54,17 +54,23 @@ export default function BalancePage() {
   const actualValue = actualRaw === '' ? 0 : parseInt(actualRaw, 10) || 0;
   const actualPreview = (() => {
     if (!actualTarget) return '';
-    if (actualRaw === '') return '空のまま保存すると未確定に戻ります';
+    const base = isVariable(actualTarget) ? '予想' : '登録額';
+    if (actualRaw === '') {
+      return isVariable(actualTarget) ? '空のまま保存すると未確定に戻ります' : '空のまま保存すると登録額で計算します';
+    }
     const d = actualValue - actualTarget.amount;
-    return d === 0 ? '予想どおりの金額です'
-      : d < 0 ? `予想より ${formatYen(-d)} 安くなります`
-      : `予想より ${formatYen(d)} 高くなります`;
+    return d === 0 ? `${base}どおりの金額です`
+      : d < 0 ? `${base}より ${formatYen(-d)} 安くなります`
+      : `${base}より ${formatYen(d)} 高くなります`;
   })();
   const saveActual = (value: number | null) => {
     if (!actualTarget) return;
     setCosts(prev => prev.map(c => (c.id === actualTarget.id ? { ...c, actual: value } : c)));
+    const isVar = isVariable(actualTarget);
     setActualTarget(null);
-    showToast(value === null ? '未確定に戻しました' : '請求額を反映しました');
+    showToast(value === null
+      ? (isVar ? '未確定に戻しました' : '登録額に戻しました')
+      : (isVar ? '請求額を反映しました' : '実際に払った額を反映しました'));
   };
 
   return (
@@ -252,16 +258,15 @@ export default function BalancePage() {
                   const diff = actualDiff(cost);
 
                   // 金額の下に出す補助情報（小さく1行だけ）
-                  const sub = !variable
-                    ? `毎月${cost.payDay}日`
-                    : !settled
-                      ? `予想 ${formatYen(cost.amount)}・${cost.payDay}日 支払い予定`
-                      : diff === 0
-                        ? '予想どおりの金額でした'
-                        : diff! < 0
-                          ? `予想より ${formatYen(-diff!)} 安くなりました`
-                          : `予想より ${formatYen(diff!)} 高くなりました`;
-                  const subColor = variable && settled && diff !== 0
+                  const base = variable ? '予想' : '登録額';
+                  const sub = !settled
+                    ? (variable ? `予想 ${formatYen(cost.amount)}・${cost.payDay}日 支払い予定` : `毎月${cost.payDay}日`)
+                    : diff === 0
+                      ? `${base}どおりの金額でした`
+                      : diff! < 0
+                        ? `${base}より ${formatYen(-diff!)} 安くなりました`
+                        : `${base}より ${formatYen(diff!)} 高くなりました`;
+                  const subColor = settled && diff !== 0
                     ? (diff! < 0 ? MONEY_ACCENT : MONEY_DANGER)
                     : '#A8A29E';
 
@@ -295,7 +300,8 @@ export default function BalancePage() {
                           >
                             {variable && '⚡ '}
                             {cost.name}
-                            {variable && (
+                            {/* 変動費は未確定/確定、固定費は実額を入れたときだけ「実額」 */}
+                            {(variable || settled) && (
                               <span
                                 className="ml-1.5 text-[9.5px] font-bold px-1.5 py-[2px] rounded-full align-middle"
                                 style={
@@ -304,7 +310,7 @@ export default function BalancePage() {
                                     : { background: 'rgba(168,119,14,0.10)', color: '#A8770E' }
                                 }
                               >
-                                {settled ? '確定' : '未確定'}
+                                {settled ? (variable ? '確定' : '実額') : '未確定'}
                               </span>
                             )}
                           </span>
@@ -335,19 +341,20 @@ export default function BalancePage() {
                         </span>
                       </button>
 
-                      {variable && (
-                        <button
-                          onClick={() => openActual(cost)}
-                          className="ml-9 mb-3 px-3.5 py-1.5 rounded-full text-[11px] font-bold active:scale-95 transition-transform"
-                          style={
-                            settled
-                              ? { background: '#F0EBE6', color: '#78716C' }
-                              : { background: 'rgba(168,119,14,0.10)', color: '#A8770E' }
-                          }
-                        >
-                          {settled ? '請求額を修正' : '請求額を入力'}
-                        </button>
-                      )}
+                      {/* 割り勘などで金額が変わることがあるので、固定費でも実額を入れられるようにする */}
+                      <button
+                        onClick={() => openActual(cost)}
+                        className="ml-9 mb-3 px-3.5 py-1.5 rounded-full text-[11px] font-bold active:scale-95 transition-transform"
+                        style={
+                          settled || !variable
+                            ? { background: '#F0EBE6', color: '#78716C' }
+                            : { background: 'rgba(168,119,14,0.10)', color: '#A8770E' }
+                        }
+                      >
+                        {variable
+                          ? (settled ? '請求額を修正' : '請求額を入力')
+                          : (settled ? '実際の額を修正' : '実際に払った額を入力')}
+                      </button>
                     </li>
                   );
                 })}
@@ -375,23 +382,27 @@ export default function BalancePage() {
 
       </div>
 
-      {/* 請求額（確定額）の入力 */}
+      {/* 実際に払った額の入力（変動費は請求額、固定費は割り勘などの実額） */}
       <BottomSheet
         open={actualTarget !== null}
         onClose={() => setActualTarget(null)}
-        title="請求額を入力"
+        title={actualTarget && !isVariable(actualTarget) ? '実際に払った額を入力' : '請求額を入力'}
       >
         {actualTarget && (
           <>
             <div className="p-4 rounded-2xl" style={{ background: 'rgba(168,119,14,0.10)' }}>
-              <p className="text-sm font-medium" style={{ color: '#1C1917' }}>⚡ {actualTarget.name}</p>
+              <p className="text-sm font-medium" style={{ color: '#1C1917' }}>
+                {isVariable(actualTarget) && '⚡ '}{actualTarget.name}
+              </p>
               <p className="text-xs mt-0.5" style={{ color: '#78716C' }}>
-                予想 {formatYen(actualTarget.amount)}・毎月{actualTarget.payDay}日
+                {isVariable(actualTarget) ? '予想' : '登録額'} {formatYen(actualTarget.amount)}・毎月{actualTarget.payDay}日
               </p>
             </div>
 
             <div className="mt-4">
-              <label className="field-label" htmlFor="actual-amount">確定した請求額</label>
+              <label className="field-label" htmlFor="actual-amount">
+                {isVariable(actualTarget) ? '確定した請求額' : '実際に自分が払った額'}
+              </label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#A8A29E' }}>¥</span>
                 <input
@@ -414,7 +425,7 @@ export default function BalancePage() {
                 className="flex-1 py-3.5 rounded-2xl text-sm font-medium"
                 style={{ background: '#F0EBE6', color: '#78716C' }}
               >
-                未確定に戻す
+                {isVariable(actualTarget) ? '未確定に戻す' : '登録額に戻す'}
               </button>
               <button
                 onClick={() => saveActual(actualRaw === '' ? null : actualValue)}

@@ -1024,15 +1024,26 @@
         <input id="planned-name" class="input" type="text" placeholder="例：福岡旅行・美容院">
       </div>
       <div>
-        <label class="field-label" for="planned-amount">金額 *</label>
+        <label class="field-label" for="planned-amount">予定額 *</label>
         <div class="money-wrap">
           <span class="yen">¥</span>
           <input id="planned-amount" class="input" type="text" inputmode="numeric" autocomplete="off" placeholder="30,000" style="padding-left:32px;">
         </div>
       </div>
       <div>
+        <label class="field-label" for="planned-actual">実際にかかった額</label>
+        <div class="money-wrap">
+          <span class="yen">¥</span>
+          <input id="planned-actual" class="input" type="text" inputmode="numeric" autocomplete="off" placeholder="あとから入力" style="padding-left:32px;">
+        </div>
+        <p class="seg-hint" id="planned-diff"></p>
+      </div>
+      <div>
         <label class="field-label" for="planned-date">予定日</label>
         <input id="planned-date" class="input" type="date">
+      </div>
+      <div>
+        <button class="btn-ghost" id="planned-paid" style="width:100%;" hidden></button>
       </div>
     </div>
     <div class="actions">
@@ -1076,7 +1087,7 @@
       <span id="actual-sub"></span>
     </div>
     <div style="margin-top: 16px;">
-      <label class="field-label" for="actual-input">確定した請求額</label>
+      <label class="field-label" for="actual-input" id="actual-label">確定した請求額</label>
       <div class="money-wrap">
         <span class="yen">¥</span>
         <input id="actual-input" class="input" type="text" inputmode="numeric" autocomplete="off" placeholder="0" style="padding-left: 32px;">
@@ -1359,7 +1370,11 @@
     });
   }
   /** 今月の請求額が確定しているか */
-  function hasActual(c) { return c.variable === true && typeof c.actual === 'number'; }
+  /**
+   * 実際に払った金額が入力済みか。
+   * 変動費の確定請求額だけでなく、固定費でも割り勘などで金額が変わったときに使う
+   */
+  function hasActual(c) { return typeof c.actual === 'number'; }
 
   /** 計算に使う金額。変動費は確定額があればそれ、なければ予想額 */
   function effAmount(c) { return hasActual(c) ? c.actual : c.amount; }
@@ -1372,14 +1387,17 @@
     return costs.reduce(function (s, c) { return s + (c.paid ? 0 : effAmount(c)); }, 0);
   }
 
+  /** 実際にかかった額があればそれ、なければ予定額 */
+  function plannedEff(p) { return typeof p.actual === 'number' ? p.actual : p.amount; }
+
   /** 未払いの予定支出の合計 */
   function plannedUnpaid() {
-    return budget.planned.reduce(function (s, p) { return s + (p.paid ? 0 : p.amount); }, 0);
+    return budget.planned.reduce(function (s, p) { return s + (p.paid ? 0 : plannedEff(p)); }, 0);
   }
 
   /** 予定支出の総額（月予算の「確保」はこちら） */
   function plannedAll() {
-    return budget.planned.reduce(function (s, p) { return s + p.amount; }, 0);
+    return budget.planned.reduce(function (s, p) { return s + plannedEff(p); }, 0);
   }
 
   /* ── 支出記録の集計 ── */
@@ -1556,7 +1574,7 @@
       costs = costs.map(function (c) {
         return {
           id: c.id, name: c.name, amount: c.amount, payDay: c.payDay,
-          paid: false, variable: c.variable, actual: c.variable ? null : c.actual
+          paid: false, variable: c.variable, actual: null
         };
       });
       save(KEYS.costs, costs);
@@ -1813,20 +1831,26 @@
       var fixedNow = hasActual(c);
       var diff = actualDiff(c);
 
-      // 名前の右のバッジ：未確定 / 確定
-      var tag = !variable ? ''
-        : fixedNow ? '<span class="cost-tag tag-fixed">確定</span>'
-                   : '<span class="cost-tag tag-pending">未確定</span>';
+      // 名前の右のバッジ：変動費は未確定/確定、固定費は実額を入れたときだけ「実額」
+      var tag = variable
+        ? (fixedNow ? '<span class="cost-tag tag-fixed">確定</span>'
+                    : '<span class="cost-tag tag-pending">未確定</span>')
+        : (fixedNow ? '<span class="cost-tag tag-fixed">実額</span>' : '');
 
       // 金額の下の補助情報（小さく1行だけ）
+      var base = variable ? '予想' : '登録額';
       var sub;
-      if (!variable) sub = '毎月' + c.payDay + '日';
-      else if (!fixedNow) sub = '予想 ' + yen(c.amount) + '・' + c.payDay + '日 支払い予定';
-      else if (diff === 0) sub = '予想どおりの金額でした';
-      else if (diff < 0) sub = '予想より ' + yen(-diff) + ' 安くなりました';
-      else sub = '予想より ' + yen(diff) + ' 高くなりました';
+      if (!fixedNow) {
+        sub = variable ? '予想 ' + yen(c.amount) + '・' + c.payDay + '日 支払い予定' : '毎月' + c.payDay + '日';
+      } else if (diff === 0) {
+        sub = base + 'どおりの金額でした';
+      } else if (diff < 0) {
+        sub = base + 'より ' + yen(-diff) + ' 安くなりました';
+      } else {
+        sub = base + 'より ' + yen(diff) + ' 高くなりました';
+      }
 
-      var diffClass = (variable && fixedNow && diff !== 0) ? (diff < 0 ? ' cheap' : ' over') : '';
+      var diffClass = (fixedNow && diff !== 0) ? (diff < 0 ? ' cheap' : ' over') : '';
 
       return '<li><div class="cost-row-wrap">' +
         '<button class="cost-row" data-toggle="' + c.id + '" aria-pressed="' + c.paid + '" ' +
@@ -1841,12 +1865,14 @@
             '<span class="cost-status">' + (c.paid ? '支払い済み' : '未払い') + '</span>' +
           '</span>' +
         '</button>' +
-        (variable && !fixedNow
-          ? '<button class="cost-actual-btn" data-actual="' + c.id + '">請求額を入力</button>'
-          : variable
-            ? '<button class="cost-actual-btn" data-actual="' + c.id + '" ' +
-              'style="background:var(--surface-2); color:var(--sub);">請求額を修正</button>'
-            : '') +
+        // 割り勘などで金額が変わることがあるので、固定費でも実額を入れられるようにする
+        (fixedNow
+          ? '<button class="cost-actual-btn" data-actual="' + c.id + '" ' +
+            'style="background:var(--surface-2); color:var(--sub);">' +
+            (variable ? '請求額を修正' : '実際の額を修正') + '</button>'
+          : '<button class="cost-actual-btn" data-actual="' + c.id + '"' +
+            (variable ? '' : ' style="background:var(--surface-2); color:var(--sub);"') + '>' +
+            (variable ? '請求額を入力' : '実際に払った額を入力') + '</button>') +
       '</div></li>';
     }).join('');
 
@@ -2014,12 +2040,22 @@
       return (a.date || '9999').localeCompare(b.date || '9999');
     }).map(function (p) {
       var when = p.date ? formatDateShort(p.date) : '日付未定';
-      return '<div class="auto-row" data-planned-edit="' + p.id + '" style="cursor:pointer;">' +
-        '<span class="k"' + (p.paid ? ' style="text-decoration:line-through; opacity:0.6;"' : '') + '>' +
-          esc(p.name) + ' <span style="color:var(--muted); font-size:11px;">' + when + '</span>' +
-          (p.paid ? ' <span class="cost-tag tag-fixed">支払い済み</span>' : '') +
-        '</span>' +
-        '<span class="v">' + yen(p.amount) + '</span></div>';
+      var settled = typeof p.actual === 'number';
+      var diff = settled ? p.actual - p.amount : null;
+      return '<div data-planned-edit="' + p.id + '" style="cursor:pointer;">' +
+        '<div class="auto-row">' +
+          '<span class="k"' + (p.paid ? ' style="text-decoration:line-through; opacity:0.6;"' : '') + '>' +
+            esc(p.name) + ' <span style="color:var(--muted); font-size:11px;">' + when + '</span>' +
+            (settled ? ' <span class="cost-tag tag-fixed">実額</span>' : '') +
+            (p.paid ? ' <span class="cost-tag tag-fixed">支払い済み</span>' : '') +
+          '</span>' +
+          '<span class="v">' + yen(settled ? p.actual : p.amount) + '</span>' +
+        '</div>' +
+        (settled && diff !== 0
+          ? '<p class="cat-note ' + (diff < 0 ? 'calm' : 'over') + '" style="margin:-4px 0 6px;">' +
+            (diff < 0 ? '予定より ' + yen(-diff) + ' 安くすみました' : '予定より ' + yen(diff) + ' 多くかかりました') + '</p>'
+          : '') +
+      '</div>';
     }).join('');
     box.innerHTML = rows +
       '<div class="auto-total"><span class="k">予定支出合計</span>' +
@@ -2139,6 +2175,21 @@
   var pAmount = document.getElementById('planned-amount');
   var pDate = document.getElementById('planned-date');
 
+  var pActual = document.getElementById('planned-actual');
+
+  /** 予定額と実際にかかった額の差を、その場で伝える */
+  function renderPlannedDiff() {
+    var note = document.getElementById('planned-diff');
+    var raw = digitsOnly(pActual.value);
+    if (raw === '') { note.textContent = '空のままなら予定額で計算します'; note.style.color = ''; return; }
+    var planAmount = parseInt(digitsOnly(pAmount.value), 10) || 0;
+    var diff = (parseInt(raw, 10) || 0) - planAmount;
+    note.textContent = diff === 0 ? '予定どおりの金額です'
+      : diff < 0 ? '予定より ' + yen(-diff) + ' 安くすみます'
+      : '予定より ' + yen(diff) + ' 多くかかります';
+    note.style.color = diff <= 0 ? 'var(--accent-ink)' : 'var(--danger)';
+  }
+
   function openPlanned(item) {
     plannedId = item ? item.id : null;
     document.getElementById('planned-title').textContent = item ? '予定支出を編集' : '予定支出を追加';
@@ -2146,26 +2197,50 @@
     document.getElementById('planned-delete').hidden = !item;
     pName.value = item ? item.name : '';
     pAmount.value = item ? item.amount.toLocaleString('ja-JP') : '';
+    pActual.value = item && typeof item.actual === 'number' ? item.actual.toLocaleString('ja-JP') : '';
     pDate.value = item ? item.date : '';
+    var paidBtn = document.getElementById('planned-paid');
+    paidBtn.hidden = !item;
+    if (item) paidBtn.textContent = item.paid ? '未払いに戻す' : '支払い済みにする';
+    renderPlannedDiff();
     document.getElementById('sheet-planned').hidden = false;
     pName.focus();
   }
   pAmount.addEventListener('input', function () {
     var raw = digitsOnly(pAmount.value);
     pAmount.value = raw === '' ? '' : parseInt(raw, 10).toLocaleString('ja-JP');
+    renderPlannedDiff();
+  });
+  pActual.addEventListener('input', function () {
+    var raw = digitsOnly(pActual.value);
+    pActual.value = raw === '' ? '' : parseInt(raw, 10).toLocaleString('ja-JP');
+    renderPlannedDiff();
+  });
+  document.getElementById('planned-paid').addEventListener('click', function () {
+    budget.planned = budget.planned.map(function (p) {
+      return p.id === plannedId ? Object.assign({}, p, { paid: !p.paid }) : p;
+    });
+    saveBudget();
+    var cur = budget.planned.find(function (p) { return p.id === plannedId; });
+    this.textContent = cur && cur.paid ? '未払いに戻す' : '支払い済みにする';
+    renderBudget();
   });
   document.getElementById('planned-add').addEventListener('click', function () { openPlanned(null); });
   document.getElementById('planned-save').addEventListener('click', function () {
     var name = pName.value.trim();
     var amount = parseInt(digitsOnly(pAmount.value), 10) || 0;
     if (!name || amount <= 0) { toast('内容と金額を入力してください'); return; }
+    var actualRaw = digitsOnly(pActual.value);
+    var actual = actualRaw === '' ? null : parseInt(actualRaw, 10) || 0;
     if (plannedId) {
       budget.planned = budget.planned.map(function (p) {
-        return p.id === plannedId ? { id: p.id, name: name, amount: amount, date: pDate.value, paid: p.paid } : p;
+        return p.id === plannedId
+          ? { id: p.id, name: name, amount: amount, date: pDate.value, paid: p.paid, actual: actual }
+          : p;
       });
       toast('予定支出を更新しました');
     } else {
-      budget.planned.push({ id: uid(), name: name, amount: amount, date: pDate.value, paid: false });
+      budget.planned.push({ id: uid(), name: name, amount: amount, date: pDate.value, paid: false, actual: actual });
       toast('予定支出を追加しました');
     }
     saveBudget();
@@ -2327,7 +2402,9 @@
     var income = b.income === '' ? 0 : parseInt(b.income, 10) || 0;
     var saving = b.savingGoal === '' ? 0 : parseInt(b.savingGoal, 10) || 0;
     var fixed = fixedTotalOf(m);
-    var planned = (b.planned || []).reduce(function (s, p) { return s + p.amount; }, 0);
+    var planned = (b.planned || []).reduce(function (s, p) {
+      return s + (typeof p.actual === 'number' ? p.actual : p.amount);
+    }, 0);
     return income - saving - (fixed == null ? 0 : fixed) - planned;
   }
 
@@ -2344,10 +2421,15 @@
     var lines = [];
     if (!b) return lines;
 
-    (b.planned || []).slice().sort(function (x, y) { return y.amount - x.amount; })
+    (b.planned || []).slice().sort(function (x, y) {
+      var ex = typeof x.actual === 'number' ? x.actual : x.amount;
+      var ey = typeof y.actual === 'number' ? y.actual : y.amount;
+      return ey - ex;
+    })
       .slice(0, 2).filter(function (p) { return p.amount > 0; })
       .forEach(function (p) {
-        lines.push({ emoji: '📌', label: p.name, text: '予定支出 ' + yen(p.amount), tone: 'neutral' });
+        var eff = typeof p.actual === 'number' ? p.actual : p.amount;
+        lines.push({ emoji: '📌', label: p.name, text: '予定支出 ' + yen(eff), tone: 'neutral' });
       });
 
     var spent = totalsByCategory(expensesInMonth(m));
@@ -2839,7 +2921,7 @@
         return c.id === editId
           ? {
               id: c.id, name: name, amount: amount, payDay: payDay, paid: c.paid,
-              variable: formVariable, actual: formVariable ? (c.actual != null ? c.actual : null) : null
+              variable: formVariable, actual: c.actual != null ? c.actual : null
             }
           : c;
       });
@@ -2864,19 +2946,30 @@
     var c = costs.find(function (x) { return x.id === actualId; });
     var note = document.getElementById('actual-diff');
     if (!c) { note.textContent = ''; return; }
+    var base = c.variable ? '予想' : '登録額';
     var raw = digitsOnly(actualInput.value);
-    if (raw === '') { note.textContent = '空のまま保存すると未確定に戻ります'; return; }
+    if (raw === '') {
+      note.textContent = c.variable ? '空のまま保存すると未確定に戻ります' : '空のまま保存すると登録額で計算します';
+      return;
+    }
     var diff = (parseInt(raw, 10) || 0) - c.amount;
-    note.textContent = diff === 0 ? '予想どおりの金額です'
-      : diff < 0 ? '予想より ' + yen(-diff) + ' 安くなります'
-      : '予想より ' + yen(diff) + ' 高くなります';
+    note.textContent = diff === 0 ? base + 'どおりの金額です'
+      : diff < 0 ? base + 'より ' + yen(-diff) + ' 安くなります'
+      : base + 'より ' + yen(diff) + ' 高くなります';
   }
 
   function openActual(cost) {
     actualId = cost.id;
-    document.getElementById('actual-name').textContent = '⚡ ' + cost.name;
+    // 変動費は「請求額」、固定費は割り勘などを想定して「実際に払った額」
+    document.getElementById('actual-title').textContent =
+      cost.variable ? '請求額を入力' : '実際に払った額を入力';
+    document.getElementById('actual-name').textContent = (cost.variable ? '⚡ ' : '') + cost.name;
     document.getElementById('actual-sub').textContent =
-      '予想 ' + yen(cost.amount) + '・毎月' + cost.payDay + '日';
+      (cost.variable ? '予想 ' : '登録額 ') + yen(cost.amount) + '・毎月' + cost.payDay + '日';
+    document.getElementById('actual-label').textContent =
+      cost.variable ? '確定した請求額' : '実際に自分が払った額';
+    document.getElementById('actual-clear').textContent =
+      cost.variable ? '未確定に戻す' : '登録額に戻す';
     actualInput.value = hasActual(cost) ? cost.actual.toLocaleString('ja-JP') : '';
     renderActualDiff();
     document.getElementById('sheet-actual').hidden = false;
@@ -2903,13 +2996,16 @@
 
   document.getElementById('actual-save').addEventListener('click', function () {
     var raw = digitsOnly(actualInput.value);
-    if (raw === '') { setActual(null); toast('未確定に戻しました'); return; }
+    var target = costs.find(function (c) { return c.id === actualId; });
+    var isVar = target && target.variable;
+    if (raw === '') { setActual(null); toast(isVar ? '未確定に戻しました' : '登録額に戻しました'); return; }
     setActual(parseInt(raw, 10) || 0);
-    toast('請求額を反映しました');
+    toast(isVar ? '請求額を反映しました' : '実際に払った額を反映しました');
   });
   document.getElementById('actual-clear').addEventListener('click', function () {
+    var t = costs.find(function (c) { return c.id === actualId; });
     setActual(null);
-    toast('未確定に戻しました');
+    toast(t && t.variable ? '未確定に戻しました' : '登録額に戻しました');
   });
 
   /* ── 削除確認シート ── */

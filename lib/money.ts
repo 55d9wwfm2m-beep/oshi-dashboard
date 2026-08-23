@@ -219,20 +219,23 @@ export function isVariable(c: FixedCost): boolean {
   return c.variable === true;
 }
 
-/** 今月の請求額が確定しているか */
+/**
+ * 実際に払った金額が入力済みか。
+ * 変動費の確定請求額だけでなく、固定費でも割り勘などで金額が変わったときに使う。
+ */
 export function hasActual(c: FixedCost): boolean {
-  return isVariable(c) && typeof c.actual === 'number';
+  return typeof c.actual === 'number';
 }
 
 /**
  * 計算に使う金額。
- * 通常の固定費は登録金額、変動費は確定額があればそれ、なければ予想額。
+ * 実際に払った額が入っていればそれ、なければ登録金額（変動費は予想額）。
  */
 export function effectiveAmount(c: FixedCost): number {
   return hasActual(c) ? (c.actual as number) : c.amount;
 }
 
-/** 確定額 − 予想額。確定していなければ null */
+/** 実際に払った額 − 登録金額。未入力なら null */
 export function actualDiff(c: FixedCost): number | null {
   return hasActual(c) ? (c.actual as number) - c.amount : null;
 }
@@ -293,14 +296,29 @@ export function savingResult(budget: MonthlyBudget): SavingResult {
   return { goal, actual, entered, diff: actual - goal, achieved: entered && actual >= goal };
 }
 
+/** 実際にかかった金額が入力済みか */
+export function plannedHasActual(p: PlannedExpense): boolean {
+  return typeof p.actual === 'number';
+}
+
+/** 計算に使う金額。実際にかかった額があればそれ、なければ予定額 */
+export function plannedEffective(p: PlannedExpense): number {
+  return plannedHasActual(p) ? (p.actual as number) : p.amount;
+}
+
+/** 実際にかかった額 − 予定額。未入力なら null */
+export function plannedActualDiff(p: PlannedExpense): number | null {
+  return plannedHasActual(p) ? (p.actual as number) - p.amount : null;
+}
+
 /** 未払いの予定支出の合計 */
 export function plannedUnpaidTotal(planned: PlannedExpense[]): number {
-  return planned.filter(p => !p.paid).reduce((s, p) => s + p.amount, 0);
+  return planned.filter(p => !p.paid).reduce((s, p) => s + plannedEffective(p), 0);
 }
 
 /** 予定支出の総額（支払い済みも含む。月予算の「確保」はこちらを使う） */
 export function plannedTotal(planned: PlannedExpense[]): number {
-  return planned.reduce((s, p) => s + p.amount, 0);
+  return planned.reduce((s, p) => s + plannedEffective(p), 0);
 }
 
 /** カテゴリーへ振り分け済みの合計 */
@@ -601,9 +619,12 @@ export function buildReview(
   return lines;
 }
 
-/** 月替わりで確定額と支払い状況だけを初期化する（項目名・予想額・支払日・種類は残す） */
+/**
+ * 月替わりで、実際に払った額と支払い状況だけを初期化する。
+ * 項目名・登録金額（予想額）・支払日・種類はそのまま翌月へ引き継ぐ。
+ */
 export function resetCostsForNewMonth(costs: FixedCost[]): FixedCost[] {
-  return costs.map(c => ({ ...c, paid: false, actual: isVariable(c) ? null : c.actual }));
+  return costs.map(c => ({ ...c, paid: false, actual: null }));
 }
 
 /** マイナスも自然に読める円表記（-¥5,000） */

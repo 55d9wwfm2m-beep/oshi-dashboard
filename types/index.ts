@@ -209,8 +209,9 @@ export interface FixedCost {
    */
   variable?: boolean;
   /**
-   * 今月の確定した請求額。未確定なら null / undefined。
-   * 月が変わると未確定に戻る。
+   * 今月 実際に払った金額。未入力なら null / undefined。
+   * 変動費なら確定した請求額、固定費でも割り勘などで金額が変わったときに使う。
+   * 入力されていればこちらを計算に使い、月が変わるとリセットする。
    */
   actual?: number | null;
 }
@@ -222,10 +223,16 @@ export interface FixedCost {
 export interface PlannedExpense {
   id: string;
   name: string;
+  /** 予定額 */
   amount: number;
   /** 予定日（YYYY-MM-DD）。未定なら '' */
   date: string;
   paid: boolean;
+  /**
+   * 実際にかかった金額。未入力なら null / undefined。
+   * 入力されていればこちらを計算に使う。月が変わるとリセットする。
+   */
+  actual?: number | null;
 }
 
 /** 生活費の振り分け先カテゴリー */

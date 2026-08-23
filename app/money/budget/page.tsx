@@ -21,6 +21,9 @@ import {
   isVariable,
   hasActual,
   plannedTotal,
+  plannedEffective,
+  plannedHasActual,
+  plannedActualDiff,
   savingResult,
   expensesInMonth,
   totalsByCategory,
@@ -68,6 +71,7 @@ export default function BudgetPage() {
   const [pName, setPName] = useState('');
   const [pAmount, setPAmount] = useState('');
   const [pDate, setPDate] = useState('');
+  const [pActual, setPActual] = useState('');
 
   const [catTarget, setCatTarget] = useState<BudgetCategory | null>(null);
   const [catNew, setCatNew] = useState(false);
@@ -110,21 +114,30 @@ export default function BudgetPage() {
     setPName(item?.name ?? '');
     setPAmount(item ? String(item.amount) : '');
     setPDate(item?.date ?? '');
+    setPActual(typeof item?.actual === 'number' ? String(item.actual) : '');
   };
   const closePlanned = () => { setPlannedTarget(null); setPlannedNew(false); };
   const pAmountValue = pAmount === '' ? 0 : parseInt(pAmount, 10) || 0;
+  const pActualValue = pActual === '' ? null : parseInt(pActual, 10) || 0;
+  const pActualPreview = pActualValue === null
+    ? '空のままなら予定額で計算します'
+    : pActualValue === pAmountValue
+      ? '予定どおりの金額です'
+      : pActualValue < pAmountValue
+        ? `予定より ${formatYen(pAmountValue - pActualValue)} 安くすみます`
+        : `予定より ${formatYen(pActualValue - pAmountValue)} 多くかかります`;
   const savePlanned = () => {
     const name = pName.trim();
     if (!name || pAmountValue <= 0) { showToast('内容と金額を入力してください'); return; }
     if (plannedTarget) {
       update({
         planned: budget.planned.map(p =>
-          p.id === plannedTarget.id ? { ...p, name, amount: pAmountValue, date: pDate } : p
+          p.id === plannedTarget.id ? { ...p, name, amount: pAmountValue, date: pDate, actual: pActualValue } : p
         ),
       });
       showToast('予定支出を更新しました');
     } else {
-      update({ planned: [...budget.planned, { id: generateId(), name, amount: pAmountValue, date: pDate, paid: false }] });
+      update({ planned: [...budget.planned, { id: generateId(), name, amount: pAmountValue, date: pDate, paid: false, actual: pActualValue }] });
       showToast('予定支出を追加しました');
     }
     closePlanned();
@@ -303,29 +316,51 @@ export default function BudgetPage() {
             </p>
           ) : (
             <>
-              {sortedPlanned.map(p => (
-                <button
-                  key={p.id}
-                  onClick={() => openPlanned(p)}
-                  className="w-full flex justify-between items-baseline py-1.5 text-left"
-                >
-                  <span
-                    className="text-[12.5px] truncate"
-                    style={{ color: '#78716C', textDecoration: p.paid ? 'line-through' : 'none', opacity: p.paid ? 0.6 : 1 }}
+              {sortedPlanned.map(p => {
+                const settled = plannedHasActual(p);
+                const pDiff = plannedActualDiff(p);
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => openPlanned(p)}
+                    className="w-full py-1.5 text-left"
                   >
-                    {p.name} <span className="text-[11px]" style={{ color: '#A8A29E' }}>{p.date ? formatDateShort(p.date) : '日付未定'}</span>
-                    {p.paid && (
-                      <span className="ml-1.5 text-[9.5px] font-bold px-1.5 py-[2px] rounded-full align-middle"
-                        style={{ background: MONEY_ACCENT_BG, color: MONEY_ACCENT }}>
-                        支払い済み
+                    <span className="flex justify-between items-baseline">
+                      <span
+                        className="text-[12.5px] truncate"
+                        style={{ color: '#78716C', textDecoration: p.paid ? 'line-through' : 'none', opacity: p.paid ? 0.6 : 1 }}
+                      >
+                        {p.name} <span className="text-[11px]" style={{ color: '#A8A29E' }}>{p.date ? formatDateShort(p.date) : '日付未定'}</span>
+                        {settled && (
+                          <span className="ml-1.5 text-[9.5px] font-bold px-1.5 py-[2px] rounded-full align-middle"
+                            style={{ background: MONEY_ACCENT_BG, color: MONEY_ACCENT }}>
+                            実額
+                          </span>
+                        )}
+                        {p.paid && (
+                          <span className="ml-1.5 text-[9.5px] font-bold px-1.5 py-[2px] rounded-full align-middle"
+                            style={{ background: MONEY_ACCENT_BG, color: MONEY_ACCENT }}>
+                            支払い済み
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-[13px] font-semibold shrink-0 ml-3" style={{ color: '#1C1917', fontVariantNumeric: 'tabular-nums' }}>
+                        {formatYen(plannedEffective(p))}
+                      </span>
+                    </span>
+                    {settled && pDiff !== 0 && (
+                      <span
+                        className="block text-[10.5px] mt-0.5 font-semibold"
+                        style={{ color: pDiff! < 0 ? MONEY_ACCENT : MONEY_DANGER }}
+                      >
+                        {pDiff! < 0
+                          ? `予定より ${formatYen(-pDiff!)} 安くすみました`
+                          : `予定より ${formatYen(pDiff!)} 多くかかりました`}
                       </span>
                     )}
-                  </span>
-                  <span className="text-[13px] font-semibold shrink-0 ml-3" style={{ color: '#1C1917', fontVariantNumeric: 'tabular-nums' }}>
-                    {formatYen(p.amount)}
-                  </span>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
               <div className="flex justify-between items-baseline mt-2 pt-2.5" style={{ borderTop: '1px solid rgba(28,18,12,0.06)' }}>
                 <span className="text-[12.5px] font-semibold" style={{ color: '#1C1917' }}>予定支出合計</span>
                 <span className="text-[17px] font-bold font-serif-num" style={{ color: '#1C1917' }}>
@@ -504,7 +539,7 @@ export default function BudgetPage() {
               placeholder="例：福岡旅行・美容院" className="input" />
           </div>
           <div>
-            <label className="field-label" htmlFor="planned-amount">金額 *</label>
+            <label className="field-label" htmlFor="planned-amount">予定額 *</label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#A8A29E' }}>¥</span>
               <input id="planned-amount" type="text" inputMode="numeric" autoComplete="off"
@@ -512,6 +547,25 @@ export default function BudgetPage() {
                 onChange={e => setPAmount(digitsOnly(e.target.value))}
                 placeholder="30,000" className="input pl-8" />
             </div>
+          </div>
+          <div>
+            <label className="field-label" htmlFor="planned-actual">実際にかかった額</label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#A8A29E' }}>¥</span>
+              <input id="planned-actual" type="text" inputMode="numeric" autoComplete="off"
+                value={pActual === '' ? '' : (pActualValue ?? 0).toLocaleString('ja-JP')}
+                onChange={e => setPActual(digitsOnly(e.target.value))}
+                placeholder="あとから入力" className="input pl-8" />
+            </div>
+            <p
+              className="text-[11px] mt-1.5"
+              style={{
+                color: pActualValue === null ? '#A8A29E' : pActualValue <= pAmountValue ? MONEY_ACCENT : MONEY_DANGER,
+                fontWeight: pActualValue === null ? 400 : 600,
+              }}
+            >
+              {pActualPreview}
+            </p>
           </div>
           <div>
             <label className="field-label" htmlFor="planned-date">予定日</label>

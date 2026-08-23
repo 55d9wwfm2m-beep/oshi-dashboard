@@ -773,12 +773,20 @@
 
       <!-- STEP 2 貯金 -->
       <div class="card anim-in">
-        <div class="step-head"><span class="step-no">2</span><p class="step-label">今月の貯金目標</p></div>
+        <div class="step-head"><span class="step-no">2</span><p class="step-label">今月の貯金</p></div>
+        <label class="field-label" for="budget-saving">目標</label>
         <div class="money-wrap">
           <span class="yen">¥</span>
           <input id="budget-saving" class="input" type="text" inputmode="numeric" autocomplete="off" placeholder="30,000" style="padding-left:32px; font-size:18px; font-weight:600;">
         </div>
         <p class="formula" id="after-saving"></p>
+
+        <label class="field-label" for="budget-saved" style="margin-top:14px;">実際に貯金できた額</label>
+        <div class="money-wrap">
+          <span class="yen">¥</span>
+          <input id="budget-saved" class="input" type="text" inputmode="numeric" autocomplete="off" placeholder="月末に入力" style="padding-left:32px; font-size:18px; font-weight:600;">
+        </div>
+        <p class="formula" id="saving-result"></p>
       </div>
 
       <div class="flow-arrow" aria-hidden="true">↓</div>
@@ -1261,7 +1269,22 @@
     });
   }
   function emptyBudget(month, cats) {
-    return { month: month, income: '', savingGoal: '', planned: [], categories: cats || defaultCategories() };
+    return {
+      month: month, income: '', savingGoal: '', savedActual: '',
+      planned: [], categories: cats || defaultCategories()
+    };
+  }
+
+  /**
+   * 貯金の結果。目標（計画）ではなく、入力された実績で達成を判定する。
+   * savedActual が '' なら未入力
+   */
+  function savingResult() {
+    var goal = budget.savingGoal === '' ? 0 : parseInt(budget.savingGoal, 10) || 0;
+    var raw = budget.savedActual == null ? '' : String(budget.savedActual);
+    var entered = raw !== '';
+    var actual = entered ? parseInt(raw, 10) || 0 : 0;
+    return { goal: goal, actual: actual, entered: entered, diff: actual - goal, achieved: entered && actual >= goal };
   }
   var editId = null;
   var deleteId = null;
@@ -1505,6 +1528,7 @@
     save(KEYS.budget, budget);
   }
   if (!Array.isArray(budget.planned)) budget.planned = [];
+  if (typeof budget.savedActual !== 'string') budget.savedActual = '';
   if (!Array.isArray(budget.categories) || budget.categories.length === 0) {
     budget.categories = defaultCategories();
   }
@@ -1937,6 +1961,25 @@
     document.getElementById('after-saving').textContent =
       b.income > 0 ? '貯金を引いた残り ' + yenSigned(b.income - b.saving) : '給料を入力すると残りが表示されます';
 
+    // 貯金は入力された実績で判定する
+    var s = savingResult();
+    var note = document.getElementById('saving-result');
+    if (!s.entered) {
+      note.textContent = s.goal > 0
+        ? '月末に入力すると、目標を達成できたか分かります'
+        : '実際に貯金できた額を入力できます';
+      note.style.color = '';
+    } else if (s.diff > 0) {
+      note.textContent = '🎉 目標より ' + yen(s.diff) + ' 多く貯金できました';
+      note.style.color = 'var(--accent-ink)';
+    } else if (s.diff === 0) {
+      note.textContent = '🎉 貯金目標を達成しました';
+      note.style.color = 'var(--accent-ink)';
+    } else {
+      note.textContent = '目標より ' + yen(-s.diff) + ' 少なめです';
+      note.style.color = 'var(--danger)';
+    }
+
     document.getElementById('alloc-summary').innerHTML =
       '<div class="alloc-line"><span class="k">振り分け済み</span><span class="v">' + yen(b.allocated) + '</span></div>' +
       '<div class="alloc-line rest"><span class="k">まだ振り分けていないお金</span>' +
@@ -2033,6 +2076,8 @@
       budget.income === '' ? '' : parseInt(budget.income, 10).toLocaleString('ja-JP');
     document.getElementById('budget-saving').value =
       budget.savingGoal === '' ? '' : parseInt(budget.savingGoal, 10).toLocaleString('ja-JP');
+    document.getElementById('budget-saved').value =
+      budget.savedActual === '' ? '' : parseInt(budget.savedActual, 10).toLocaleString('ja-JP');
     document.getElementById('budget-copy').hidden = budgetHistory.length === 0;
     renderBudgetFixed();
     renderBudgetPlanned();
@@ -2052,6 +2097,13 @@
     var raw = digitsOnly(e.target.value);
     e.target.value = raw === '' ? '' : parseInt(raw, 10).toLocaleString('ja-JP');
     budget.savingGoal = raw;
+    saveBudget();
+    refreshBudgetTotals();
+  });
+  document.getElementById('budget-saved').addEventListener('input', function (e) {
+    var raw = digitsOnly(e.target.value);
+    e.target.value = raw === '' ? '' : parseInt(raw, 10).toLocaleString('ja-JP');
+    budget.savedActual = raw;
     saveBudget();
     refreshBudgetTotals();
   });
@@ -2323,15 +2375,48 @@
       });
     }
 
-    var saving = b.savingGoal === '' ? 0 : parseInt(b.savingGoal, 10) || 0;
+    // 生活費が予算に収まったか
     var totalSpent = spentInMonth(m);
-    if (saving > 0 && totalSpent > 0) {
-      var over = totalSpent - livingOf(m);
+    var living = livingOf(m);
+    if (totalSpent > 0 && living > 0) {
+      var over = totalSpent - living;
       lines.push({
-        emoji: over <= 0 ? '🎉' : '💪', label: '結果',
-        text: over <= 0 ? '貯金目標 ' + yen(saving) + ' を達成 🎉' : '生活費が予算を ' + yen(over) + ' 超えました',
+        emoji: '🧮', label: '生活費',
+        text: over <= 0 ? '予算内におさまりました（残り ' + yen(-over) + '）' : '予算を ' + yen(over) + ' 超えました',
         tone: over <= 0 ? 'good' : 'warn'
       });
+    }
+
+    // 貯金は「実際に貯金できた額」で判定する（目標だけでは達成とは言えない）
+    var goal = b.savingGoal === '' ? 0 : parseInt(b.savingGoal, 10) || 0;
+    var savedRaw = b.savedActual == null ? '' : String(b.savedActual);
+    var entered = savedRaw !== '';
+    var actual = entered ? parseInt(savedRaw, 10) || 0 : 0;
+    var diff = actual - goal;
+    if (goal > 0 || entered) {
+      if (!entered) {
+        lines.push({
+          emoji: '🐖', label: '貯金',
+          text: '目標 ' + yen(goal) + '。実際に貯金できた額を入力すると結果が出ます',
+          tone: 'neutral'
+        });
+      } else if (diff > 0) {
+        lines.push({
+          emoji: '🎉', label: '結果',
+          text: '貯金 ' + yen(actual) + '。目標より ' + yen(diff) + ' 多く貯金できました 🎉',
+          tone: 'good'
+        });
+      } else if (diff === 0) {
+        lines.push({ emoji: '🎉', label: '結果', text: '貯金目標 ' + yen(goal) + ' を達成 🎉', tone: 'good' });
+      } else {
+        lines.push({
+          emoji: '💪', label: '結果',
+          text: actual === 0
+            ? '今月は貯金できませんでした（目標 ' + yen(goal) + '）'
+            : '貯金 ' + yen(actual) + '。目標より ' + yen(-diff) + ' 少なかった',
+          tone: 'warn'
+        });
+      }
     }
     return lines;
   }

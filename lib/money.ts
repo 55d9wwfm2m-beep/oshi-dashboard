@@ -29,6 +29,91 @@ export const MONEY_KEYS = {
 /** 履歴に残す最大月数（古いものから捨てる） */
 export const HISTORY_LIMIT = 24;
 
+// ──── 給料日を起点にした1か月 ────
+// 給料日を設定していれば「給料日〜次の給料日の前日」を1か月として扱う。
+// 未設定（payday=0）のときは、これまでどおり暦の1日〜月末。
+
+/** 給料日を起点にした期間 */
+export interface Period {
+  /** YYYY-MM。期間の中間日が属する月＝いちばん多く重なる月を名前にする */
+  key: string;
+  /** 開始日 YYYY-MM-DD（この日を含む） */
+  start: string;
+  /** 終了日 YYYY-MM-DD（この日を含む） */
+  end: string;
+}
+
+const iso = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+/** その月の給料日。月にない日は末日に丸め、土日祝なら前の平日へ前倒しする */
+function paydayOn(year: number, month: number, day: number): Date {
+  const eff = Math.min(day, new Date(year, month + 1, 0).getDate());
+  const d = new Date(year, month, eff);
+  while (!isBusinessDay(d)) d.setDate(d.getDate() - 1);
+  return d;
+}
+
+/** 期間の中間日が属する月を、その期間の名前にする */
+function keyOfRange(start: Date, end: Date): string {
+  const mid = new Date((start.getTime() + end.getTime()) / 2);
+  return `${mid.getFullYear()}-${String(mid.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/** その日が含まれる期間 */
+export function periodOfDate(date: Date, payday: number): Period {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+  if (!payday) {
+    const start = new Date(d.getFullYear(), d.getMonth(), 1);
+    const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    return { key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`, start: iso(start), end: iso(end) };
+  }
+
+  // その月の給料日をまだ迎えていなければ、前月の給料日が起点
+  let start = paydayOn(d.getFullYear(), d.getMonth(), payday);
+  if (d < start) start = paydayOn(d.getFullYear(), d.getMonth() - 1, payday);
+  const next = paydayOn(start.getFullYear(), start.getMonth() + 1, payday);
+  const end = new Date(next);
+  end.setDate(end.getDate() - 1);
+  return { key: keyOfRange(start, end), start: iso(start), end: iso(end) };
+}
+
+/** 今の期間 */
+export function currentPeriod(payday: number): Period {
+  return periodOfDate(new Date(), payday);
+}
+
+/**
+ * 期間の名前（YYYY-MM）から期間を復元する。
+ * 名前は中間日の月なので、前後の月から探して一致するものを返す。
+ */
+export function periodByKey(key: string, payday: number): Period {
+  const [y, m] = key.split('-').map(Number);
+  if (!payday) {
+    return {
+      key,
+      start: iso(new Date(y, m - 1, 1)),
+      end: iso(new Date(y, m, 0)),
+    };
+  }
+  for (const offset of [-1, 0, 1]) {
+    const probe = periodOfDate(new Date(y, m - 1 + offset, 15), payday);
+    if (probe.key === key) return probe;
+  }
+  // 見つからないときは暦の月で代用する
+  return { key, start: iso(new Date(y, m - 1, 1)), end: iso(new Date(y, m, 0)) };
+}
+
+/** 「7/25〜8/24」形式 */
+export function formatPeriodRange(p: Period): string {
+  const f = (s: string) => {
+    const [, mm, dd] = s.split('-');
+    return `${parseInt(mm, 10)}/${parseInt(dd, 10)}`;
+  };
+  return `${f(p.start)}〜${f(p.end)}`;
+}
+
 /** 「2026年8月」形式 */
 export function formatMonthLabel(month: string): string {
   const [y, m] = month.split('-');
@@ -406,9 +491,21 @@ export function expensesInRange(expenses: LivingExpense[], from: string, to: str
   return expenses.filter(e => (!from || e.date >= from) && (!to || e.date <= to));
 }
 
-/** その月の支出だけを取り出す */
-export function expensesInMonth(expenses: LivingExpense[], month: string): LivingExpense[] {
-  return expenses.filter(e => monthOf(e.date) === month);
+/**
+ * その期間の支出だけを取り出す。
+ * 給料日が設定されていれば給料日〜次の給料日の前日、未設定なら暦の1か月。
+ */
+export function expensesInMonth(expenses: LivingExpense[], month: string, payday = 0): LivingExpense[] {
+  if (!payday) return expenses.filter(e => monthOf(e.date) === month);
+  const p = periodByKey(month, payday);
+  return expenses.filter(e => e.date >= p.start && e.date <= p.end);
+}
+
+/** その日が属する期間の名前 */
+export function periodKeyOf(date: string, payday: number): string {
+  if (!payday) return monthOf(date);
+  const [y, m, d] = date.split('-').map(Number);
+  return periodOfDate(new Date(y, m - 1, d), payday).key;
 }
 
 /** カテゴリーidごとの合計 */
@@ -419,8 +516,8 @@ export function totalsByCategory(expenses: LivingExpense[]): Record<string, numb
 }
 
 /** 支出のある月を新しい順に並べる */
-export function monthsWithExpenses(expenses: LivingExpense[]): string[] {
-  return Array.from(new Set(expenses.map(e => monthOf(e.date)))).sort((a, b) => b.localeCompare(a));
+export function monthsWithExpenses(expenses: LivingExpense[], payday = 0): string[] {
+  return Array.from(new Set(expenses.map(e => periodKeyOf(e.date, payday)))).sort((a, b) => b.localeCompare(a));
 }
 
 /**
@@ -431,12 +528,13 @@ export function monthsWithExpenses(expenses: LivingExpense[]): string[] {
 export function categoryMonthlyAverage(
   expenses: LivingExpense[],
   categoryId: string,
-  excludeMonth: string
+  excludeMonth: string,
+  payday = 0
 ): { average: number; months: number } {
   const byMonth: Record<string, number> = {};
   for (const e of expenses) {
     if (e.categoryId !== categoryId) continue;
-    const m = monthOf(e.date);
+    const m = periodKeyOf(e.date, payday);
     if (m === excludeMonth) continue;
     byMonth[m] = (byMonth[m] || 0) + e.amount;
   }
@@ -473,14 +571,15 @@ export const ALERT_MIN_RATIO = 1.2;
 export function spendingAlerts(
   expenses: LivingExpense[],
   categories: BudgetCategory[],
-  month: string
+  month: string,
+  payday = 0
 ): SpendingAlert[] {
-  const current = totalsByCategory(expensesInMonth(expenses, month));
+  const current = totalsByCategory(expensesInMonth(expenses, month, payday));
   const out: SpendingAlert[] = [];
   for (const category of categories) {
     const spent = current[category.id] || 0;
     if (spent <= 0) continue;
-    const { average, months } = categoryMonthlyAverage(expenses, category.id, month);
+    const { average, months } = categoryMonthlyAverage(expenses, category.id, month, payday);
     if (months < ALERT_MIN_MONTHS || average <= 0) continue;
     const diff = spent - average;
     const ratio = spent / average;
@@ -515,7 +614,8 @@ export function buildReview(
   living: number,
   fixedTotal: number,
   /** 先月の固定費合計。比較できないときは null */
-  prevFixedTotal: number | null
+  prevFixedTotal: number | null,
+  payday = 0
 ): ReviewLine[] {
   const lines: ReviewLine[] = [];
   if (!budget) return lines;
@@ -535,7 +635,7 @@ export function buildReview(
     });
 
   // カテゴリーごとの 予算 vs 実績（差が大きい順に3件まで）
-  const spent = totalsByCategory(expensesInMonth(expenses, month));
+  const spent = totalsByCategory(expensesInMonth(expenses, month, payday));
   const diffs = budget.categories
     .map(c => ({ c, budgeted: c.amount, actual: spent[c.id] || 0 }))
     .filter(x => x.budgeted > 0 || x.actual > 0)

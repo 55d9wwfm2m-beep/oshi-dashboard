@@ -10,6 +10,10 @@ import {
   MONEY_ACCENT,
   MONEY_DANGER,
   formatMonthLabel,
+  formatPeriodRange,
+  periodByKey,
+  periodKeyOf,
+  currentPeriod,
   previousMonth,
   effectiveAmount,
   monthOf,
@@ -53,26 +57,30 @@ export default function ReviewPage() {
   const [expenses, setExpenses, expensesLoaded] = useLocalStorage<LivingExpense[]>(MONEY_KEYS.expenses, []);
   const [costs, , costsLoaded] = useLocalStorage<FixedCost[]>(MONEY_KEYS.fixedCosts, []);
   const [history] = useLocalStorage<MonthlyRecord[]>(MONEY_KEYS.history, []);
+  const [payday, , paydayLoaded] = useLocalStorage<number>(MONEY_KEYS.payday, 0);
 
   const [selected, setSelected] = useState<string | null>(null);
   const [range, setRange] = useState<Range>('month');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<LivingExpense | null>(null);
 
-  if (!expensesLoaded || !costsLoaded) return null;
+  if (!expensesLoaded || !costsLoaded || !paydayLoaded) return null;
 
-  const currentMonth = budget?.month ?? getCurrentMonth();
+  const currentMonth = budget?.month ?? currentPeriod(payday).key;
 
   // 支出か予算のある月を新しい順に
   const months = Array.from(
     new Set([
-      ...expenses.map(e => monthOf(e.date)),
+      ...expenses.map(e => periodKeyOf(e.date, payday)),
       ...budgetHistory.map(b => b.month),
       currentMonth,
     ])
   ).sort((a, b) => b.localeCompare(a)).slice(0, 12);
 
-  const month = selected && months.includes(selected) ? selected : months[0];
+  // 未来の日付で記録した支出があっても、既定は今の期間にする
+  const month = selected && months.includes(selected)
+    ? selected
+    : (months.includes(currentMonth) ? currentMonth : months[0]);
 
   const budgetOf = (m: string): MonthlyBudget | null =>
     m === currentMonth ? budget : budgetHistory.find(b => b.month === m) ?? null;
@@ -94,7 +102,7 @@ export default function ReviewPage() {
   };
 
   const spentInMonth = (m: string) =>
-    expensesInMonth(expenses, m).reduce((s, e) => s + e.amount, 0);
+    expensesInMonth(expenses, m, payday).reduce((s, e) => s + e.amount, 0);
 
   const monthBudget = budgetOf(month);
   const lines = buildReview(
@@ -103,10 +111,11 @@ export default function ReviewPage() {
     expenses,
     livingOf(month),
     fixedTotalOf(month) ?? 0,
-    fixedTotalOf(previousMonth(month))
+    fixedTotalOf(previousMonth(month)),
+    payday
   );
 
-  const spentByCat = totalsByCategory(expensesInMonth(expenses, month));
+  const spentByCat = totalsByCategory(expensesInMonth(expenses, month, payday));
   const catRows: BudgetCategory[] = (monthBudget?.categories ?? []).filter(
     c => c.amount > 0 || (spentByCat[c.id] || 0) > 0
   );
@@ -117,12 +126,15 @@ export default function ReviewPage() {
 
   // 期間フィルタ
   const listed = (() => {
-    if (range === 'month') return expensesInMonth(expenses, month);
+    if (range === 'month') return expensesInMonth(expenses, month, payday);
     if (range === '3m') {
       const [y, mo] = month.split('-').map(Number);
       const from = new Date(y, mo - 3, 1);
       const fromStr = `${from.getFullYear()}-${String(from.getMonth() + 1).padStart(2, '0')}`;
-      return expenses.filter(e => monthOf(e.date) >= fromStr && monthOf(e.date) <= month);
+      return expenses.filter(e => {
+        const k = periodKeyOf(e.date, payday);
+        return k >= fromStr && k <= month;
+      });
     }
     return expenses;
   })();
@@ -165,6 +177,9 @@ export default function ReviewPage() {
           <p className="text-sm font-medium mb-1" style={{ color: '#78716C' }}>
             {formatMonthLabel(month)}のまとめ
           </p>
+          <p className="text-[11px] mb-2" style={{ color: '#A8A29E' }}>
+            {formatPeriodRange(periodByKey(month, payday))}
+          </p>
           {lines.length === 0 ? (
             <p className="text-xs text-center py-2.5" style={{ color: '#A8A29E' }}>
               給料や支出を記録すると、その月の変化をまとめます
@@ -204,7 +219,7 @@ export default function ReviewPage() {
             catRows.map(c => {
               const used = spentByCat[c.id] || 0;
               const over = c.amount > 0 && used > c.amount;
-              const avg = categoryMonthlyAverage(expenses, c.id, month);
+              const avg = categoryMonthlyAverage(expenses, c.id, month, payday);
               const high =
                 !over && used > 0 && avg.months >= ALERT_MIN_MONTHS && avg.average > 0 &&
                 used - avg.average >= ALERT_MIN_DIFF && used / avg.average >= ALERT_MIN_RATIO;

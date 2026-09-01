@@ -33,6 +33,7 @@ import {
   budgetBreakdown,
   plannedUnpaidTotal,
   spendingAlerts,
+  currentPeriod,
 } from '@/lib/money';
 import { showToast } from '@/components/ui/Toast';
 import MoneyTabs from '@/components/ui/MoneyTabs';
@@ -79,7 +80,7 @@ export default function MoneyPage() {
   // （固定費の登録内容はそのまま）
   useEffect(() => {
     if (!costsLoaded || !monthLoaded || !accountsLoaded || !historyLoaded) return;
-    const current = getCurrentMonth();
+    const current = currentPeriod(payday).key;
     if (month === current) return;
 
     // 前月の締めくくりを記録に残す（初回起動時は実績がないので保存しない）
@@ -104,15 +105,15 @@ export default function MoneyPage() {
       if (!saved) showToast('新しい月になったので、支払い状況をリセットしました');
     }
     setMonth(current);
-  }, [costsLoaded, monthLoaded, accountsLoaded, historyLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [costsLoaded, monthLoaded, accountsLoaded, historyLoaded, paydayLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!accountsLoaded || !costsLoaded || !monthLoaded || !paydayLoaded || !historyLoaded
       || !budgetLoaded || !expensesLoaded) return null;
 
   // 月予算（給料ベースの計画）。口座残高とは別データで、給料は残高に加算しない
-  const plan = budget && budget.month === getCurrentMonth() ? budget : null;
+  const plan = budget && budget.month === currentPeriod(payday).key ? budget : null;
   // いつもより明らかに多いカテゴリー（過去の自分の平均との比較）
-  const alerts = plan ? spendingAlerts(expenses, plan.categories, plan.month) : [];
+  const alerts = plan ? spendingAlerts(expenses, plan.categories, plan.month, payday) : [];
   const planBreakdown = plan ? budgetBreakdown(plan, costs) : null;
   const unpaidPlanned = plan ? plannedUnpaidTotal(plan.planned) : 0;
 

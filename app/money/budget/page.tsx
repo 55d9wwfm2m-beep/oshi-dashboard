@@ -15,6 +15,9 @@ import {
   formatYenSigned,
   formatMonthLabel,
   budgetBreakdown,
+  currentPeriod,
+  periodByKey,
+  formatPeriodRange,
   createEmptyBudget,
   copyFromBudget,
   effectiveAmount,
@@ -64,6 +67,7 @@ export default function BudgetPage() {
   const [budgetHistory, setBudgetHistory, historyLoaded] = useLocalStorage<MonthlyBudget[]>(MONEY_KEYS.budgetHistory, []);
   const [costs, , costsLoaded] = useLocalStorage<FixedCost[]>(MONEY_KEYS.fixedCosts, []);
   const [expenses, setExpenses, expensesLoaded] = useLocalStorage<LivingExpense[]>(MONEY_KEYS.expenses, []);
+  const [payday, , paydayLoaded] = useLocalStorage<number>(MONEY_KEYS.payday, 0);
   const [expenseSheet, setExpenseSheet] = useState(false);
 
   const [plannedTarget, setPlannedTarget] = useState<PlannedExpense | null>(null);
@@ -81,7 +85,7 @@ export default function BudgetPage() {
   // 月予算の初期化・繰り越し（前月分は履歴に残す）
   useEffect(() => {
     if (!budgetLoaded || !historyLoaded) return;
-    const now = getCurrentMonth();
+    const now = currentPeriod(payday).key;
     if (!budget) {
       setBudget(createEmptyBudget(now));
       return;
@@ -94,14 +98,14 @@ export default function BudgetPage() {
       );
       setBudget(createEmptyBudget(now, budget.categories.map(c => ({ ...c, amount: 0 }))));
     }
-  }, [budgetLoaded, historyLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [budgetLoaded, historyLoaded, paydayLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!budgetLoaded || !historyLoaded || !costsLoaded || !expensesLoaded || !budget) return null;
+  if (!budgetLoaded || !historyLoaded || !costsLoaded || !expensesLoaded || !paydayLoaded || !budget) return null;
 
   const b = budgetBreakdown(budget, costs);
   // 貯金は目標（計画）ではなく、入力された実績で判定する
   const saving = savingResult(budget);
-  const spentByCat = totalsByCategory(expensesInMonth(expenses, budget.month));
+  const spentByCat = totalsByCategory(expensesInMonth(expenses, budget.month, payday));
   const sortedCosts = [...costs].sort((a, c) => a.payDay - c.payDay || a.name.localeCompare(c.name, 'ja'));
   const sortedPlanned = [...budget.planned].sort((x, y) => (x.date || '9999').localeCompare(y.date || '9999'));
 
@@ -216,6 +220,9 @@ export default function BudgetPage() {
           <h1 className="text-2xl font-semibold mt-1" style={{ color: '#1C1917' }}>
             {formatMonthLabel(budget.month)}の予算
           </h1>
+          <p className="text-[11px] mt-1" style={{ color: '#A8A29E' }}>
+            {payday ? '給料日から給料日まで' : '暦どおり'}（{formatPeriodRange(periodByKey(budget.month, payday))}）
+          </p>
         </div>
         {budgetHistory.length > 0 && (
           <button
@@ -405,7 +412,7 @@ export default function BudgetPage() {
             const used = spentByCat[c.id] || 0;
             const over = c.amount > 0 && used > c.amount;
             const pct = c.amount > 0 ? Math.min(100, Math.round((used / c.amount) * 100)) : used > 0 ? 100 : 0;
-            const avg = categoryMonthlyAverage(expenses, c.id, budget.month);
+            const avg = categoryMonthlyAverage(expenses, c.id, budget.month, payday);
             const high =
               !over && used > 0 && avg.months >= ALERT_MIN_MONTHS && avg.average > 0 &&
               used - avg.average >= ALERT_MIN_DIFF && used / avg.average >= ALERT_MIN_RATIO;

@@ -302,7 +302,9 @@ export default function MoneySettingsPage() {
             onChange={e => {
               const v = parseInt(e.target.value, 10) || 0;
               setPayday(v);
-              showToast(v ? `給料日を毎月${v}日に設定しました` : '給料日の設定を解除しました');
+              showToast(v
+                ? `給料日を毎月${v}日に設定しました。${v}日からの1か月で集計します`
+                : '給料日の設定を解除しました。暦どおり1日からの1か月で集計します');
             }}
             className="input"
           >

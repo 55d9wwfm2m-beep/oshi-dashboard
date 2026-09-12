@@ -1,0 +1,207 @@
+/* 両配信版で共用する表示層。保存・計算には依存しない。 */
+.money-app, body:has(.money-app) {
+  --bg: #0b0d0c; --surface: #131715; --surface-2: #1c221f;
+  --ink: #f2f5f3; --sub: #b4bdb8; --muted: #9aa69f;
+  --line: rgba(255,255,255,.09); --accent: #88cfc2; --accent-ink: #a1dbcf;
+  --accent-soft: rgba(136,207,194,.1); --safe: #a0cfaf;
+  --warn: #e3c080; --warn-soft: rgba(227,192,128,.10);
+  --danger: #ed9a94; --danger-soft: rgba(237,154,148,.10);
+  --shadow: none; --overlay: rgba(0,0,0,.62);
+  --money-font: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Hiragino Sans", Arial, sans-serif;
+  color-scheme: dark; color: var(--ink); background: var(--bg);
+  font-family: var(--money-font); font-size: 16px; line-height: 1.6;
+  font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased;
+}
+body:has(.money-app) .app-shell, body:has(.money-app) .app-main { background: var(--bg) !important; }
+body:has(.money-app) .app-main { max-width: 600px; padding-bottom: 0; }
+body:has(.money-app) main > .money-app { animation: none; }
+.money-app { min-height: 100dvh; }
+.money-app .app, .money-app.money-next {
+  max-width: 600px; margin: 0 auto;
+  padding: calc(16px + env(safe-area-inset-top)) 20px calc(108px + env(safe-area-inset-bottom));
+}
+.money-app.money-next { padding-left: 4px; padding-right: 4px; }
+.money-app .head, .money-app .money-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 2px 26px;
+}
+.money-app .money-header { padding-left: 16px; padding-right: 16px; }
+.money-app .head > div, .money-app .money-header > div { min-width: 0; }
+.money-app h1, .money-app .head h1 { font-size: 25px; font-weight: 650; letter-spacing: -.04em; line-height: 1.4; }
+.money-app .eyebrow, .money-app .money-header .uppercase { font-size: 12px; letter-spacing: .16em; color: var(--muted); margin-bottom: 5px; }
+.money-app .card { background: var(--surface); border: 0; border-radius: 26px; box-shadow: none; padding: 22px; margin-bottom: 16px; }
+.money-app .card:active, .money-app .card-hover:hover { transform: none; box-shadow: none; }
+.money-app a.card, .money-app [data-nav].card { transition: background .18s ease, transform .18s ease; }
+.money-app a.card:active, .money-app [data-nav].card:active { background: var(--surface-2); transform: scale(.992); }
+.money-app .card-title, .money-app .field-label { font-size: 14px; font-weight: 600; color: var(--sub); text-transform: none; letter-spacing: 0; }
+.money-app .card-head, .money-app .bud-card-head { gap: 12px; }
+.money-app .serif-num, body:has(.money-app) .font-serif-num {
+  font-family: var(--money-font); font-style: normal; font-weight: 600;
+  font-variant-numeric: tabular-nums; letter-spacing: -.045em;
+}
+.money-app .hero, .money-app .hero.is-safe, .money-app .hero.is-warn,
+.money-app .hero.is-tight, .money-app .hero.is-short, .money-app .money-hero {
+  position: relative; text-align: left; padding: 26px 24px 22px;
+  background: linear-gradient(135deg, #1c2925, #151b18 65%); border: 1px solid var(--line);
+  border-radius: 30px;
+}
+.money-app .hero-label, .money-app .money-hero-label { font-size: 14px; font-weight: 500; letter-spacing: .025em; color: var(--sub); }
+.money-app .hero-amount, .money-app .hero .hero-amount, .money-app .money-hero-amount {
+  font-size: clamp(28px, 10.8vw, 52px); font-weight: 600; line-height: 1.25;
+  color: var(--ink) !important; white-space: nowrap; margin-top: 8px; letter-spacing: -.055em;
+}
+.money-app .payday-chip, .money-app .money-payday a {
+  display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-start;
+  min-height: 44px; font-size: 12px; background: transparent !important; border: 0 !important;
+  color: var(--sub); padding: 0; margin: 0 0 10px; gap: 5px;
+}
+.money-app .status-pill { margin-top: 13px; font-size: 13px; padding: 5px 11px; }
+.money-app .pill-safe { color: var(--safe); }
+.money-app .breakdown, .money-app .money-hero-details { margin-top: 24px; padding-top: 17px; gap: 9px; }
+.money-app .breakdown-row { font-size: 13px; gap: 12px; align-items: baseline; }
+.money-app .breakdown-row .v { white-space: nowrap; }
+.money-app .legend { justify-content: flex-start; gap: 5px 12px; font-size: 12px; margin-top: 19px; }
+.money-app .hero-hint, .money-app .shortage { font-size: 13px; }
+.money-app .sim-row, .money-app .money-sim-row {
+  display: flex; align-items: stretch; gap: 4px; padding: 5px;
+  border-radius: 18px; background: var(--surface-2); border: 1px solid var(--line); margin-top: 12px;
+}
+.money-app .sim-row .input, .money-app .money-sim-row .input { border: 0; background: transparent; box-shadow: none; }
+.money-app .sim-btn, .money-app .money-sim-row > button {
+  min-width: 64px; padding: 0 16px; border-radius: 13px;
+  background: var(--accent-soft) !important; color: var(--accent-ink) !important;
+}
+.money-app .sim-result, .money-app .money-sim-result { border: 0 !important; background: var(--surface-2); border-radius: 18px; padding: 18px; margin-top: 14px; text-align: left; }
+.money-app .sim-amount { font-size: 32px; }
+.money-app .sim-verdict { border-radius: 10px; font-size: 13px; }
+.money-app .input, body:has(.money-app) .input {
+  min-height: 48px; background: var(--surface-2); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 14px; font-size: 16px !important;
+  font-family: var(--money-font); box-shadow: none; max-width: 100%;
+}
+.money-app :is(button, a, input, select, textarea, [role="button"]):focus-visible,
+body:has(.money-app) [role="dialog"] :focus-visible {
+  outline: 2px solid var(--accent-ink) !important; outline-offset: 3px; box-shadow: none;
+}
+.money-app button, .money-app a, body:has(.money-app) [role="dialog"] button { touch-action: manipulation; }
+.money-app button, .money-app a:not(.card), body:has(.money-app) [role="dialog"] button {
+  min-height: 44px; min-width: 44px;
+}
+.money-app .chipbtn, .money-app .textlink, .money-app .rowbtn, .money-app .back { font-size: 13px; }
+.money-app .chipbtn { background: var(--surface-2); color: var(--sub); padding: 10px 14px; white-space: normal; flex-shrink: 0; }
+.money-app .btn-primary, .money-app .plusbtn, .money-app .empty .cta {
+  background: var(--accent); color: var(--bg); box-shadow: none; font-weight: 650;
+}
+.money-app .btn-danger { background: var(--danger); color: var(--bg); }
+.money-app .btn-primary:disabled, .money-app .sim-btn:disabled { opacity: .5; }
+.money-app .setting-row { border-radius: 20px; }
+.money-app .setting-name, .money-app .cost-name, .money-app .acc-name { font-size: 15px; }
+.money-app .cost-list li:last-child, .money-app .acc-item:last-child { border-bottom: 0; }
+.money-app .cost-day, .money-app .cost-status, .money-app .setting-sub, .money-app .toggle-label,
+.money-app .formula, .money-app .footnote, .money-app .cost-diff, .money-app .hist-meta,
+.money-app .hist-sub, .money-app .cost-tag, .money-app .seg-hint { font-size: 12px; }
+.money-app .cost-actual-btn, .money-app .rowbtn, .money-app .tl-edit, .money-app .cat-edit { min-width: 44px; min-height: 44px; }
+.money-app .acc-toggle { padding: 10px 0; }
+.money-app .toggle-track { background: #3e4943; }
+.money-app .cost-row[aria-pressed="true"] .checkmark { color: var(--bg); }
+.money-app .daybadge { background: var(--surface-2); color: var(--sub); }
+.money-app .daybadge span { font-size: 12px; }
+.money-app .bud-line { font-size: 13px; padding: 6px 0; }
+.money-app .bud-line .k, .money-app .bud-line .v { font-size: 13px; }
+.money-app .bud-living, .money-app .money-living { display: flex; flex-wrap: wrap; gap: 6px 12px; padding-top: 18px; margin-top: 14px; }
+.money-app .bud-living .v, .money-app .money-living .font-serif-num { font-size: 30px; color: var(--ink); }
+.money-app .bud-cats { padding-top: 10px; }
+.money-app .bud-cats span, .money-app .bud-more { font-size: 12px; }
+.money-app .budget-bars { margin: 14px 0 16px; display: grid; gap: 8px; }
+.money-app .budget-bar-row { display: grid; grid-template-columns: 58px minmax(0,1fr); align-items: center; gap: 12px; color: var(--sub); font-size: 12px; }
+.money-app .budget-bar-track { height: 5px; border-radius: 5px; background: var(--surface-2); overflow: hidden; }
+.money-app .budget-bar-fill { display: block; height: 100%; background: #879a91; border-radius: inherit; animation: money-progress .3s ease-out; }
+.money-app .budget-bar-row:last-child .budget-bar-fill { background: var(--accent); }
+.money-app .rm-hero, .money-app .money-goal-hero { background: var(--surface) !important; text-align: left; }
+.money-app .rm-when { color: var(--accent-ink); font-size: 14px; margin-top: 12px; }
+.money-app .rm-target { font-size: clamp(28px,9vw,44px); margin-top: 6px; }
+.money-app .rm-bar, .money-app .rm-mini-bar { height: 7px; border-radius: 10px; margin-top: 24px; }
+.money-app .rm-bar i, .money-app .rm-mini-bar i { animation: money-progress .3s ease-out; }
+.money-app .rm-cell { text-align: left; background: var(--surface-2); padding: 16px 12px; }
+.money-app .rm-cell .k, .money-app .rm-pct, .money-app .tl-when, .money-app .tl-name, .money-app .tl-after, .money-app .rm-name { font-size: 12px; }
+.money-app .rm-cell .v { font-size: clamp(15px,4.5vw,22px); }
+.money-app .rm-pace { border-radius: 12px; }
+.money-app .tl-row.is-event .tl-dot { background: var(--surface-2); border-color: var(--muted); }
+.money-app .tl-row.is-event .tl-amount { color: var(--sub); }
+.money-app .tl-body { padding-bottom: 24px; }
+.money-app .tl-row.is-current .tl-body { padding: 16px; margin-bottom: 24px; background: var(--surface-2); }
+.money-app .tl-row.is-current .tl-dot { box-shadow: none; }
+.money-app .step-no { background: var(--surface-2); color: var(--sub); width: 28px; height: 28px; font-size: 13px; }
+.money-app .step-label { font-size: 15px; }
+.money-app .living-hero { background: var(--surface-2); text-align: left; padding: 20px; }
+.money-app .living-hero .v { color: var(--ink); }
+.money-app .living-hero.is-neg .v { color: var(--danger); }
+.money-app .meter, .money-app [role="img"] { border-radius: 8px; }
+.money-app .tabbar {
+  position: fixed; left: 50%; right: auto; bottom: calc(10px + env(safe-area-inset-bottom));
+  transform: translateX(-50%); width: min(560px, calc(100% - 24px));
+  display: flex; gap: 0; padding: 5px; border: 1px solid rgba(255,255,255,.14);
+  border-radius: 25px; background: #202823; box-shadow: 0 4px 18px rgba(0,0,0,.16); z-index: 50;
+}
+@supports (backdrop-filter: blur(16px)) {
+  .money-app .tabbar { background: rgba(28,36,31,.90); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+}
+.money-app .tab {
+  flex: 1; min-width: 0 !important; min-height: 54px; border: 0; text-decoration: none;
+  border-radius: 19px; background: none; color: var(--muted);
+  display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 3px;
+  padding: 6px 0; transition: color .18s ease, background .18s ease;
+}
+.money-app .tab[aria-current="page"] { background: rgba(136,207,194,.1); color: var(--accent-ink); }
+.money-app .tab-icon { display: flex; font-size: 20px; filter: none; opacity: 1; }
+.money-app .tab-label { font-size: 12px; letter-spacing: -.03em; font-weight: 500; white-space: nowrap; }
+.money-icon { display: inline-block; width: 20px; height: 20px; flex-shrink: 0; vertical-align: -.22em; }
+.money-number { display: inline-block; animation: money-enter .2s ease-out; }
+.money-app .money-hero { background: linear-gradient(135deg, #1c2925, #151b18 65%) !important; }
+.money-app .money-goal-hero { text-align: left; }
+.money-app [role="group"] button[aria-pressed="true"] { background: #34463e !important; color: var(--ink) !important; }
+.money-app .recap-card, .money-app .recap-hero { background: var(--surface); box-shadow: none; }
+.money-app .overlay, body:has(.money-app) .money-overlay { background: var(--overlay) !important; }
+.money-app .sheet, body:has(.money-app) .bottom-sheet {
+  background: var(--surface-2); color: var(--ink); border: 1px solid var(--line);
+  border-radius: 28px 28px 0 0; width: 100%; max-width: 600px; margin: 0 auto;
+  max-height: 90dvh; overflow-y: auto; padding: 22px 22px calc(26px + env(safe-area-inset-bottom));
+  animation-duration: .22s;
+}
+body:has(.money-app) .bottom-sheet h2 { color: var(--ink) !important; }
+body:has(.money-app) .money-overlay { font-family: var(--money-font); }
+.money-app .recap, .money-app .recap-head { background: var(--surface); box-shadow: none; }
+.money-app .toast { bottom: calc(94px + env(safe-area-inset-bottom)); border-radius: 16px; }
+.money-app .anim-in, .money-app .anim-fadeInUp, .money-app .anim-fadeIn, .money-app .anim-scaleIn {
+  animation: money-enter .22s ease-out both; animation-delay: 0s;
+}
+.money-app.money-next [class*="text-[9"], .money-app.money-next [class*="text-[10"], .money-app.money-next [class*="text-[11"] { font-size: 12px; }
+.money-app.money-next .text-white, body:has(.money-app) .money-overlay .text-white { color: var(--bg); }
+.money-app.money-next .text-white.bg-white { color: var(--ink); }
+.money-app.money-next [role="img"] > div { transition: width .22s ease; animation: money-progress .3s ease-out; }
+.money-app.money-next a { text-decoration: none; }
+.money-app.money-next .money-content { display: grid; gap: 0; }
+.money-app.money-next .money-content > :last-child { margin-bottom: 0; }
+@keyframes money-enter { from { opacity: .5; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes money-progress { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
+@media (min-width: 768px) {
+  .money-app .app, .money-app.money-next { padding-top: 36px; }
+  .money-app .card { padding: 28px; }
+  .money-app .hero { padding: 32px; }
+  .money-app .sheet, body:has(.money-app) .bottom-sheet { border-radius: 28px; margin-bottom: 20px; }
+}
+@media (max-width: 359px) {
+  .money-app .app { padding-left: 12px; padding-right: 12px; }
+  .money-app .card { padding: 18px; border-radius: 22px; }
+  .money-app .head h1, .money-app h1 { font-size: 21px; }
+  .money-app .head, .money-app .money-header { flex-wrap: wrap; }
+  .money-app .tabbar { width: calc(100% - 12px); padding: 4px; }
+  .money-app .tab-label { font-size: 12px; }
+  .money-app .rm-mini-row, .money-app .totals-line { gap: 8px; flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .money-app *, .money-app *::before, .money-app *::after,
+  body:has(.money-app) .money-overlay * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+@media (prefers-reduced-transparency: reduce) { .money-app .tabbar { background: #202823; backdrop-filter: none; -webkit-backdrop-filter: none; } }
+@media (prefers-contrast: more) { .money-app { --line: rgba(255,255,255,.32); --muted: #c0ccc4; } }

@@ -1,9 +1,13 @@
 'use client';
 
+import MoneyIcon from '@/components/ui/MoneyIcon';
+
+import { MONEY_ACCENT, MONEY_DANGER } from '@/components/ui/money-theme';
+
 import { useEffect, useState } from 'react';
 import { LivingExpense, BudgetCategory } from '@/types';
 import { generateId } from '@/lib/utils';
-import { digitsOnly, MONEY_ACCENT, MONEY_DANGER } from '@/lib/money';
+import { digitsOnly } from '@/lib/money';
 import BottomSheet from '@/components/ui/BottomSheet';
 import { showToast } from '@/components/ui/Toast';
 
@@ -67,7 +71,7 @@ export default function ExpenseSheet({
             className="input"
           >
             {categories.map(c => (
-              <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>
+              <option key={c.id} value={c.id}><MoneyIcon name="category" /> {c.name}</option>
             ))}
           </select>
         </div>
@@ -75,7 +79,7 @@ export default function ExpenseSheet({
         <div>
           <label className="field-label" htmlFor="expense-amount">使った金額 *</label>
           <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#A8A29E' }}>¥</span>
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: 'var(--muted)' }}>¥</span>
             <input
               id="expense-amount"
               type="text"
@@ -121,7 +125,7 @@ export default function ExpenseSheet({
         <button
           onClick={onClose}
           className="flex-1 py-3.5 rounded-2xl text-sm font-medium"
-          style={{ background: '#F0EBE6', color: '#78716C' }}
+          style={{ background: 'var(--surface-2)', color: 'var(--sub)' }}
         >
           キャンセル
         </button>

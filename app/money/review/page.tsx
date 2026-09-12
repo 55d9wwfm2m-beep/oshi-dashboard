@@ -1,5 +1,9 @@
 'use client';
 
+import MoneyIcon from '@/components/ui/MoneyIcon';
+
+import { MONEY_ACCENT, MONEY_DANGER } from '@/components/ui/money-theme';
+
 import { useState } from 'react';
 import Link from 'next/link';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
@@ -7,8 +11,6 @@ import { FixedCost, MonthlyBudget, MonthlyRecord, LivingExpense, BudgetCategory 
 import { formatYen, getCurrentMonth, formatDateShort } from '@/lib/utils';
 import {
   MONEY_KEYS,
-  MONEY_ACCENT,
-  MONEY_DANGER,
   formatMonthLabel,
   formatPeriodRange,
   periodByKey,
@@ -29,7 +31,7 @@ import {
 import ExpenseSheet from '@/components/ui/ExpenseSheet';
 import MoneyTabs from '@/components/ui/MoneyTabs';
 
-const WARN = '#A8770E';
+const WARN = 'var(--warn)';
 type Range = 'month' | '3m' | 'all';
 
 /** 予算に対して使った割合を示すメーター。トラックが予算、塗りが実績 */
@@ -39,7 +41,7 @@ function Meter({ used, budgeted, label }: { used: number; budgeted: number; labe
   return (
     <div
       className="h-1.5 rounded mt-2 overflow-hidden"
-      style={{ background: '#F0EBE6' }}
+      style={{ background: 'var(--surface-2)' }}
       role="img"
       aria-label={`${label} 予算 ${formatYen(budgeted)} のうち ${formatYen(used)} 使用`}
     >
@@ -145,13 +147,13 @@ export default function ReviewPage() {
   return (
     <div className="min-h-screen">
       <div className="px-4 pt-8 pb-5 anim-fadeIn">
-        <Link href="/money" className="inline-flex items-center gap-1 text-xs font-medium py-1 -my-1" style={{ color: '#A8A29E' }}>
+        <Link href="/money" className="inline-flex items-center gap-1 text-xs font-medium py-1 -my-1" style={{ color: 'var(--muted)' }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3.5 h-3.5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
           </svg>
           やりくり電卓へ戻る
         </Link>
-        <h1 className="text-2xl font-semibold mt-1" style={{ color: '#1C1917' }}>振り返り</h1>
+        <h1 className="text-2xl font-semibold mt-1" style={{ color: 'var(--ink)' }}>振り返り</h1>
       </div>
 
       <MoneyTabs />
@@ -164,24 +166,24 @@ export default function ReviewPage() {
             onClick={() => setSelected(m)}
             aria-pressed={m === month}
             className="shrink-0 rounded-full px-4 py-2 text-xs font-bold transition-colors"
-            style={m === month ? { background: MONEY_ACCENT, color: '#fff' } : { background: '#F0EBE6', color: '#78716C' }}
+            style={m === month ? { background: MONEY_ACCENT, color: 'var(--surface)' } : { background: 'var(--surface-2)', color: 'var(--sub)' }}
           >
             {formatMonthLabel(m)}
           </button>
         ))}
       </div>
 
-      <div className="px-4 space-y-4">
+      <div className="money-content px-4 space-y-4">
         {/* まとめ */}
         <div className="card p-5 anim-fadeInUp">
-          <p className="text-sm font-medium mb-1" style={{ color: '#78716C' }}>
+          <p className="text-sm font-medium mb-1" style={{ color: 'var(--sub)' }}>
             {formatMonthLabel(month)}のまとめ
           </p>
-          <p className="text-[11px] mb-2" style={{ color: '#A8A29E' }}>
+          <p className="text-[11px] mb-2" style={{ color: 'var(--muted)' }}>
             {formatPeriodRange(periodByKey(month, payday))}
           </p>
           {lines.length === 0 ? (
-            <p className="text-xs text-center py-2.5" style={{ color: '#A8A29E' }}>
+            <p className="text-xs text-center py-2.5" style={{ color: 'var(--muted)' }}>
               給料や支出を記録すると、その月の変化をまとめます
             </p>
           ) : (
@@ -189,15 +191,15 @@ export default function ReviewPage() {
               <div
                 key={`${l.label}-${i}`}
                 className="flex gap-2.5 py-2.5"
-                style={{ borderBottom: i === lines.length - 1 ? 'none' : '1px solid rgba(28,18,12,0.06)' }}
+                style={{ borderBottom: i === lines.length - 1 ? 'none' : '1px solid var(--line)' }}
               >
-                <span className="text-base leading-snug shrink-0" aria-hidden="true">{l.emoji}</span>
+                <span className="text-base leading-snug shrink-0" aria-hidden="true"><MoneyIcon name="category" /></span>
                 <div>
-                  <p className="text-[13px] font-bold" style={{ color: '#1C1917' }}>{l.label}</p>
+                  <p className="text-[13px] font-bold" style={{ color: 'var(--ink)' }}>{l.label}</p>
                   <p
                     className="text-xs mt-0.5"
                     style={{
-                      color: l.tone === 'good' ? MONEY_ACCENT : l.tone === 'warn' ? MONEY_DANGER : '#78716C',
+                      color: l.tone === 'good' ? MONEY_ACCENT : l.tone === 'warn' ? MONEY_DANGER : 'var(--sub)',
                       fontWeight: l.tone === 'neutral' ? 400 : 600,
                     }}
                   >
@@ -211,10 +213,10 @@ export default function ReviewPage() {
 
         {/* カテゴリー別（メーター） */}
         <div className="card p-5 anim-fadeInUp">
-          <p className="text-sm font-medium" style={{ color: '#78716C' }}>生活費の使いみち</p>
-          <p className="text-[11px] mb-2" style={{ color: '#A8A29E' }}>バーは予算に対して使った割合です</p>
+          <p className="text-sm font-medium" style={{ color: 'var(--sub)' }}>生活費の使いみち</p>
+          <p className="text-[11px] mb-2" style={{ color: 'var(--muted)' }}>バーは予算に対して使った割合です</p>
           {catRows.length === 0 ? (
-            <p className="text-xs text-center py-2.5" style={{ color: '#A8A29E' }}>まだ支出の記録がありません</p>
+            <p className="text-xs text-center py-2.5" style={{ color: 'var(--muted)' }}>まだ支出の記録がありません</p>
           ) : (
             catRows.map(c => {
               const used = spentByCat[c.id] || 0;
@@ -224,22 +226,22 @@ export default function ReviewPage() {
                 !over && used > 0 && avg.months >= ALERT_MIN_MONTHS && avg.average > 0 &&
                 used - avg.average >= ALERT_MIN_DIFF && used / avg.average >= ALERT_MIN_RATIO;
               return (
-                <div key={c.id} className="py-2.5" style={{ borderBottom: '1px solid rgba(28,18,12,0.06)' }}>
+                <div key={c.id} className="py-2.5" style={{ borderBottom: '1px solid var(--line)' }}>
                   <div className="flex items-center gap-2.5">
-                    <span className="text-[15px] leading-none shrink-0" aria-hidden="true">{c.emoji}</span>
-                    <span className="text-[13.5px] font-semibold truncate" style={{ color: '#1C1917' }}>{c.name}</span>
+                    <span className="text-[15px] leading-none shrink-0" aria-hidden="true"><MoneyIcon name="category" /></span>
+                    <span className="text-[13.5px] font-semibold truncate" style={{ color: 'var(--ink)' }}>{c.name}</span>
                   </div>
 
                   {/* 使った金額は一番読みたい数字なので大きく出す */}
                   <div className="flex items-baseline justify-between gap-2.5 mt-2">
                     <span
                       className="text-[21px] font-bold leading-tight"
-                      style={{ color: over ? MONEY_DANGER : '#1C1917', fontVariantNumeric: 'tabular-nums' }}
+                      style={{ color: over ? MONEY_DANGER : 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}
                     >
-                      <small className="text-[11px] font-semibold mr-1.5" style={{ color: '#A8A29E' }}>使った</small>
+                      <small className="text-[11px] font-semibold mr-1.5" style={{ color: 'var(--muted)' }}>使った</small>
                       {formatYen(used)}
                     </span>
-                    <span className="text-[11.5px] shrink-0" style={{ color: '#A8A29E', fontVariantNumeric: 'tabular-nums' }}>
+                    <span className="text-[11.5px] shrink-0" style={{ color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
                       予算 {formatYen(c.amount)}
                     </span>
                   </div>
@@ -247,12 +249,12 @@ export default function ReviewPage() {
                   <Meter used={used} budgeted={c.amount} label={c.name} />
                   {over && (
                     <p className="text-[10.5px] mt-1.5 font-bold" style={{ color: MONEY_DANGER }}>
-                      ⚠ 予算を {formatYen(used - c.amount)} オーバー
+                      <MoneyIcon name="category" /> 予算を {formatYen(used - c.amount)} オーバー
                     </p>
                   )}
                   {high && (
                     <p className="text-[10.5px] mt-1.5 font-bold" style={{ color: WARN }}>
-                      📈 普段の月平均 {formatYen(avg.average)} → いつもより約 {formatYen(used - avg.average)} 多め
+                      <MoneyIcon name="review" /> 普段の月平均 {formatYen(avg.average)} → いつもより約 {formatYen(used - avg.average)} 多め
                     </p>
                   )}
                 </div>
@@ -263,15 +265,15 @@ export default function ReviewPage() {
 
         {/* 月ごとの生活費（単一系列） */}
         <div className="card p-5 anim-fadeInUp">
-          <p className="text-sm font-medium" style={{ color: '#78716C' }}>月ごとの生活費</p>
-          <p className="text-[11px] mb-1" style={{ color: '#A8A29E' }}>
+          <p className="text-sm font-medium" style={{ color: 'var(--sub)' }}>月ごとの生活費</p>
+          <p className="text-[11px] mb-1" style={{ color: 'var(--muted)' }}>
             {trend.some(t => t.value > 0) ? '記録した支出の合計です' : 'まだ支出の記録がありません'}
           </p>
           <div className="flex items-end gap-2 h-[132px] pt-1.5">
             {trend.map(t => (
               <div key={t.month} className="flex-1 min-w-0 h-full flex flex-col items-center justify-end">
                 {t.value > 0 && (
-                  <span className="text-[9.5px] mb-1 whitespace-nowrap" style={{ color: '#78716C', fontVariantNumeric: 'tabular-nums' }}>
+                  <span className="text-[9.5px] mb-1 whitespace-nowrap" style={{ color: 'var(--sub)', fontVariantNumeric: 'tabular-nums' }}>
                     {formatYen(t.value)}
                   </span>
                 )}
@@ -279,17 +281,17 @@ export default function ReviewPage() {
                   className="w-full max-w-[34px] rounded-t"
                   style={{
                     height: Math.max(3, Math.round((t.value / trendMax) * 92)),
-                    background: t.month === month ? '#2B7A63' : t.value === 0 ? '#F0EBE6' : MONEY_ACCENT,
+                    background: t.month === month ? 'var(--safe)' : t.value === 0 ? 'var(--surface-2)' : MONEY_ACCENT,
                   }}
                 />
               </div>
             ))}
           </div>
-          <div className="h-px" style={{ background: 'rgba(28,18,12,0.08)' }} aria-hidden="true" />
+          <div className="h-px" style={{ background: 'var(--line)' }} aria-hidden="true" />
           <div className="flex gap-2 pt-1.5">
             {trend.map(t => (
               <div key={t.month} className="flex-1 min-w-0 text-center">
-                <span className="text-[10px]" style={{ color: '#A8A29E' }}>{parseInt(t.month.split('-')[1], 10)}月</span>
+                <span className="text-[10px]" style={{ color: 'var(--muted)' }}>{parseInt(t.month.split('-')[1], 10)}月</span>
               </div>
             ))}
           </div>
@@ -298,7 +300,7 @@ export default function ReviewPage() {
         {/* 支出の記録 */}
         <div className="card p-5 anim-fadeInUp">
           <div className="flex items-center justify-between mb-2.5">
-            <p className="text-sm font-medium" style={{ color: '#78716C' }}>支出の記録</p>
+            <p className="text-sm font-medium" style={{ color: 'var(--sub)' }}>支出の記録</p>
             <button
               onClick={() => { setEditing(null); setSheetOpen(true); }}
               className="text-xs font-semibold"
@@ -308,7 +310,7 @@ export default function ReviewPage() {
             </button>
           </div>
 
-          <div className="flex gap-1.5 p-1 rounded-2xl mb-3" style={{ background: '#F0EBE6' }} role="group" aria-label="期間を選ぶ">
+          <div className="flex gap-1.5 p-1 rounded-2xl mb-3" style={{ background: 'var(--surface-2)' }} role="group" aria-label="期間を選ぶ">
             {([['month', 'この月'], ['3m', '過去3か月'], ['all', 'すべて']] as [Range, string][]).map(([key, label]) => (
               <button
                 key={key}
@@ -316,8 +318,8 @@ export default function ReviewPage() {
                 aria-pressed={range === key}
                 className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold transition-all"
                 style={range === key
-                  ? { background: 'white', color: '#1C1917', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }
-                  : { color: '#A8A29E' }}
+                  ? { background: 'var(--surface-2)', color: 'var(--ink)', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }
+                  : { color: 'var(--muted)' }}
               >
                 {label}
               </button>
@@ -325,7 +327,7 @@ export default function ReviewPage() {
           </div>
 
           {listed.length === 0 ? (
-            <p className="text-xs text-center py-2.5" style={{ color: '#A8A29E' }}>この期間の記録はありません</p>
+            <p className="text-xs text-center py-2.5" style={{ color: 'var(--muted)' }}>この期間の記録はありません</p>
           ) : (
             <>
               {[...listed].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 60).map(e => {
@@ -335,26 +337,26 @@ export default function ReviewPage() {
                     key={e.id}
                     onClick={() => { setEditing(e); setSheetOpen(true); }}
                     className="w-full flex items-center gap-2.5 py-2.5 text-left"
-                    style={{ borderBottom: '1px solid rgba(28,18,12,0.06)' }}
+                    style={{ borderBottom: '1px solid var(--line)' }}
                   >
-                    <span className="text-[15px] leading-none shrink-0" aria-hidden="true">{c?.emoji ?? '📦'}</span>
+                    <span className="text-[15px] leading-none shrink-0" aria-hidden="true"><MoneyIcon name="category" /></span>
                     <span className="flex-1 min-w-0">
-                      <span className="block text-[13px] font-semibold truncate" style={{ color: '#1C1917' }}>
+                      <span className="block text-[13px] font-semibold truncate" style={{ color: 'var(--ink)' }}>
                         {c?.name ?? '（削除されたカテゴリー）'}
                       </span>
-                      <span className="block text-[10.5px] mt-0.5" style={{ color: '#A8A29E' }}>
+                      <span className="block text-[10.5px] mt-0.5" style={{ color: 'var(--muted)' }}>
                         {formatDateShort(e.date)}{e.memo && `・${e.memo}`}
                       </span>
                     </span>
-                    <span className="text-sm font-bold shrink-0" style={{ color: '#1C1917', fontVariantNumeric: 'tabular-nums' }}>
+                    <span className="text-sm font-bold shrink-0" style={{ color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
                       {formatYen(e.amount)}
                     </span>
                   </button>
                 );
               })}
-              <div className="flex justify-between items-baseline mt-2 pt-2.5" style={{ borderTop: '1px solid rgba(28,18,12,0.06)' }}>
-                <span className="text-[12.5px] font-semibold" style={{ color: '#1C1917' }}>この期間の合計</span>
-                <span className="text-[17px] font-bold font-serif-num" style={{ color: '#1C1917' }}>{formatYen(listedTotal)}</span>
+              <div className="flex justify-between items-baseline mt-2 pt-2.5" style={{ borderTop: '1px solid var(--line)' }}>
+                <span className="text-[12.5px] font-semibold" style={{ color: 'var(--ink)' }}>この期間の合計</span>
+                <span className="text-[17px] font-bold font-serif-num" style={{ color: 'var(--ink)' }}>{formatYen(listedTotal)}</span>
               </div>
             </>
           )}

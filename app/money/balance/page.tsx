@@ -1,5 +1,9 @@
 'use client';
 
+import MoneyIcon from '@/components/ui/MoneyIcon';
+
+import { MONEY_ACCENT, MONEY_ACCENT_BG, MONEY_DANGER, MONEY_DANGER_BG } from '@/components/ui/money-theme';
+
 import { useState } from 'react';
 import Link from 'next/link';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
@@ -7,10 +11,6 @@ import { FixedCost, MoneyAccount, MonthlyBudget } from '@/types';
 import { formatYen, getCurrentMonth } from '@/lib/utils';
 import {
   MONEY_KEYS,
-  MONEY_ACCENT,
-  MONEY_ACCENT_BG,
-  MONEY_DANGER,
-  MONEY_DANGER_BG,
   digitsOnly,
   unpaidTotal,
   accountAmount,
@@ -75,10 +75,10 @@ export default function BalancePage() {
 
   return (
     <div className="min-h-screen">
-      <div className="px-4 pt-8 pb-4 flex items-end justify-between">
+      <div className="money-header">
         <div className="anim-fadeIn">
-          <p className="text-[11px] font-medium tracking-widest uppercase" style={{ color: '#A8A29E' }}>Balance</p>
-          <h1 className="text-2xl font-semibold mt-0.5" style={{ color: '#1C1917' }}>残高と支払い</h1>
+          <p className="text-[11px] font-medium tracking-widest uppercase" style={{ color: 'var(--muted)' }}>Balance</p>
+          <h1 className="text-2xl font-semibold mt-0.5" style={{ color: 'var(--ink)' }}>残高と支払い</h1>
         </div>
         <Link
           href="/money/settings"
@@ -91,11 +91,11 @@ export default function BalancePage() {
 
       <MoneyTabs />
 
-      <div className="px-4 space-y-4">
+      <div className="money-content px-4 space-y-4">
         {/* 今持っているお金（口座ごと） */}
         <div className="card p-5 anim-fadeInUp stagger-1">
           <div className="flex items-center justify-between mb-3.5">
-            <p className="text-sm font-medium" style={{ color: '#78716C' }}>今持っているお金</p>
+            <p className="text-sm font-medium" style={{ color: 'var(--sub)' }}>今持っているお金</p>
             <Link href="/money/settings" className="text-xs font-medium px-2 py-1.5 -my-1 rounded-lg" style={{ color: MONEY_ACCENT }}>
               口座を編集
             </Link>
@@ -103,7 +103,7 @@ export default function BalancePage() {
 
           {accounts.length === 0 ? (
             <div className="text-center py-4 space-y-3">
-              <p className="text-xs leading-relaxed" style={{ color: '#A8A29E' }}>
+              <p className="text-xs leading-relaxed" style={{ color: 'var(--muted)' }}>
                 口座がまだありません。現金・銀行・PayPayなど、<br />持っているお金を分けて登録できます
               </p>
               <Link
@@ -124,7 +124,7 @@ export default function BalancePage() {
                       key={acc.id}
                       className="py-3"
                       style={{
-                        borderBottom: '1px solid rgba(28,18,12,0.06)',
+                        borderBottom: '1px solid var(--line)',
                         paddingTop: i === 0 ? 0 : undefined,
                       }}
                     >
@@ -134,19 +134,19 @@ export default function BalancePage() {
                           style={{ opacity: on ? 0.85 : 0.45, filter: on ? 'none' : 'grayscale(1)' }}
                           aria-hidden="true"
                         >
-                          {on ? '🏦' : '🔒'}
+                          <MoneyIcon name="balance" />
                         </span>
                         <label
                           htmlFor={`acc-${acc.id}`}
                           className="flex-1 min-w-0 text-sm font-semibold truncate"
-                          style={{ color: on ? '#1C1917' : '#A8A29E' }}
+                          style={{ color: on ? 'var(--ink)' : 'var(--muted)' }}
                         >
                           {acc.name}
                         </label>
                         {!on && (
                           <span
                             className="text-[10px] font-bold px-2 py-[3px] rounded-full shrink-0"
-                            style={{ background: '#F0EBE6', color: '#A8A29E' }}
+                            style={{ background: 'var(--surface-2)', color: 'var(--muted)' }}
                           >
                             計算対象外
                           </span>
@@ -154,7 +154,7 @@ export default function BalancePage() {
                       </div>
 
                       <div className="relative">
-                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#A8A29E' }}>¥</span>
+                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm" style={{ color: 'var(--muted)' }}>¥</span>
                         <input
                           id={`acc-${acc.id}`}
                           type="text"
@@ -170,7 +170,7 @@ export default function BalancePage() {
                           style={{
                             paddingLeft: 30,
                             fontVariantNumeric: 'tabular-nums',
-                            color: on ? '#1C1917' : '#A8A29E',
+                            color: on ? 'var(--ink)' : 'var(--muted)',
                             background: on ? undefined : 'transparent',
                           }}
                         />
@@ -190,15 +190,15 @@ export default function BalancePage() {
 
               {/* 総資産と予算対象残高（対象外の口座があるときだけ2段で出す） */}
               {hasExcluded ? (
-                <div className="mt-3.5 pt-3 space-y-2" style={{ borderTop: '1px solid rgba(28,18,12,0.06)' }}>
+                <div className="mt-3.5 pt-3 space-y-2" style={{ borderTop: '1px solid var(--line)' }}>
                   <div className="flex justify-between items-baseline">
-                    <span className="text-[12.5px]" style={{ color: '#78716C' }}>総資産</span>
-                    <span className="text-[15px] font-bold font-serif-num" style={{ color: '#1C1917' }}>
+                    <span className="text-[12.5px]" style={{ color: 'var(--sub)' }}>総資産</span>
+                    <span className="text-[15px] font-bold font-serif-num" style={{ color: 'var(--ink)' }}>
                       {formatYen(accountsTotal(accounts))}
                     </span>
                   </div>
                   <div className="flex justify-between items-baseline">
-                    <span className="text-[12.5px] font-semibold" style={{ color: '#1C1917' }}>予算対象残高</span>
+                    <span className="text-[12.5px] font-semibold" style={{ color: 'var(--ink)' }}>予算対象残高</span>
                     <span className="text-[19px] font-bold font-serif-num" style={{ color: MONEY_ACCENT }}>
                       {formatYen(budgetTotal(accounts))}
                     </span>
@@ -207,10 +207,10 @@ export default function BalancePage() {
               ) : accounts.length > 1 ? (
                 <div
                   className="flex justify-between items-baseline mt-3.5 pt-3"
-                  style={{ borderTop: '1px solid rgba(28,18,12,0.06)' }}
+                  style={{ borderTop: '1px solid var(--line)' }}
                 >
-                  <span className="text-sm font-medium" style={{ color: '#78716C' }}>合計</span>
-                  <span className="text-xl font-semibold font-serif-num" style={{ color: '#1C1917' }}>
+                  <span className="text-sm font-medium" style={{ color: 'var(--sub)' }}>合計</span>
+                  <span className="text-xl font-semibold font-serif-num" style={{ color: 'var(--ink)' }}>
                     {formatYen(accountsTotal(accounts))}
                   </span>
                 </div>
@@ -218,7 +218,7 @@ export default function BalancePage() {
             </>
           )}
 
-          <p className="text-[11px] mt-3" style={{ color: '#A8A29E' }}>
+          <p className="text-[11px] mt-3" style={{ color: 'var(--muted)' }}>
             使っていいお金 ＝ 今持っているお金 − 未払いの固定費
           </p>
         </div>
@@ -226,7 +226,7 @@ export default function BalancePage() {
         {/* 固定費リスト */}
         <div className="card p-5 anim-fadeInUp stagger-2">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-medium" style={{ color: '#78716C' }}>今月の固定費</p>
+            <p className="text-sm font-medium" style={{ color: 'var(--sub)' }}>今月の固定費</p>
             {costs.length > 0 && (
               <Link href="/money/settings" className="text-xs font-medium px-2 py-1.5 -my-1 rounded-lg" style={{ color: MONEY_ACCENT }}>
                 編集
@@ -236,9 +236,9 @@ export default function BalancePage() {
 
           {costs.length === 0 ? (
             <div className="text-center py-8 space-y-3">
-              <p className="text-4xl">🧾</p>
-              <p className="text-sm font-medium" style={{ color: '#78716C' }}>固定費がまだ登録されていません</p>
-              <p className="text-xs leading-relaxed" style={{ color: '#A8A29E' }}>
+              <p className="text-4xl"><MoneyIcon name="budget" /></p>
+              <p className="text-sm font-medium" style={{ color: 'var(--sub)' }}>固定費がまだ登録されていません</p>
+              <p className="text-xs leading-relaxed" style={{ color: 'var(--muted)' }}>
                 家賃・スマホ代・サブスクなどを登録すると<br />使っていいお金が自動で計算されます
               </p>
               <Link
@@ -268,10 +268,10 @@ export default function BalancePage() {
                         : `${base}より ${formatYen(diff!)} 高くなりました`;
                   const subColor = settled && diff !== 0
                     ? (diff! < 0 ? MONEY_ACCENT : MONEY_DANGER)
-                    : '#A8A29E';
+                    : 'var(--muted)';
 
                   return (
-                    <li key={cost.id} style={{ borderBottom: '1px solid rgba(28,18,12,0.05)' }}>
+                    <li key={cost.id} style={{ borderBottom: '1px solid var(--line)' }}>
                       <button
                         onClick={() => togglePaid(cost.id)}
                         aria-pressed={cost.paid}
@@ -283,12 +283,12 @@ export default function BalancePage() {
                           style={
                             cost.paid
                               ? { background: MONEY_ACCENT }
-                              : { border: '2px solid #D9D3CD', background: 'white' }
+                              : { border: '2px solid #536159', background: 'var(--surface-2)' }
                           }
                           aria-hidden="true"
                         >
                           {cost.paid && (
-                            <svg viewBox="0 0 20 20" fill="none" stroke="white" strokeWidth={2.5} className="w-3.5 h-3.5">
+                            <svg viewBox="0 0 20 20" fill="none" stroke="var(--bg)" strokeWidth={2.5} className="w-3.5 h-3.5">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5l3.5 3.5 7.5-8.5" />
                             </svg>
                           )}
@@ -296,9 +296,9 @@ export default function BalancePage() {
                         <span className="flex-1 min-w-0">
                           <span
                             className="block text-sm font-medium truncate"
-                            style={{ color: cost.paid ? '#A8A29E' : '#1C1917' }}
+                            style={{ color: cost.paid ? 'var(--muted)' : 'var(--ink)' }}
                           >
-                            {variable && '⚡ '}
+                            {variable && <MoneyIcon name="info" />}
                             {cost.name}
                             {/* 変動費は未確定/確定、固定費は実額を入れたときだけ「実額」 */}
                             {(variable || settled) && (
@@ -307,7 +307,7 @@ export default function BalancePage() {
                                 style={
                                   settled
                                     ? { background: MONEY_ACCENT_BG, color: MONEY_ACCENT }
-                                    : { background: 'rgba(168,119,14,0.10)', color: '#A8770E' }
+                                    : { background: 'var(--warn-soft)', color: 'var(--warn)' }
                                 }
                               >
                                 {settled ? (variable ? '確定' : '実額') : '未確定'}
@@ -316,7 +316,7 @@ export default function BalancePage() {
                           </span>
                           <span
                             className="block text-[11px] mt-0.5"
-                            style={{ color: subColor, fontWeight: subColor === '#A8A29E' ? 400 : 600 }}
+                            style={{ color: subColor, fontWeight: subColor === 'var(--muted)' ? 400 : 600 }}
                           >
                             {sub}
                           </span>
@@ -326,15 +326,15 @@ export default function BalancePage() {
                             className="block text-sm font-semibold"
                             style={
                               cost.paid
-                                ? { color: '#A8A29E', textDecoration: 'line-through' }
-                                : { color: '#1C1917' }
+                                ? { color: 'var(--muted)', textDecoration: 'line-through' }
+                                : { color: 'var(--ink)' }
                             }
                           >
                             {formatYen(effectiveAmount(cost))}
                           </span>
                           <span
                             className="block text-[11px] mt-0.5 font-medium"
-                            style={{ color: cost.paid ? MONEY_ACCENT : '#A8A29E' }}
+                            style={{ color: cost.paid ? MONEY_ACCENT : 'var(--muted)' }}
                           >
                             {cost.paid ? '支払い済み' : '未払い'}
                           </span>
@@ -347,8 +347,8 @@ export default function BalancePage() {
                         className="ml-9 mb-3 px-3.5 py-1.5 rounded-full text-[11px] font-bold active:scale-95 transition-transform"
                         style={
                           settled || !variable
-                            ? { background: '#F0EBE6', color: '#78716C' }
-                            : { background: 'rgba(168,119,14,0.10)', color: '#A8770E' }
+                            ? { background: 'var(--surface-2)', color: 'var(--sub)' }
+                            : { background: 'var(--warn-soft)', color: 'var(--warn)' }
                         }
                       >
                         {variable
@@ -362,15 +362,15 @@ export default function BalancePage() {
 
               <div className="pt-3 space-y-1">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm" style={{ color: '#78716C' }}>未払いの合計</span>
-                  <span className="text-lg font-semibold font-serif-num" style={{ color: '#1C1917' }}>
+                  <span className="text-sm" style={{ color: 'var(--sub)' }}>未払いの合計</span>
+                  <span className="text-lg font-semibold font-serif-num" style={{ color: 'var(--ink)' }}>
                     {formatYen(unpaid)}
                   </span>
                 </div>
                 {paidTotal > 0 && (
                   <div className="flex justify-between items-center">
-                    <span className="text-[11px]" style={{ color: '#A8A29E' }}>支払い済みの合計</span>
-                    <span className="text-[11px] font-medium" style={{ color: '#A8A29E' }}>
+                    <span className="text-[11px]" style={{ color: 'var(--muted)' }}>支払い済みの合計</span>
+                    <span className="text-[11px] font-medium" style={{ color: 'var(--muted)' }}>
                       {formatYen(paidTotal)}
                     </span>
                   </div>
@@ -390,11 +390,11 @@ export default function BalancePage() {
       >
         {actualTarget && (
           <>
-            <div className="p-4 rounded-2xl" style={{ background: 'rgba(168,119,14,0.10)' }}>
-              <p className="text-sm font-medium" style={{ color: '#1C1917' }}>
-                {isVariable(actualTarget) && '⚡ '}{actualTarget.name}
+            <div className="p-4 rounded-2xl" style={{ background: 'var(--warn-soft)' }}>
+              <p className="text-sm font-medium" style={{ color: 'var(--ink)' }}>
+                {isVariable(actualTarget) && <MoneyIcon name="info" />}{actualTarget.name}
               </p>
-              <p className="text-xs mt-0.5" style={{ color: '#78716C' }}>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--sub)' }}>
                 {isVariable(actualTarget) ? '予想' : '登録額'} {formatYen(actualTarget.amount)}・毎月{actualTarget.payDay}日
               </p>
             </div>
@@ -404,7 +404,7 @@ export default function BalancePage() {
                 {isVariable(actualTarget) ? '確定した請求額' : '実際に自分が払った額'}
               </label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#A8A29E' }}>¥</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: 'var(--muted)' }}>¥</span>
                 <input
                   id="actual-amount"
                   type="text"
@@ -416,14 +416,14 @@ export default function BalancePage() {
                   className="input pl-8"
                 />
               </div>
-              <p className="text-[11px] mt-1.5" style={{ color: '#A8A29E' }}>{actualPreview}</p>
+              <p className="text-[11px] mt-1.5" style={{ color: 'var(--muted)' }}>{actualPreview}</p>
             </div>
 
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => saveActual(null)}
                 className="flex-1 py-3.5 rounded-2xl text-sm font-medium"
-                style={{ background: '#F0EBE6', color: '#78716C' }}
+                style={{ background: 'var(--surface-2)', color: 'var(--sub)' }}
               >
                 {isVariable(actualTarget) ? '未確定に戻す' : '登録額に戻す'}
               </button>

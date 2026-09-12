@@ -64,8 +64,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ja" suppressHydrationWarning>
       <body className={`${inter.variable} ${cormorant.variable} font-[family:var(--font-inter)]`}>
         <ThemeProvider>
-          <div className="min-h-screen" style={{ background: '#F5F2EE' }}>
-            <main className="pb-24 max-w-lg mx-auto min-h-screen" style={{ background: '#FAF8F6' }}>
+          <div className="app-shell min-h-screen" style={{ background: '#F5F2EE' }}>
+            <main className="app-main pb-24 max-w-lg mx-auto min-h-screen" style={{ background: '#FAF8F6' }}>
               {children}
             </main>
             <BottomNav />

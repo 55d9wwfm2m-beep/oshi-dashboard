@@ -1,5 +1,9 @@
 'use client';
 
+import MoneyIcon from '@/components/ui/MoneyIcon';
+
+import { MONEY_ACCENT, MONEY_ACCENT_BG, MONEY_DANGER, MONEY_DANGER_BG } from '@/components/ui/money-theme';
+
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
@@ -7,10 +11,6 @@ import { FixedCost, MoneyAccount } from '@/types';
 import { formatYen, generateId } from '@/lib/utils';
 import {
   MONEY_KEYS,
-  MONEY_ACCENT,
-  MONEY_ACCENT_BG,
-  MONEY_DANGER,
-  MONEY_DANGER_BG,
   digitsOnly,
   sortByPayDay,
   nextPaydayInfo,
@@ -140,19 +140,19 @@ export default function MoneySettingsPage() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <div className="px-4 pt-8 pb-5 flex items-end justify-between">
+      <div className="money-header">
         <div className="anim-fadeIn">
           <Link
             href="/money"
             className="inline-flex items-center gap-1 text-xs font-medium py-1 -my-1"
-            style={{ color: '#A8A29E' }}
+            style={{ color: 'var(--muted)' }}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3.5 h-3.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
             </svg>
             やりくり電卓へ戻る
           </Link>
-          <h1 className="text-2xl font-semibold mt-1" style={{ color: '#1C1917' }}>固定費の設定</h1>
+          <h1 className="text-2xl font-semibold mt-1" style={{ color: 'var(--ink)' }}>固定費の設定</h1>
         </div>
         <button
           onClick={openAdd}
@@ -166,11 +166,11 @@ export default function MoneySettingsPage() {
 
       <MoneyTabs />
 
-      <div className="px-4 space-y-4">
+      <div className="money-content px-4 space-y-4">
         {/* 口座 */}
         <div className="card p-5 anim-fadeInUp">
           <div className="flex items-center justify-between mb-3.5">
-            <p className="text-sm font-medium" style={{ color: '#78716C' }}>口座</p>
+            <p className="text-sm font-medium" style={{ color: 'var(--sub)' }}>口座</p>
             <button
               onClick={() => setAccForm({ id: null, name: '', amount: '' })}
               className="text-xs font-semibold px-2 py-1.5 -my-1 rounded-lg"
@@ -182,7 +182,7 @@ export default function MoneySettingsPage() {
 
           {accounts.length === 0 ? (
             <div className="text-center py-4 space-y-3">
-              <p className="text-xs leading-relaxed" style={{ color: '#A8A29E' }}>
+              <p className="text-xs leading-relaxed" style={{ color: 'var(--muted)' }}>
                 現金・銀行・PayPayなど、持っているお金を<br />分けて登録できます
               </p>
               <button
@@ -203,31 +203,31 @@ export default function MoneySettingsPage() {
                       key={acc.id}
                       className="py-3"
                       style={{
-                        borderBottom: '1px solid rgba(28,18,12,0.06)',
+                        borderBottom: '1px solid var(--line)',
                         paddingTop: i === 0 ? 0 : undefined,
                       }}
                     >
                       <div className="flex items-center gap-3">
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate" style={{ color: on ? '#1C1917' : '#A8A29E' }}>
+                          <p className="text-sm font-medium truncate" style={{ color: on ? 'var(--ink)' : 'var(--muted)' }}>
                             <span
                               className="mr-1"
                               style={{ opacity: on ? 0.85 : 0.45, filter: on ? 'none' : 'grayscale(1)' }}
                               aria-hidden="true"
                             >
-                              {on ? '🏦' : '🔒'}
+                              <MoneyIcon name="balance" />
                             </span>
                             {acc.name}
                             {!on && (
                               <span
                                 className="ml-1.5 text-[10px] font-bold px-2 py-[3px] rounded-full align-middle"
-                                style={{ background: '#F0EBE6', color: '#A8A29E' }}
+                                style={{ background: 'var(--surface-2)', color: 'var(--muted)' }}
                               >
                                 計算対象外
                               </span>
                             )}
                           </p>
-                          <p className="text-[11px] mt-0.5" style={{ color: '#A8A29E' }}>
+                          <p className="text-[11px] mt-0.5" style={{ color: 'var(--muted)' }}>
                             {acc.amount === '' ? '未入力' : formatYen(accountAmount(acc))}
                           </p>
                         </div>
@@ -235,7 +235,7 @@ export default function MoneySettingsPage() {
                           <button
                             onClick={() => setAccForm({ id: acc.id, name: acc.name, amount: acc.amount })}
                             className="text-[11px] px-2 py-1.5 rounded-lg"
-                            style={{ color: '#A8A29E' }}
+                            style={{ color: 'var(--muted)' }}
                             aria-label={`${acc.name}を編集`}
                           >
                             編集
@@ -264,15 +264,15 @@ export default function MoneySettingsPage() {
               </div>
 
               {accounts.some(a => !isBudgetAccount(a)) ? (
-                <div className="mt-3.5 pt-3 space-y-2" style={{ borderTop: '1px solid rgba(28,18,12,0.06)' }}>
+                <div className="mt-3.5 pt-3 space-y-2" style={{ borderTop: '1px solid var(--line)' }}>
                   <div className="flex justify-between items-baseline">
-                    <span className="text-[12.5px]" style={{ color: '#78716C' }}>総資産</span>
-                    <span className="text-[15px] font-bold font-serif-num" style={{ color: '#1C1917' }}>
+                    <span className="text-[12.5px]" style={{ color: 'var(--sub)' }}>総資産</span>
+                    <span className="text-[15px] font-bold font-serif-num" style={{ color: 'var(--ink)' }}>
                       {formatYen(accountsTotal(accounts))}
                     </span>
                   </div>
                   <div className="flex justify-between items-baseline">
-                    <span className="text-[12.5px] font-semibold" style={{ color: '#1C1917' }}>予算対象残高</span>
+                    <span className="text-[12.5px] font-semibold" style={{ color: 'var(--ink)' }}>予算対象残高</span>
                     <span className="text-[19px] font-bold font-serif-num" style={{ color: MONEY_ACCENT }}>
                       {formatYen(budgetTotal(accounts))}
                     </span>
@@ -281,10 +281,10 @@ export default function MoneySettingsPage() {
               ) : accounts.length > 1 ? (
                 <div
                   className="flex justify-between items-baseline mt-3.5 pt-3"
-                  style={{ borderTop: '1px solid rgba(28,18,12,0.06)' }}
+                  style={{ borderTop: '1px solid var(--line)' }}
                 >
-                  <span className="text-sm font-medium" style={{ color: '#78716C' }}>合計</span>
-                  <span className="text-xl font-semibold font-serif-num" style={{ color: '#1C1917' }}>
+                  <span className="text-sm font-medium" style={{ color: 'var(--sub)' }}>合計</span>
+                  <span className="text-xl font-semibold font-serif-num" style={{ color: 'var(--ink)' }}>
                     {formatYen(accountsTotal(accounts))}
                   </span>
                 </div>
@@ -313,7 +313,7 @@ export default function MoneySettingsPage() {
               <option key={d} value={d}>毎月 {d} 日</option>
             ))}
           </select>
-          <p className="text-[11px] mt-2 leading-relaxed" style={{ color: '#A8A29E' }}>
+          <p className="text-[11px] mt-2 leading-relaxed" style={{ color: 'var(--muted)' }}>
             {(() => {
               const info = payday ? nextPaydayInfo(payday) : null;
               if (!info) return `設定するとホームに給料日までの残り日数が表示されます。${PAYDAY_RULE}`;
@@ -326,14 +326,14 @@ export default function MoneySettingsPage() {
         {/* 合計サマリー */}
         {costs.length > 0 && (
           <div className="card p-5 anim-fadeInUp">
-            <p className="text-[11px] font-medium tracking-wider uppercase" style={{ color: '#A8A29E' }}>
+            <p className="text-[11px] font-medium tracking-wider uppercase" style={{ color: 'var(--muted)' }}>
               毎月の固定費合計
             </p>
             <div className="flex items-baseline gap-2 mt-1">
-              <p className="text-2xl font-semibold font-serif-num" style={{ color: '#1C1917', letterSpacing: '-0.02em' }}>
+              <p className="text-2xl font-semibold font-serif-num" style={{ color: 'var(--ink)', letterSpacing: '-0.02em' }}>
                 {formatYen(total)}
               </p>
-              <p className="text-xs" style={{ color: '#A8A29E' }}>{costs.length}件</p>
+              <p className="text-xs" style={{ color: 'var(--muted)' }}>{costs.length}件</p>
             </div>
           </div>
         )}
@@ -341,9 +341,9 @@ export default function MoneySettingsPage() {
         {/* 固定費リスト */}
         {costs.length === 0 ? (
           <div className="text-center py-14 px-8 space-y-3 anim-fadeIn">
-            <p className="text-5xl">🧾</p>
-            <p className="text-base font-medium" style={{ color: '#78716C' }}>固定費がまだ登録されていません</p>
-            <p className="text-sm leading-relaxed" style={{ color: '#A8A29E' }}>
+            <p className="text-5xl"><MoneyIcon name="budget" /></p>
+            <p className="text-base font-medium" style={{ color: 'var(--sub)' }}>固定費がまだ登録されていません</p>
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--muted)' }}>
               家賃・スマホ代・サブスク・貯金など<br />毎月かならず出ていくお金を登録しましょう
             </p>
             <button
@@ -372,8 +372,8 @@ export default function MoneySettingsPage() {
                   <span className="text-[9px] leading-none mt-0.5" style={{ color: MONEY_ACCENT }}>日</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate" style={{ color: '#1C1917' }}>
-                    {isVariable(cost) && '⚡ '}
+                  <p className="text-sm font-medium truncate" style={{ color: 'var(--ink)' }}>
+                    {isVariable(cost) && <MoneyIcon name="info" />}
                     {cost.name}
                     {isVariable(cost) && (
                       <span
@@ -381,14 +381,14 @@ export default function MoneySettingsPage() {
                         style={
                           hasActual(cost)
                             ? { background: MONEY_ACCENT_BG, color: MONEY_ACCENT }
-                            : { background: 'rgba(168,119,14,0.10)', color: '#A8770E' }
+                            : { background: 'var(--warn-soft)', color: 'var(--warn)' }
                         }
                       >
                         {hasActual(cost) ? '確定' : '未確定'}
                       </span>
                     )}
                   </p>
-                  <p className="text-[11px] mt-0.5" style={{ color: '#A8A29E' }}>
+                  <p className="text-[11px] mt-0.5" style={{ color: 'var(--muted)' }}>
                     {!isVariable(cost)
                       ? `毎月${cost.payDay}日に支払い`
                       : hasActual(cost)
@@ -397,11 +397,11 @@ export default function MoneySettingsPage() {
                   </p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="font-semibold text-sm" style={{ color: '#1C1917' }}>{formatYen(effectiveAmount(cost))}</p>
+                  <p className="font-semibold text-sm" style={{ color: 'var(--ink)' }}>{formatYen(effectiveAmount(cost))}</p>
                   <button
                     onClick={() => openEdit(cost)}
                     className="text-[11px] mt-0.5 px-2 py-1.5 -my-1 rounded-lg"
-                    style={{ color: '#A8A29E' }}
+                    style={{ color: 'var(--muted)' }}
                     aria-label={`${cost.name}を編集`}
                   >
                     編集
@@ -444,7 +444,7 @@ export default function MoneySettingsPage() {
               <div>
                 <label className="field-label" htmlFor="account-amount">今ある金額</label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#A8A29E' }}>¥</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: 'var(--muted)' }}>¥</span>
                   <input
                     id="account-amount"
                     type="text"
@@ -462,7 +462,7 @@ export default function MoneySettingsPage() {
               <button
                 onClick={() => setAccForm(null)}
                 className="flex-1 py-3.5 rounded-2xl text-sm font-medium"
-                style={{ background: '#F0EBE6', color: '#78716C' }}
+                style={{ background: 'var(--surface-2)', color: 'var(--sub)' }}
               >
                 キャンセル
               </button>
@@ -488,19 +488,19 @@ export default function MoneySettingsPage() {
         {accDeleteTarget && (
           <>
             <div className="p-4 rounded-2xl" style={{ background: MONEY_DANGER_BG }}>
-              <p className="text-sm font-medium" style={{ color: '#1C1917' }}>{accDeleteTarget.name}</p>
-              <p className="text-xs mt-0.5" style={{ color: '#78716C' }}>
+              <p className="text-sm font-medium" style={{ color: 'var(--ink)' }}>{accDeleteTarget.name}</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--sub)' }}>
                 {accDeleteTarget.amount === '' ? '残高は未入力' : `残高 ${formatYen(accountAmount(accDeleteTarget))}`}
               </p>
             </div>
-            <p className="text-xs mt-3 leading-relaxed" style={{ color: '#A8A29E' }}>
+            <p className="text-xs mt-3 leading-relaxed" style={{ color: 'var(--muted)' }}>
               削除すると、この口座の残高も一緒に消えます。元に戻せません。
             </p>
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setAccDeleteTarget(null)}
                 className="flex-1 py-3.5 rounded-2xl text-sm font-medium"
-                style={{ background: '#F0EBE6', color: '#78716C' }}
+                style={{ background: 'var(--surface-2)', color: 'var(--sub)' }}
               >
                 キャンセル
               </button>
@@ -525,7 +525,7 @@ export default function MoneySettingsPage() {
         <div className="space-y-4">
           <div>
             <label className="field-label">種類</label>
-            <div className="flex gap-1.5 p-1 rounded-2xl" style={{ background: '#F0EBE6' }} role="group" aria-label="固定費の種類">
+            <div className="flex gap-1.5 p-1 rounded-2xl" style={{ background: 'var(--surface-2)' }} role="group" aria-label="固定費の種類">
               {([
                 { key: false, label: '固定' },
                 { key: true, label: '変動' },
@@ -538,15 +538,15 @@ export default function MoneySettingsPage() {
                   className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold transition-all"
                   style={
                     formVariable === opt.key
-                      ? { background: 'white', color: '#1C1917', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }
-                      : { color: '#A8A29E' }
+                      ? { background: 'var(--surface-2)', color: 'var(--ink)', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }
+                      : { color: 'var(--muted)' }
                   }
                 >
                   {opt.label}
                 </button>
               ))}
             </div>
-            <p className="text-[11px] mt-1.5" style={{ color: '#A8A29E' }}>
+            <p className="text-[11px] mt-1.5" style={{ color: 'var(--muted)' }}>
               {formVariable
                 ? '毎月金額が変わる支出（電気代・ガス代・水道代など）'
                 : '毎月ほぼ同じ金額の支出（家賃・サブスク・保険など）'}
@@ -568,7 +568,7 @@ export default function MoneySettingsPage() {
           <div>
             <label className="field-label" htmlFor="fixed-cost-amount">{formVariable ? '予想額 *' : '金額 *'}</label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#A8A29E' }}>¥</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: 'var(--muted)' }}>¥</span>
               <input
                 id="fixed-cost-amount"
                 type="text"
@@ -601,7 +601,7 @@ export default function MoneySettingsPage() {
           <button
             onClick={() => setShowForm(false)}
             className="flex-1 py-3.5 rounded-2xl text-sm font-medium"
-            style={{ background: '#F0EBE6', color: '#78716C' }}
+            style={{ background: 'var(--surface-2)', color: 'var(--sub)' }}
           >
             キャンセル
           </button>
@@ -625,19 +625,19 @@ export default function MoneySettingsPage() {
         {deleteTarget && (
           <>
             <div className="p-4 rounded-2xl" style={{ background: MONEY_DANGER_BG }}>
-              <p className="text-sm font-medium" style={{ color: '#1C1917' }}>{deleteTarget.name}</p>
-              <p className="text-xs mt-0.5" style={{ color: '#78716C' }}>
+              <p className="text-sm font-medium" style={{ color: 'var(--ink)' }}>{deleteTarget.name}</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--sub)' }}>
                 {formatYen(deleteTarget.amount)}・毎月{deleteTarget.payDay}日
               </p>
             </div>
-            <p className="text-xs mt-3 leading-relaxed" style={{ color: '#A8A29E' }}>
+            <p className="text-xs mt-3 leading-relaxed" style={{ color: 'var(--muted)' }}>
               削除すると元に戻せません。来月以降も発生する固定費は残しておくのがおすすめです。
             </p>
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setDeleteTarget(null)}
                 className="flex-1 py-3.5 rounded-2xl text-sm font-medium"
-                style={{ background: '#F0EBE6', color: '#78716C' }}
+                style={{ background: 'var(--surface-2)', color: 'var(--sub)' }}
               >
                 キャンセル
               </button>

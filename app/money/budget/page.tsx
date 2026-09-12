@@ -1,5 +1,9 @@
 'use client';
 
+import MoneyIcon from '@/components/ui/MoneyIcon';
+
+import { MONEY_ACCENT, MONEY_ACCENT_BG, MONEY_DANGER, MONEY_DANGER_BG } from '@/components/ui/money-theme';
+
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
@@ -7,10 +11,6 @@ import { FixedCost, MonthlyBudget, PlannedExpense, BudgetCategory, LivingExpense
 import { formatYen, getCurrentMonth, generateId, formatDateShort } from '@/lib/utils';
 import {
   MONEY_KEYS,
-  MONEY_ACCENT,
-  MONEY_ACCENT_BG,
-  MONEY_DANGER,
-  MONEY_DANGER_BG,
   digitsOnly,
   formatYenSigned,
   formatMonthLabel,
@@ -40,7 +40,7 @@ import ExpenseSheet from '@/components/ui/ExpenseSheet';
 import { showToast } from '@/components/ui/Toast';
 import MoneyTabs from '@/components/ui/MoneyTabs';
 
-const WARN = '#A8770E';
+const WARN = 'var(--warn)';
 
 /** 手順の見出し（1 給料 → 2 貯金 → 3 固定費 → 4 予定支出 → 5 生活費） */
 function StepHead({ no, label, action }: { no: number; label: string; action?: React.ReactNode }) {
@@ -52,14 +52,14 @@ function StepHead({ no, label, action }: { no: number; label: string; action?: R
       >
         {no}
       </span>
-      <p className="text-[13.5px] font-bold" style={{ color: '#1C1917' }}>{label}</p>
+      <p className="text-[13.5px] font-bold" style={{ color: 'var(--ink)' }}>{label}</p>
       {action && <div className="ml-auto">{action}</div>}
     </div>
   );
 }
 
 const Arrow = () => (
-  <div className="text-center text-[15px] leading-none -mt-1.5 mb-2" style={{ color: '#A8A29E' }} aria-hidden="true">↓</div>
+  <div className="text-center text-[15px] leading-none -mt-1.5 mb-2" style={{ color: 'var(--muted)' }} aria-hidden="true">↓</div>
 );
 
 export default function BudgetPage() {
@@ -191,9 +191,10 @@ export default function BudgetPage() {
 
   const moneyInput = (value: string, onChange: (raw: string) => void, placeholder: string, id: string) => (
     <div className="relative">
-      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#A8A29E' }}>¥</span>
+      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: 'var(--muted)' }}>¥</span>
       <input
         id={id}
+        aria-label={id === 'budget-income' ? '今月もらった給料' : undefined}
         type="text"
         inputMode="numeric"
         autoComplete="off"
@@ -209,18 +210,18 @@ export default function BudgetPage() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <div className="px-4 pt-8 pb-5 flex items-end justify-between">
+      <div className="money-header">
         <div className="anim-fadeIn">
-          <Link href="/money" className="inline-flex items-center gap-1 text-xs font-medium py-1 -my-1" style={{ color: '#A8A29E' }}>
+          <Link href="/money" className="inline-flex items-center gap-1 text-xs font-medium py-1 -my-1" style={{ color: 'var(--muted)' }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3.5 h-3.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
             </svg>
             やりくり電卓へ戻る
           </Link>
-          <h1 className="text-2xl font-semibold mt-1" style={{ color: '#1C1917' }}>
+          <h1 className="text-2xl font-semibold mt-1" style={{ color: 'var(--ink)' }}>
             {formatMonthLabel(budget.month)}の予算
           </h1>
-          <p className="text-[11px] mt-1" style={{ color: '#A8A29E' }}>
+          <p className="text-[11px] mt-1" style={{ color: 'var(--muted)' }}>
             {payday ? '給料日から給料日まで' : '暦どおり'}（{formatPeriodRange(periodByKey(budget.month, payday))}）
           </p>
         </div>
@@ -251,7 +252,7 @@ export default function BudgetPage() {
 
           <label className="field-label" htmlFor="budget-saving">目標</label>
           {moneyInput(budget.savingGoal, raw => update({ savingGoal: raw }), '30,000', 'budget-saving')}
-          <p className="text-[11px] mt-2" style={{ color: '#A8A29E' }}>
+          <p className="text-[11px] mt-2" style={{ color: 'var(--muted)' }}>
             {b.income > 0 ? `貯金を引いた残り ${formatYenSigned(b.income - b.saving)}` : '給料を入力すると残りが表示されます'}
           </p>
 
@@ -260,7 +261,7 @@ export default function BudgetPage() {
           <p
             className="text-[11px] mt-2"
             style={{
-              color: !saving.entered ? '#A8A29E' : saving.diff >= 0 ? MONEY_ACCENT : MONEY_DANGER,
+              color: !saving.entered ? 'var(--muted)' : saving.diff >= 0 ? MONEY_ACCENT : MONEY_DANGER,
               fontWeight: saving.entered ? 600 : 400,
             }}
           >
@@ -283,23 +284,23 @@ export default function BudgetPage() {
             action={<Link href="/money/settings" className="text-xs font-medium" style={{ color: MONEY_ACCENT }}>編集</Link>}
           />
           {costs.length === 0 ? (
-            <p className="text-xs text-center py-2.5" style={{ color: '#A8A29E' }}>固定費が登録されていません</p>
+            <p className="text-xs text-center py-2.5" style={{ color: 'var(--muted)' }}>固定費が登録されていません</p>
           ) : (
             <>
               {sortedCosts.map(c => (
                 <div key={c.id} className="flex justify-between items-baseline py-1.5">
-                  <span className="text-[12.5px] truncate" style={{ color: '#78716C' }}>
-                    {isVariable(c) && '⚡ '}{c.name}
+                  <span className="text-[12.5px] truncate" style={{ color: 'var(--sub)' }}>
+                    {isVariable(c) && <MoneyIcon name="info" />}{c.name}
                     {isVariable(c) && (hasActual(c) ? '（確定）' : '（予想）')}
                   </span>
-                  <span className="text-[13px] font-semibold shrink-0 ml-3" style={{ color: '#1C1917', fontVariantNumeric: 'tabular-nums' }}>
+                  <span className="text-[13px] font-semibold shrink-0 ml-3" style={{ color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
                     {formatYen(effectiveAmount(c))}
                   </span>
                 </div>
               ))}
-              <div className="flex justify-between items-baseline mt-2 pt-2.5" style={{ borderTop: '1px solid rgba(28,18,12,0.06)' }}>
-                <span className="text-[12.5px] font-semibold" style={{ color: '#1C1917' }}>固定費合計</span>
-                <span className="text-[17px] font-bold font-serif-num" style={{ color: '#1C1917' }}>{formatYen(b.fixed)}</span>
+              <div className="flex justify-between items-baseline mt-2 pt-2.5" style={{ borderTop: '1px solid var(--line)' }}>
+                <span className="text-[12.5px] font-semibold" style={{ color: 'var(--ink)' }}>固定費合計</span>
+                <span className="text-[17px] font-bold font-serif-num" style={{ color: 'var(--ink)' }}>{formatYen(b.fixed)}</span>
               </div>
             </>
           )}
@@ -318,7 +319,7 @@ export default function BudgetPage() {
             }
           />
           {budget.planned.length === 0 ? (
-            <p className="text-xs text-center py-2.5 leading-relaxed" style={{ color: '#A8A29E' }}>
+            <p className="text-xs text-center py-2.5 leading-relaxed" style={{ color: 'var(--muted)' }}>
               旅行や美容院など、その月だけの出費を登録できます
             </p>
           ) : (
@@ -335,9 +336,9 @@ export default function BudgetPage() {
                     <span className="flex justify-between items-baseline">
                       <span
                         className="text-[12.5px] truncate"
-                        style={{ color: '#78716C', textDecoration: p.paid ? 'line-through' : 'none', opacity: p.paid ? 0.6 : 1 }}
+                        style={{ color: 'var(--sub)', textDecoration: p.paid ? 'line-through' : 'none', opacity: p.paid ? 0.6 : 1 }}
                       >
-                        {p.name} <span className="text-[11px]" style={{ color: '#A8A29E' }}>{p.date ? formatDateShort(p.date) : '日付未定'}</span>
+                        {p.name} <span className="text-[11px]" style={{ color: 'var(--muted)' }}>{p.date ? formatDateShort(p.date) : '日付未定'}</span>
                         {settled && (
                           <span className="ml-1.5 text-[9.5px] font-bold px-1.5 py-[2px] rounded-full align-middle"
                             style={{ background: MONEY_ACCENT_BG, color: MONEY_ACCENT }}>
@@ -351,7 +352,7 @@ export default function BudgetPage() {
                           </span>
                         )}
                       </span>
-                      <span className="text-[13px] font-semibold shrink-0 ml-3" style={{ color: '#1C1917', fontVariantNumeric: 'tabular-nums' }}>
+                      <span className="text-[13px] font-semibold shrink-0 ml-3" style={{ color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
                         {formatYen(plannedEffective(p))}
                       </span>
                     </span>
@@ -368,9 +369,9 @@ export default function BudgetPage() {
                   </button>
                 );
               })}
-              <div className="flex justify-between items-baseline mt-2 pt-2.5" style={{ borderTop: '1px solid rgba(28,18,12,0.06)' }}>
-                <span className="text-[12.5px] font-semibold" style={{ color: '#1C1917' }}>予定支出合計</span>
-                <span className="text-[17px] font-bold font-serif-num" style={{ color: '#1C1917' }}>
+              <div className="flex justify-between items-baseline mt-2 pt-2.5" style={{ borderTop: '1px solid var(--line)' }}>
+                <span className="text-[12.5px] font-semibold" style={{ color: 'var(--ink)' }}>予定支出合計</span>
+                <span className="text-[17px] font-bold font-serif-num" style={{ color: 'var(--ink)' }}>
                   {formatYen(plannedTotal(budget.planned))}
                 </span>
               </div>
@@ -397,7 +398,7 @@ export default function BudgetPage() {
               background: `linear-gradient(165deg, ${b.living < 0 ? MONEY_DANGER_BG : MONEY_ACCENT_BG}, transparent 85%)`,
             }}
           >
-            <p className="text-[11.5px] font-semibold tracking-wider" style={{ color: '#78716C' }}>
+            <p className="text-[11.5px] font-semibold tracking-wider" style={{ color: 'var(--sub)' }}>
               生活費として振り分け可能
             </p>
             <p
@@ -418,22 +419,22 @@ export default function BudgetPage() {
               used - avg.average >= ALERT_MIN_DIFF && used / avg.average >= ALERT_MIN_RATIO;
 
             return (
-              <div key={c.id} className="py-2.5" style={{ borderBottom: '1px solid rgba(28,18,12,0.06)' }}>
+              <div key={c.id} className="py-2.5" style={{ borderBottom: '1px solid var(--line)' }}>
                 <div className="flex items-center gap-2.5">
-                  <span className="text-[15px] leading-none shrink-0" aria-hidden="true">{c.emoji}</span>
-                  <label htmlFor={`cat-${c.id}`} className="text-[13.5px] font-semibold truncate" style={{ color: '#1C1917' }}>
+                  <span className="text-[15px] leading-none shrink-0" aria-hidden="true"><MoneyIcon name="category" /></span>
+                  <label htmlFor={`cat-${c.id}`} className="text-[13.5px] font-semibold truncate" style={{ color: 'var(--ink)' }}>
                     {c.name}
                   </label>
                   <button
                     onClick={() => openCat(c)}
                     className="text-[15px] px-1 shrink-0"
-                    style={{ color: '#A8A29E' }}
+                    style={{ color: 'var(--muted)' }}
                     aria-label={`${c.name}を編集`}
                   >
-                    ⚙
+                    <MoneyIcon name="edit" />
                   </button>
                   <div className="relative w-[46%] max-w-[150px] shrink-0 ml-auto">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#A8A29E' }}>¥</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: 'var(--muted)' }}>¥</span>
                     <input
                       id={`cat-${c.id}`}
                       type="text"
@@ -458,7 +459,7 @@ export default function BudgetPage() {
                 {/* トラックが予算、塗りが実績 */}
                 <div
                   className="h-1.5 rounded mt-2 overflow-hidden"
-                  style={{ background: '#F0EBE6' }}
+                  style={{ background: 'var(--surface-2)' }}
                   role="img"
                   aria-label={`${c.name} 予算 ${formatYen(c.amount)} のうち ${formatYen(used)} 使用`}
                 >
@@ -472,24 +473,24 @@ export default function BudgetPage() {
                 <div className="flex items-baseline justify-between gap-2.5 mt-2">
                   <span
                     className="text-[21px] font-bold leading-tight"
-                    style={{ color: over ? MONEY_DANGER : '#1C1917', fontVariantNumeric: 'tabular-nums' }}
+                    style={{ color: over ? MONEY_DANGER : 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}
                   >
-                    <small className="text-[11px] font-semibold mr-1.5" style={{ color: '#A8A29E' }}>使った</small>
+                    <small className="text-[11px] font-semibold mr-1.5" style={{ color: 'var(--muted)' }}>使った</small>
                     {formatYen(used)}
                   </span>
-                  <span className="text-[11.5px] shrink-0" style={{ color: '#A8A29E', fontVariantNumeric: 'tabular-nums' }}>
+                  <span className="text-[11.5px] shrink-0" style={{ color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
                     {over ? `予算 ${formatYen(c.amount)}` : `残り ${formatYen(Math.max(0, c.amount - used))}`}
                   </span>
                 </div>
 
                 {over && (
                   <p className="text-[11px] mt-1 font-bold" style={{ color: MONEY_DANGER }}>
-                    ⚠ 予算を {formatYen(used - c.amount)} オーバー
+                    <MoneyIcon name="category" /> 予算を {formatYen(used - c.amount)} オーバー
                   </p>
                 )}
                 {high && (
                   <p className="text-[11px] mt-1 font-bold" style={{ color: WARN }}>
-                    📈 いつもより約 {formatYen(used - avg.average)} 多め
+                    <MoneyIcon name="review" /> いつもより約 {formatYen(used - avg.average)} 多め
                   </p>
                 )}
               </div>
@@ -500,20 +501,20 @@ export default function BudgetPage() {
             id="budget-log"
             onClick={() => setExpenseSheet(true)}
             className="w-full rounded-2xl py-3 mt-3.5 text-[13px] font-bold"
-            style={{ border: '1.5px dashed rgba(28,18,12,0.12)', color: MONEY_ACCENT }}
+            style={{ border: '1.5px dashed var(--line)', color: MONEY_ACCENT }}
           >
             ＋ 使ったお金を記録する
           </button>
 
-          <div className="mt-3.5 pt-3 space-y-2" style={{ borderTop: '1px solid rgba(28,18,12,0.06)' }}>
+          <div className="mt-3.5 pt-3 space-y-2" style={{ borderTop: '1px solid var(--line)' }}>
             <div className="flex justify-between items-baseline">
-              <span className="text-[12.5px]" style={{ color: '#78716C' }}>振り分け済み</span>
-              <span className="text-[15px] font-bold" style={{ color: '#1C1917', fontVariantNumeric: 'tabular-nums' }}>
+              <span className="text-[12.5px]" style={{ color: 'var(--sub)' }}>振り分け済み</span>
+              <span className="text-[15px] font-bold" style={{ color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
                 {formatYen(b.allocated)}
               </span>
             </div>
             <div className="flex justify-between items-baseline">
-              <span className="text-[12.5px] font-semibold" style={{ color: '#1C1917' }}>まだ振り分けていないお金</span>
+              <span className="text-[12.5px] font-semibold" style={{ color: 'var(--ink)' }}>まだ振り分けていないお金</span>
               <span
                 className="text-[19px] font-bold"
                 style={{ color: b.unallocated < 0 ? MONEY_DANGER : MONEY_ACCENT, fontVariantNumeric: 'tabular-nums' }}
@@ -548,7 +549,7 @@ export default function BudgetPage() {
           <div>
             <label className="field-label" htmlFor="planned-amount">予定額 *</label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#A8A29E' }}>¥</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: 'var(--muted)' }}>¥</span>
               <input id="planned-amount" type="text" inputMode="numeric" autoComplete="off"
                 value={pAmount === '' ? '' : pAmountValue.toLocaleString('ja-JP')}
                 onChange={e => setPAmount(digitsOnly(e.target.value))}
@@ -558,7 +559,7 @@ export default function BudgetPage() {
           <div>
             <label className="field-label" htmlFor="planned-actual">実際にかかった額</label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#A8A29E' }}>¥</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: 'var(--muted)' }}>¥</span>
               <input id="planned-actual" type="text" inputMode="numeric" autoComplete="off"
                 value={pActual === '' ? '' : (pActualValue ?? 0).toLocaleString('ja-JP')}
                 onChange={e => setPActual(digitsOnly(e.target.value))}
@@ -567,7 +568,7 @@ export default function BudgetPage() {
             <p
               className="text-[11px] mt-1.5"
               style={{
-                color: pActualValue === null ? '#A8A29E' : pActualValue <= pAmountValue ? MONEY_ACCENT : MONEY_DANGER,
+                color: pActualValue === null ? 'var(--muted)' : pActualValue <= pAmountValue ? MONEY_ACCENT : MONEY_DANGER,
                 fontWeight: pActualValue === null ? 400 : 600,
               }}
             >
@@ -584,7 +585,7 @@ export default function BudgetPage() {
                 planned: budget.planned.map(p => (p.id === plannedTarget.id ? { ...p, paid: !p.paid } : p)),
               })}
               className="w-full py-3 rounded-2xl text-sm font-medium"
-              style={{ background: '#F0EBE6', color: '#78716C' }}
+              style={{ background: 'var(--surface-2)', color: 'var(--sub)' }}
             >
               {plannedTarget.paid ? '未払いに戻す' : '支払い済みにする'}
             </button>
@@ -596,7 +597,7 @@ export default function BudgetPage() {
               削除
             </button>
           )}
-          <button onClick={closePlanned} className="flex-1 py-3.5 rounded-2xl text-sm font-medium" style={{ background: '#F0EBE6', color: '#78716C' }}>
+          <button onClick={closePlanned} className="flex-1 py-3.5 rounded-2xl text-sm font-medium" style={{ background: 'var(--surface-2)', color: 'var(--sub)' }}>
             キャンセル
           </button>
           <button onClick={savePlanned} className="flex-1 py-3.5 rounded-2xl text-sm font-medium text-white" style={{ background: MONEY_ACCENT }}>
@@ -639,7 +640,7 @@ export default function BudgetPage() {
               削除
             </button>
           )}
-          <button onClick={closeCat} className="flex-1 py-3.5 rounded-2xl text-sm font-medium" style={{ background: '#F0EBE6', color: '#78716C' }}>
+          <button onClick={closeCat} className="flex-1 py-3.5 rounded-2xl text-sm font-medium" style={{ background: 'var(--surface-2)', color: 'var(--sub)' }}>
             キャンセル
           </button>
           <button onClick={saveCat} className="flex-1 py-3.5 rounded-2xl text-sm font-medium text-white" style={{ background: MONEY_ACCENT }}>

@@ -6,8 +6,7 @@
 <title>やりくり電卓</title>
 <meta name="description" content="今持っているお金から未払いの固定費を引いて、使っていいお金をすぐ確認できるシンプルな電卓。">
 <meta name="robots" content="noindex">
-<meta name="theme-color" media="(prefers-color-scheme: light)" content="#F6F7F5">
-<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141816">
+<meta name="theme-color" content="#0b0d0c">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="やりくり">
@@ -714,8 +713,9 @@
     .toast { transition: none; }
   }
 </style>
+<link rel="stylesheet" href="./yarikuri.css">
 </head>
-<body>
+<body class="money-app">
 
 <div class="app">
 
@@ -730,7 +730,7 @@
     </header>
 
     <div class="card banner anim-in" id="reset-banner" role="status" hidden>
-      <div class="banner-icon">🗓️</div>
+      <div class="banner-icon"><svg class="money-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v16H4zM8 3v4m8-4v4M4 10h16M8 14h2m4 0h2m-8 3h2"/></svg></div>
       <div style="flex:1; min-width:0;">
         <h2>新しい月になりました</h2>
         <p>固定費の支払い状況をすべて「未払い」に戻しました。登録した固定費はそのまま残っています。</p>
@@ -739,7 +739,7 @@
     </div>
 
     <div class="card banner anim-in" id="storage-warn" role="alert" hidden>
-      <div class="banner-icon">⚠️</div>
+      <div class="banner-icon"><svg class="money-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8h.01M12 11v6M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0"/></svg></div>
       <div style="flex:1; min-width:0;">
         <h2>保存が利用できません</h2>
         <p>プライベートブラウズなどで保存機能が使えないため、ページを閉じると入力内容が消えます。</p>
@@ -767,7 +767,7 @@
         </div>
         <button class="sim-btn" id="sim-btn" disabled>計算</button>
       </div>
-      <div class="sim-result" id="sim-result" hidden>
+      <div class="sim-result" id="sim-result" role="status" hidden>
         <p class="k">購入後の使っていいお金</p>
         <p class="sim-amount serif-num" id="sim-amount">¥0</p>
         <span class="sim-verdict" id="sim-verdict"></span>
@@ -776,7 +776,7 @@
 
     <div class="alert-card anim-in" id="alert-card" hidden></div>
 
-    <div class="card anim-in" id="budget-card" data-nav="budget" style="cursor:pointer;">
+    <div class="card anim-in" id="budget-card" data-nav="budget" role="link" tabindex="0" aria-label="今月のお金・予算を開く" style="cursor:pointer;">
       <div class="bud-card-head">
         <p class="card-title">今月のお金</p>
         <span class="bud-more">開く →</span>
@@ -784,7 +784,7 @@
       <div id="budget-card-body"></div>
     </div>
 
-    <div class="card anim-in" id="rm-mini" data-nav="roadmap" style="cursor:pointer;" hidden></div>
+    <div class="card anim-in" id="rm-mini" data-nav="roadmap" role="link" tabindex="0" aria-label="次の貯金目標を開く" style="cursor:pointer;" hidden></div>
 
     <p class="footnote">データはこの端末のブラウザ内にのみ保存されます</p>
   </section>
@@ -841,7 +841,7 @@
         <div class="step-head"><span class="step-no">1</span><p class="step-label">今月もらった給料</p></div>
         <div class="money-wrap">
           <span class="yen">¥</span>
-          <input id="budget-income" class="input" type="text" inputmode="numeric" autocomplete="off" placeholder="250,000" style="padding-left:32px; font-size:18px; font-weight:600;">
+          <input id="budget-income" aria-label="今月もらった給料" class="input" type="text" inputmode="numeric" autocomplete="off" placeholder="250,000" style="padding-left:32px; font-size:18px; font-weight:600;">
         </div>
       </div>
 
@@ -1063,22 +1063,22 @@
 <!-- ══════════ 下部メニューバー ══════════ -->
 <nav class="tabbar" id="tabbar" aria-label="メインメニュー">
   <button class="tab" data-tab="home" aria-current="page">
-    <span class="tab-icon" aria-hidden="true">🏠</span><span class="tab-label">ホーム</span>
+    <span class="tab-icon" aria-hidden="true"><svg class="money-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 12 3l9 7M5 9v12h5v-7h4v7h5V9"/></svg></span><span class="tab-label">ホーム</span>
   </button>
   <button class="tab" data-tab="balance">
-    <span class="tab-icon" aria-hidden="true">💴</span><span class="tab-label">残高</span>
+    <span class="tab-icon" aria-hidden="true"><svg class="money-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h15v4M4 5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h17V9H4M16 13h5v4h-5z"/></svg></span><span class="tab-label">残高</span>
   </button>
   <button class="tab" data-tab="budget">
-    <span class="tab-icon" aria-hidden="true">📅</span><span class="tab-label">予算</span>
+    <span class="tab-icon" aria-hidden="true"><svg class="money-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v16H4zM8 3v4m8-4v4M4 10h16M8 14h2m4 0h2m-8 3h2"/></svg></span><span class="tab-label">予算</span>
   </button>
   <button class="tab" data-tab="roadmap">
-    <span class="tab-icon" aria-hidden="true">🎯</span><span class="tab-label">目標</span>
+    <span class="tab-icon" aria-hidden="true"><svg class="money-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9m5 1v3h3M12 8a4 4 0 1 0 4 4m-4 0 8-8"/></svg></span><span class="tab-label">目標</span>
   </button>
   <button class="tab" data-tab="review">
-    <span class="tab-icon" aria-hidden="true">📊</span><span class="tab-label">振り返り</span>
+    <span class="tab-icon" aria-hidden="true"><svg class="money-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10m8 10V4m8 16v-7M2 22h20"/></svg></span><span class="tab-label">振り返り</span>
   </button>
   <button class="tab" data-tab="settings">
-    <span class="tab-icon" aria-hidden="true">⚙️</span><span class="tab-label">設定</span>
+    <span class="tab-icon" aria-hidden="true"><svg class="money-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 17h16M9 4v6m6 4v6"/></svg></span><span class="tab-label">設定</span>
   </button>
 </nav>
 
@@ -1296,7 +1296,7 @@
 <div class="overlay" id="sheet-recap" hidden style="align-items: center; padding: 20px;">
   <div class="recap-card" role="dialog" aria-modal="true" aria-labelledby="recap-month">
     <div class="recap-hero">
-      <div class="recap-emoji" id="recap-emoji" aria-hidden="true">🎉</div>
+      <div class="recap-emoji" id="recap-emoji" aria-hidden="true"><svg class="money-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></div>
       <p class="recap-title">今月の振り返り</p>
       <h2 class="recap-month" id="recap-month"></h2>
     </div>
@@ -1385,6 +1385,11 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
+  function moneyIconHTML(name) {
+    var paths = {"home":"M3 10 12 3l9 7M5 9v12h5v-7h4v7h5V9","balance":"M4 5h15v4M4 5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h17V9H4M16 13h5v4h-5z","budget":"M4 5h16v16H4zM8 3v4m8-4v4M4 10h16M8 14h2m4 0h2m-8 3h2","roadmap":"M21 12a9 9 0 1 1-9-9m5 1v3h3M12 8a4 4 0 1 0 4 4m-4 0 8-8","review":"M4 20V10m8 10V4m8 16v-7M2 22h20","settings":"M4 7h16M4 17h16M9 4v6m6 4v6","check":"m5 12 4 4L19 6","edit":"m15 4 5 5M4 20l4-1L21 6l-4-4L4 15z","category":"M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z","info":"M12 8h.01M12 11v6M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0"};
+    return '<svg class="money-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + (paths[name] || paths.category) + '"/></svg>';
+  }
+
 (function () {
   'use strict';
 
@@ -1943,16 +1948,16 @@
     chip.classList.remove('is-today', 'as-btn');
     if (!payday) {
       chip.classList.add('as-btn');
-      chip.textContent = '🗓 給料日を設定する';
+      chip.innerHTML = moneyIconHTML('budget') + ' 給料日を設定する';
       return;
     }
     var info = nextPaydayInfo(payday);
     if (!info) { chip.hidden = true; return; }
     if (info.days === 0) {
       chip.classList.add('is-today');
-      chip.textContent = '🎉 今日は給料日！';
+      chip.innerHTML = moneyIconHTML('check') + ' 今日は給料日！';
     } else {
-      chip.innerHTML = '💴 給料日 ' + paydayLabel(info) + ' まで <b>あと' + info.days + '日</b>';
+      chip.innerHTML = moneyIconHTML('budget') + ' 給料日 ' + paydayLabel(info) + ' まで <b>あと' + info.days + '日</b>';
     }
   }
 
@@ -1973,7 +1978,7 @@
       var on = a.budget !== false;
       return '<div class="acc-item' + (on ? '' : ' is-off') + '" data-acc-item="' + a.id + '">' +
         '<div class="acc-head">' +
-          '<span class="acc-icon" aria-hidden="true">' + (on ? '🏦' : '🔒') + '</span>' +
+          '<span class="acc-icon" aria-hidden="true">' + moneyIconHTML('balance') + '</span>' +
           '<label class="acc-name" for="acc-' + a.id + '">' + esc(a.name) + '</label>' +
           (on ? '' : '<span class="acc-off-tag">計算対象外</span>') +
         '</div>' +
@@ -2047,7 +2052,11 @@
     hero.classList.remove('is-short', 'is-safe', 'is-warn', 'is-tight');
     if (short) hero.classList.add('is-short');
     else if (!c.empty) hero.classList.add('is-' + statusOf(c.spendable));
-    amountEl.textContent = yenSigned(c.spendable);
+    var nextAmount = yenSigned(c.spendable);
+    if (amountEl.textContent !== nextAmount && amountEl.animate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      amountEl.animate([{ opacity: 0.65, transform: 'translateY(2px)' }, { opacity: 1, transform: 'none' }], { duration: 200, easing: 'ease-out' });
+    }
+    amountEl.textContent = nextAmount;
 
     if (c.empty) {
       detail.innerHTML = '<p class="hero-hint">今持っているお金を入力すると自動で計算されます</p>';
@@ -2081,7 +2090,7 @@
     if (costs.length === 0) {
       box.innerHTML =
         '<div class="empty">' +
-          '<div class="glyph">🧾</div>' +
+          '<div class="glyph"><svg class="money-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v16H4zM8 3v4m8-4v4M4 10h16M8 14h2m4 0h2m-8 3h2"/></svg></div>' +
           '<h3>固定費がまだ登録されていません</h3>' +
           '<p>家賃・スマホ代・サブスクなどを登録すると<br>使っていいお金が自動で計算されます</p>' +
           '<button class="cta" data-nav="settings">＋ 固定費を登録する</button>' +
@@ -2121,7 +2130,7 @@
           'aria-label="' + esc(c.name) + ' を' + (c.paid ? '未払い' : '支払い済み') + 'にする">' +
           '<span class="checkmark">' + check + '</span>' +
           '<span class="cost-main">' +
-            '<span class="cost-name">' + (variable ? '⚡ ' : '') + esc(c.name) + tag + '</span>' +
+            '<span class="cost-name">' + (variable ? moneyIconHTML('info') + ' ' : '') + esc(c.name) + tag + '</span>' +
             '<span class="cost-day' + diffClass + '">' + sub + '</span>' +
           '</span>' +
           '<span class="cost-side">' +
@@ -2176,7 +2185,7 @@
 
   function showRecap(rec) {
     var mood = recapMood(rec);
-    document.getElementById('recap-emoji').textContent = mood.emoji;
+    document.getElementById('recap-emoji').innerHTML = moneyIconHTML('check');
     document.getElementById('recap-month').textContent = monthLabel(rec.month);
     document.getElementById('recap-spendable').textContent = yenSigned(rec.spendable);
     document.getElementById('recap-assets').textContent = yen(rec.assets);
@@ -2214,10 +2223,10 @@
     var alerts = spendingAlerts(budget.month);
     if (alerts.length === 0) { card.hidden = true; return; }
     card.hidden = false;
-    card.innerHTML = '<p class="alert-head">📈 いつもより多めの支出があります</p>' +
+    card.innerHTML = '<p class="alert-head"><svg class="money-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10m8 10V4m8 16v-7M2 22h20"/></svg> いつもより多めの支出があります</p>' +
       alerts.slice(0, 3).map(function (a) {
         return '<div class="alert-item">' +
-          '<p class="alert-name">' + esc(a.category.emoji || '📦') + ' ' + esc(a.category.name) + '</p>' +
+          '<p class="alert-name">' + moneyIconHTML('category') + ' ' + esc(a.category.name) + '</p>' +
           '<p class="alert-figs">普段の月平均 ' + yen(a.average) + '（' + a.months + 'か月）／今月 ' + yen(a.current) + '</p>' +
           '<p class="alert-diff">いつもより約 ' + yen(a.diff) + ' 多め</p>' +
         '</div>';
@@ -2337,20 +2346,20 @@
       // 使いすぎ / いつもより高い を、色だけでなく文言でも伝える
       var note = '';
       if (over) {
-        note = '<p class="cat-note over">⚠ 予算を ' + yen(used - c.amount) + ' オーバー</p>';
+        note = '<p class="cat-note over"><svg class="money-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg> 予算を ' + yen(used - c.amount) + ' オーバー</p>';
       } else {
         var avg = categoryAverage(c.id, budget.month);
         if (used > 0 && avg.months >= ALERT_MIN_MONTHS && avg.average > 0 &&
             used - avg.average >= ALERT_MIN_DIFF && used / avg.average >= ALERT_MIN_RATIO) {
-          note = '<p class="cat-note high">📈 いつもより約 ' + yen(used - avg.average) + ' 多め</p>';
+          note = '<p class="cat-note high"><svg class="money-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10m8 10V4m8 16v-7M2 22h20"/></svg> いつもより約 ' + yen(used - avg.average) + ' 多め</p>';
         }
       }
 
       return '<div class="cat-block">' +
         '<div class="cat-top">' +
-          '<span class="acc-icon" aria-hidden="true">' + esc(c.emoji || '📦') + '</span>' +
+          '<span class="acc-icon" aria-hidden="true">' + moneyIconHTML('category') + '</span>' +
           '<label class="cat-name" for="cat-' + c.id + '" style="flex:0 1 auto;">' + esc(c.name) + '</label>' +
-          '<button class="cat-edit" data-cat-edit="' + c.id + '" aria-label="' + esc(c.name) + 'を編集">⚙</button>' +
+          '<button class="cat-edit" data-cat-edit="' + c.id + '" aria-label="' + esc(c.name) + 'を編集">' + moneyIconHTML('edit') + '</button>' +
           '<div class="money-wrap cat-input-wrap" style="margin-left:auto;">' +
             '<span class="yen" style="left:12px;">¥</span>' +
             '<input id="cat-' + c.id + '" data-cat="' + c.id + '" class="input cat-input" type="text" ' +
@@ -2785,7 +2794,7 @@
       ? '<p class="auto-empty">給料や支出を記録すると、その月の変化をまとめます</p>'
       : lines.map(function (l) {
           return '<div class="review-line ' + l.tone + '">' +
-            '<span class="review-emoji" aria-hidden="true">' + esc(l.emoji) + '</span>' +
+            '<span class="review-emoji" aria-hidden="true">' + moneyIconHTML('review') + '</span>' +
             '<div><p class="review-label">' + esc(l.label) + '</p>' +
             '<p class="review-text">' + esc(l.text) + '</p></div></div>';
         }).join('');
@@ -2807,7 +2816,7 @@
         used - avg.average >= ALERT_MIN_DIFF && used / avg.average >= ALERT_MIN_RATIO;
       return '<div class="cat-block">' +
         '<div class="cat-top">' +
-          '<span class="acc-icon" aria-hidden="true">' + esc(c.emoji || '📦') + '</span>' +
+          '<span class="acc-icon" aria-hidden="true">' + moneyIconHTML('category') + '</span>' +
           '<span class="cat-name">' + esc(c.name) + '</span>' +
         '</div>' +
         '<div class="cat-used' + (over ? ' over' : '') + '">' +
@@ -2817,8 +2826,8 @@
         '<div class="meter' + (over ? ' over' : '') + '" role="img" ' +
           'aria-label="' + esc(c.name) + ' 予算 ' + yen(c.amount) + ' のうち ' + yen(used) + ' 使用">' +
           '<i style="width:' + pct + '%;"></i></div>' +
-        (over ? '<p class="cat-note over">⚠ 予算を ' + yen(used - c.amount) + ' オーバー</p>'
-              : high ? '<p class="cat-note high">📈 普段の月平均 ' + yen(avg.average) + ' → いつもより約 ' + yen(used - avg.average) + ' 多め</p>'
+        (over ? '<p class="cat-note over"><svg class="money-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg> 予算を ' + yen(used - c.amount) + ' オーバー</p>'
+              : high ? '<p class="cat-note high"><svg class="money-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10m8 10V4m8 16v-7M2 22h20"/></svg> 普段の月平均 ' + yen(avg.average) + ' → いつもより約 ' + yen(used - avg.average) + ' 多め</p>'
               : '') +
       '</div>';
     }).join('');
@@ -2864,7 +2873,7 @@
       .slice(0, 60).map(function (e) {
         var c = budget.categories.find(function (x) { return x.id === e.categoryId; });
         return '<div class="exp-row" data-expense-edit="' + e.id + '" style="cursor:pointer;">' +
-          '<span class="acc-icon" aria-hidden="true">' + esc(c ? c.emoji : '📦') + '</span>' +
+          '<span class="acc-icon" aria-hidden="true">' + moneyIconHTML('category') + '</span>' +
           '<div class="exp-main"><p class="exp-name">' + esc(c ? c.name : '（削除されたカテゴリー）') + '</p>' +
           '<p class="exp-sub">' + formatDateShort(e.date) + (e.memo ? '・' + esc(e.memo) : '') + '</p></div>' +
           '<span class="exp-amount">' + yen(e.amount) + '</span></div>';
@@ -3057,7 +3066,7 @@
         '<div class="rm-cell"><p class="k">現在</p><p class="v serif-num">' + yen(info.current) + '</p></div>' +
         '<div class="rm-cell"><p class="k">あと</p><p class="v serif-num">' + yen(info.remaining) + '</p></div>' +
       '</div>' +
-      '<div><span class="rm-pace ' + info.pace + '">' + t.icon + ' ' + t.label + '</span></div>' +
+      '<div><span class="rm-pace ' + info.pace + '">' + moneyIconHTML(info.pace === 'done' ? 'check' : 'roadmap') + ' ' + t.label + '</span></div>' +
       '<p class="rm-note">' + t.note + '</p>' +
       (info.remaining > 0
         ? '<p class="rm-permonth">目標達成には、ここから月平均 <b>' + yen(info.perMonth) + '</b></p>'
@@ -3089,10 +3098,10 @@
           '<div style="display:flex; align-items:flex-start; gap:8px;">' +
             '<div style="flex:1; min-width:0;">' +
               '<p class="tl-when">' + monthLabel(m.month) + (isCurrent ? '・いま向かっている目標' : '') + '</p>' +
-              '<p class="tl-amount">' + (isEvent ? '🚙 −' + yen(m.amount) : man(m.amount)) + '</p>' +
+              '<p class="tl-amount">' + (isEvent ? '−' + yen(m.amount) : man(m.amount)) + '</p>' +
               '<p class="tl-name">' + esc(m.name) + (done ? '・達成' : '') + '</p>' +
             '</div>' +
-            '<button class="tl-edit" data-rm-edit="' + m.id + '" aria-label="' + esc(m.name) + 'を編集">⚙</button>' +
+            '<button class="tl-edit" data-rm-edit="' + m.id + '" aria-label="' + esc(m.name) + 'を編集">' + moneyIconHTML('edit') + '</button>' +
           '</div>' +
           (isEvent && typeof m.after === 'number'
             ? '<p class="tl-after">購入後の目標残高 ' + yen(m.after) + '（計画された支出です）</p>'
@@ -3272,6 +3281,18 @@
   });
 
   /* ── ホームの月予算カード ── */
+  // 表示だけに使用。金額・配分・超過判定の計算には戻さない。
+  function budgetBarsHTML(b) {
+    var rows = [['貯金', b.saving], ['固定費', b.fixed], ['予定支出', b.planned], ['生活費', b.living]];
+    return '<div class="budget-bars" role="img" aria-label="給料 ' + yen(b.income) + ' の配分。' +
+      rows.map(function (r) { return r[0] + ' ' + yen(r[1]); }).join('、') + '">' +
+      rows.map(function (r) {
+        var pct = b.income > 0 ? Math.max(0, Math.min(100, r[1] / b.income * 100)) : 0;
+        return '<div class="budget-bar-row" aria-hidden="true"><span>' + r[0] + '</span>' +
+          '<div class="budget-bar-track"><i class="budget-bar-fill" style="width:' + pct + '%"></i></div></div>';
+      }).join('') + '</div>';
+  }
+
   function renderBudgetCard() {
     var b = budgetCalc();
     var body = document.getElementById('budget-card-body');
@@ -3282,7 +3303,7 @@
     }
     var top = budget.categories.filter(function (c) { return c.amount > 0; })
       .sort(function (a, b2) { return b2.amount - a.amount; }).slice(0, 3);
-    body.innerHTML =
+    body.innerHTML = budgetBarsHTML(b) +
       '<div class="bud-line"><span class="k">給料</span><span class="v">' + yen(b.income) + '</span></div>' +
       '<div class="bud-line"><span class="k">貯金確保</span><span class="v">−' + yen(b.saving) + '</span></div>' +
       '<div class="bud-line"><span class="k">固定費確保</span><span class="v">−' + yen(b.fixed) + '</span></div>' +
@@ -3291,7 +3312,7 @@
         '<span class="v serif-num"' + (b.living < 0 ? ' style="color:var(--danger);"' : '') + '>' + yenSigned(b.living) + '</span></div>' +
       (top.length
         ? '<div class="bud-cats">' +
-            top.map(function (c) { return '<span>' + esc(c.emoji) + ' ' + esc(c.name) + ' ' + yen(c.amount) + '</span>'; }).join('') +
+            top.map(function (c) { return '<span>' + moneyIconHTML('category') + ' ' + esc(c.name) + ' ' + yen(c.amount) + '</span>'; }).join('') +
             '<span class="bud-more">その他を見る →</span>' +
           '</div>'
         : '') +
@@ -3353,7 +3374,7 @@
         '<div class="acc-row" style="margin-bottom:0;">' +
           '<div style="flex:1; min-width:0;">' +
             '<p class="setting-name">' +
-              '<span class="acc-icon" aria-hidden="true">' + (on ? '🏦' : '🔒') + '</span> ' + esc(a.name) +
+              '<span class="acc-icon" aria-hidden="true">' + moneyIconHTML('balance') + '</span> ' + esc(a.name) +
               (on ? '' : ' <span class="acc-off-tag">計算対象外</span>') +
             '</p>' +
             '<p class="setting-sub">' + (a.amount === '' ? '未入力' : yen(accAmount(a))) + '</p>' +
@@ -3441,7 +3462,7 @@
       summary.hidden = true;
       listEl.innerHTML =
         '<div class="empty" style="padding-top:48px;">' +
-          '<div class="glyph">🧾</div>' +
+          '<div class="glyph"><svg class="money-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v16H4zM8 3v4m8-4v4M4 10h16M8 14h2m4 0h2m-8 3h2"/></svg></div>' +
           '<h3>固定費がまだ登録されていません</h3>' +
           '<p>家賃・スマホ代・サブスク・貯金など<br>毎月かならず出ていくお金を登録しましょう</p>' +
           '<button class="cta" id="empty-add">＋ 最初の固定費を登録</button>' +
@@ -3464,7 +3485,7 @@
       return '<div class="card setting-row">' +
         '<div class="daybadge"><b>' + c.payDay + '</b><span>日</span></div>' +
         '<div class="setting-main">' +
-          '<p class="setting-name">' + (variable ? '⚡ ' : '') + esc(c.name) +
+          '<p class="setting-name">' + (variable ? moneyIconHTML('info') + ' ' : '') + esc(c.name) +
             (variable ? '<span class="cost-tag ' + (hasActual(c) ? 'tag-fixed">確定' : 'tag-pending">未確定') + '</span>' : '') +
           '</p>' +
           '<p class="setting-sub">' + sub + '</p>' +
@@ -3478,6 +3499,12 @@
 
   /* ── 画面切り替え ── */
   var VIEWS = ['home', 'balance', 'budget', 'roadmap', 'review', 'settings'];
+
+  // リンクとして振る舞う要約カードもキーボードから開けるようにする。
+  document.addEventListener('keydown', function (e) {
+    var link = e.target.closest('[role="link"][data-nav]');
+    if (link && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); show(link.dataset.nav); }
+  });
 
   function show(view) {
     if (VIEWS.indexOf(view) === -1) view = 'home';
@@ -3816,7 +3843,7 @@
       if (item) {
         item.classList.toggle('is-off', !on);
         var icon = item.querySelector('.acc-icon');
-        if (icon) icon.textContent = on ? '🏦' : '🔒';
+        if (icon) icon.innerHTML = moneyIconHTML('balance');
         var head = item.querySelector('.acc-head');
         var tag = item.querySelector('.acc-off-tag');
         if (!on && !tag && head) head.insertAdjacentHTML('beforeend', '<span class="acc-off-tag">計算対象外</span>');

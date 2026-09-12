@@ -1,5 +1,10 @@
 'use client';
 
+import MoneyIcon from '@/components/ui/MoneyIcon';
+import BudgetBars from '@/components/ui/BudgetBars';
+
+import { MONEY_ACCENT, MONEY_ACCENT_BG, MONEY_DANGER, MONEY_DANGER_BG, STATUS_META } from '@/components/ui/money-theme';
+
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
@@ -7,11 +12,6 @@ import { FixedCost, MoneyAccount, MonthlyRecord, MonthlyBudget, LivingExpense, S
 import { formatYen, getCurrentMonth } from '@/lib/utils';
 import {
   MONEY_KEYS,
-  MONEY_ACCENT,
-  MONEY_ACCENT_BG,
-  MONEY_DANGER,
-  MONEY_DANGER_BG,
-  STATUS_META,
   statusOf,
   digitsOnly,
   unpaidTotal,
@@ -190,10 +190,10 @@ export default function MoneyPage() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <div className="px-4 pt-8 pb-5 flex items-end justify-between">
+      <div className="money-header">
         <div className="anim-fadeIn">
-          <p className="text-[11px] font-medium tracking-widest uppercase" style={{ color: '#A8A29E' }}>Money</p>
-          <h1 className="text-2xl font-semibold mt-0.5" style={{ color: '#1C1917' }}>やりくり電卓</h1>
+          <p className="text-[11px] font-medium tracking-widest uppercase" style={{ color: 'var(--muted)' }}>Money</p>
+          <h1 className="text-2xl font-semibold mt-0.5" style={{ color: 'var(--ink)' }}>やりくり電卓</h1>
         </div>
         <Link
           href="/money/settings"
@@ -206,7 +206,7 @@ export default function MoneyPage() {
 
       <MoneyTabs />
 
-      <div className="px-4 space-y-4">
+      <div className="money-content px-4 space-y-4">
         {/* 月替わりリセットの通知 */}
         {showResetNotice && (
           <div className="card p-4 anim-fadeIn" role="status">
@@ -215,11 +215,11 @@ export default function MoneyPage() {
                 className="w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0"
                 style={{ background: MONEY_ACCENT_BG }}
               >
-                🗓️
+                <MoneyIcon name="budget" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium" style={{ color: '#1C1917' }}>新しい月になりました</p>
-                <p className="text-xs mt-1 leading-relaxed" style={{ color: '#78716C' }}>
+                <p className="text-sm font-medium" style={{ color: 'var(--ink)' }}>新しい月になりました</p>
+                <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--sub)' }}>
                   固定費の支払い状況をすべて「未払い」に戻しました。登録した固定費はそのまま残っています。
                 </p>
               </div>
@@ -236,22 +236,22 @@ export default function MoneyPage() {
 
         {/* 使っていいお金（最重要表示・残額に応じて色分け） */}
         <div
-          className="card p-6 text-center anim-scaleIn"
+          className="card money-hero p-6 anim-scaleIn"
           style={{
             background: balanceEmpty
-              ? `linear-gradient(165deg, ${MONEY_ACCENT_BG}, #FFFFFF 60%)`
-              : `linear-gradient(165deg, ${heroMeta.bg}, #FFFFFF 60%)`,
+              ? `linear-gradient(165deg, ${MONEY_ACCENT_BG}, var(--surface) 60%)`
+              : `linear-gradient(165deg, ${heroMeta.bg}, var(--surface) 60%)`,
           }}
         >
           {/* 給料日チップ（タップで設定へ） */}
-          <div className="mb-3">
+          <div className="money-payday mb-3">
             {!paydayInfo ? (
               <Link
                 href="/money/settings"
                 className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold active:scale-95 transition-transform"
-                style={{ border: '1.5px dashed rgba(28,18,12,0.12)', color: '#A8A29E' }}
+                style={{ border: '1.5px dashed var(--line)', color: 'var(--muted)' }}
               >
-                🗓 給料日を設定する
+                <MoneyIcon name="budget" /> 給料日を設定する
               </Link>
             ) : paydayInfo.days === 0 ? (
               <Link
@@ -259,31 +259,31 @@ export default function MoneyPage() {
                 className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold active:scale-95 transition-transform"
                 style={{ background: MONEY_ACCENT_BG, color: MONEY_ACCENT }}
               >
-                🎉 今日は給料日！
+                <MoneyIcon name="check" /> 今日は給料日！
               </Link>
             ) : (
               <Link
                 href="/money/settings"
                 className="inline-flex items-center gap-1 px-4 py-1.5 rounded-full text-xs font-semibold active:scale-95 transition-transform"
-                style={{ background: '#F0EBE6', color: '#78716C' }}
+                style={{ background: 'var(--surface-2)', color: 'var(--sub)' }}
               >
-                💴 給料日 {paydayLabel(paydayInfo)} まで
-                <b style={{ color: '#1C1917' }}>あと{paydayInfo.days}日</b>
+                <MoneyIcon name="balance" /> 給料日 {paydayLabel(paydayInfo)} まで
+                <b style={{ color: 'var(--ink)' }}>あと{paydayInfo.days}日</b>
               </Link>
             )}
           </div>
-          <p className="text-xs font-medium tracking-widest" style={{ color: '#78716C' }}>
+          <p className="money-hero-label" style={{ color: 'var(--sub)' }}>
             使っていいお金
           </p>
           <p
-            className="text-[46px] leading-tight font-semibold font-serif-num mt-1"
-            style={{ color: balanceEmpty ? '#1C1917' : heroMeta.color, letterSpacing: '-0.03em' }}
+            className="money-hero-amount leading-tight font-semibold font-serif-num mt-1"
+            style={{ color: balanceEmpty ? 'var(--ink)' : heroMeta.color, letterSpacing: '-0.03em' }}
           >
-            {formatYenSigned(spendable)}
+            <span key={spendable} className="money-number">{formatYenSigned(spendable)}</span>
           </p>
 
           {balanceEmpty ? (
-            <p className="text-xs mt-2" style={{ color: '#A8A29E' }}>
+            <p className="text-xs mt-2" style={{ color: 'var(--muted)' }}>
               今持っているお金を入力すると自動で計算されます
             </p>
           ) : isShort ? (
@@ -303,32 +303,32 @@ export default function MoneyPage() {
               <div>
                 <StatusPill color={heroMeta.color} bg={heroMeta.bg} label={heroMeta.label} />
               </div>
-              <div className="mt-4 pt-3 space-y-1.5" style={{ borderTop: '1px solid rgba(28,18,12,0.06)' }}>
+              <div className="money-hero-details mt-4 pt-3 space-y-1.5" style={{ borderTop: '1px solid var(--line)' }}>
                 {hasExcluded ? (
                   <>
                     <div className="flex justify-between text-sm">
-                      <span style={{ color: '#78716C' }}>総資産</span>
-                      <span className="font-medium" style={{ color: '#1C1917' }}>{formatYen(assets)}</span>
+                      <span style={{ color: 'var(--sub)' }}>総資産</span>
+                      <span className="font-medium" style={{ color: 'var(--ink)' }}>{formatYen(assets)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span style={{ color: '#78716C' }}>予算対象残高</span>
-                      <span className="font-medium" style={{ color: '#1C1917' }}>{formatYen(balance)}</span>
+                      <span style={{ color: 'var(--sub)' }}>予算対象残高</span>
+                      <span className="font-medium" style={{ color: 'var(--ink)' }}>{formatYen(balance)}</span>
                     </div>
                   </>
                 ) : (
                   <div className="flex justify-between text-sm">
-                    <span style={{ color: '#78716C' }}>今持っているお金</span>
-                    <span className="font-medium" style={{ color: '#1C1917' }}>{formatYen(balance)}</span>
+                    <span style={{ color: 'var(--sub)' }}>今持っているお金</span>
+                    <span className="font-medium" style={{ color: 'var(--ink)' }}>{formatYen(balance)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm">
-                  <span style={{ color: '#78716C' }}>未払いの固定費</span>
-                  <span className="font-medium" style={{ color: '#1C1917' }}>−{formatYen(unpaid)}</span>
+                  <span style={{ color: 'var(--sub)' }}>未払いの固定費</span>
+                  <span className="font-medium" style={{ color: 'var(--ink)' }}>−{formatYen(unpaid)}</span>
                 </div>
                 {unpaidPlanned > 0 && (
                   <div className="flex justify-between text-sm">
-                    <span style={{ color: '#78716C' }}>未払いの予定支出</span>
-                    <span className="font-medium" style={{ color: '#1C1917' }}>−{formatYen(unpaidPlanned)}</span>
+                    <span style={{ color: 'var(--sub)' }}>未払いの予定支出</span>
+                    <span className="font-medium" style={{ color: 'var(--ink)' }}>−{formatYen(unpaidPlanned)}</span>
                   </div>
                 )}
               </div>
@@ -338,7 +338,7 @@ export default function MoneyPage() {
           {/* 色の意味の凡例 */}
           <div className="flex justify-center flex-wrap gap-x-3 gap-y-1 mt-4" aria-hidden="true">
             {(['safe', 'warn', 'tight'] as const).map(key => (
-              <span key={key} className="inline-flex items-center gap-1 text-[10.5px]" style={{ color: '#A8A29E' }}>
+              <span key={key} className="inline-flex items-center gap-1 text-[10.5px]" style={{ color: 'var(--muted)' }}>
                 <span className="w-[7px] h-[7px] rounded-full" style={{ background: STATUS_META[key].color }} />
                 {STATUS_META[key].label}
                 {key === 'safe' ? ' 3万円〜' : key === 'warn' ? ' 1〜3万円' : ' 1万円未満'}
@@ -350,9 +350,9 @@ export default function MoneyPage() {
         {/* 買う前にチェック（購入シミュレーション） */}
         <div className="card p-5 anim-fadeInUp">
           <label htmlFor="sim-price" className="field-label">買う前にチェック</label>
-          <div className="flex gap-2.5">
+          <div className="money-sim-row">
             <div className="relative flex-1 min-w-0">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#A8A29E' }}>¥</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: 'var(--muted)' }}>¥</span>
               <input
                 id="sim-price"
                 type="text"
@@ -392,10 +392,11 @@ export default function MoneyPage() {
 
           {simVisible && (
             <div
-              className="mt-4 pt-3.5 text-center"
+              className="money-sim-result mt-4 pt-3.5 text-center"
+              role="status"
               style={{ borderTop: '1.5px dashed rgba(28,18,12,0.09)' }}
             >
-              <p className="text-xs font-medium tracking-wider" style={{ color: '#78716C' }}>
+              <p className="text-xs font-medium tracking-wider" style={{ color: 'var(--sub)' }}>
                 購入後の使っていいお金
               </p>
               <p
@@ -416,9 +417,9 @@ export default function MoneyPage() {
 
         {/* いつもより多めの支出（色だけでなく金額と平均を文言で示す） */}
         {alerts.length > 0 && (
-          <div className="rounded-[18px] px-4 py-4 anim-fadeInUp" style={{ background: 'rgba(168,119,14,0.10)' }}>
-            <p className="text-xs font-bold mb-2.5" style={{ color: '#A8770E' }}>
-              📈 いつもより多めの支出があります
+          <div className="rounded-[18px] px-4 py-4 anim-fadeInUp" style={{ background: 'var(--warn-soft)' }}>
+            <p className="text-xs font-bold mb-2.5" style={{ color: 'var(--warn)' }}>
+              <MoneyIcon name="review" /> いつもより多めの支出があります
             </p>
             {alerts.slice(0, 3).map((a, i) => (
               <div
@@ -426,13 +427,13 @@ export default function MoneyPage() {
                 className="py-2"
                 style={{ borderTop: i === 0 ? 'none' : '1px solid rgba(168,119,14,0.18)', paddingTop: i === 0 ? 0 : undefined }}
               >
-                <p className="text-[13px] font-bold" style={{ color: '#1C1917' }}>
-                  {a.category.emoji} {a.category.name}
+                <p className="text-[13px] font-bold" style={{ color: 'var(--ink)' }}>
+                  <MoneyIcon name="category" /> {a.category.name}
                 </p>
-                <p className="text-[11px] mt-0.5" style={{ color: '#78716C', fontVariantNumeric: 'tabular-nums' }}>
+                <p className="text-[11px] mt-0.5" style={{ color: 'var(--sub)', fontVariantNumeric: 'tabular-nums' }}>
                   普段の月平均 {formatYen(a.average)}（{a.months}か月）／今月 {formatYen(a.current)}
                 </p>
-                <p className="text-xs font-bold mt-0.5" style={{ color: '#A8770E' }}>
+                <p className="text-xs font-bold mt-0.5" style={{ color: 'var(--warn)' }}>
                   いつもより約 {formatYen(a.diff)} 多め
                 </p>
               </div>
@@ -443,16 +444,17 @@ export default function MoneyPage() {
         {/* 今月のお金（月予算の要約） */}
         <Link href="/money/budget" className="block card card-hover p-5 anim-fadeInUp active:scale-[0.985]">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-medium" style={{ color: '#78716C' }}>今月のお金</p>
+            <p className="text-sm font-medium" style={{ color: 'var(--sub)' }}>今月のお金</p>
             <span className="text-[11px] font-bold" style={{ color: MONEY_ACCENT }}>開く →</span>
           </div>
 
           {!planBreakdown || planBreakdown.income === 0 ? (
-            <p className="text-xs text-center leading-relaxed py-1.5" style={{ color: '#A8A29E' }}>
+            <p className="text-xs text-center leading-relaxed py-1.5" style={{ color: 'var(--muted)' }}>
               給料を入力すると、貯金・固定費・予定支出を差し引いた<br />生活費の予算を計算します
             </p>
           ) : (
             <>
+              <BudgetBars {...planBreakdown} />
               {[
                 { k: '給料', v: formatYen(planBreakdown.income) },
                 { k: '貯金確保', v: `−${formatYen(planBreakdown.saving)}` },
@@ -462,18 +464,18 @@ export default function MoneyPage() {
                   : []),
               ].map(row => (
                 <div key={row.k} className="flex justify-between items-baseline py-1">
-                  <span className="text-[12.5px]" style={{ color: '#78716C' }}>{row.k}</span>
-                  <span className="text-[13px] font-semibold" style={{ color: '#1C1917', fontVariantNumeric: 'tabular-nums' }}>
+                  <span className="text-[12.5px]" style={{ color: 'var(--sub)' }}>{row.k}</span>
+                  <span className="text-[13px] font-semibold" style={{ color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
                     {row.v}
                   </span>
                 </div>
               ))}
 
               <div
-                className="flex justify-between items-baseline mt-2.5 pt-3"
-                style={{ borderTop: '1px solid rgba(28,18,12,0.06)' }}
+                className="money-living flex justify-between items-baseline mt-2.5 pt-3"
+                style={{ borderTop: '1px solid var(--line)' }}
               >
-                <span className="text-[13px] font-bold" style={{ color: '#1C1917' }}>生活費予算</span>
+                <span className="text-[13px] font-bold" style={{ color: 'var(--ink)' }}>生活費予算</span>
                 <span
                   className="text-2xl font-semibold font-serif-num"
                   style={{ color: planBreakdown.living < 0 ? MONEY_DANGER : MONEY_ACCENT }}
@@ -489,8 +491,8 @@ export default function MoneyPage() {
                     .sort((a, c) => c.amount - a.amount)
                     .slice(0, 3)
                     .map(c => (
-                      <span key={c.id} className="text-[11px]" style={{ color: '#A8A29E', fontVariantNumeric: 'tabular-nums' }}>
-                        {c.emoji} {c.name} {formatYen(c.amount)}
+                      <span key={c.id} className="text-[11px]" style={{ color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                        <MoneyIcon name="category" /> {c.name} {formatYen(c.amount)}
                       </span>
                     ))}
                   <span className="text-[11px] font-bold" style={{ color: MONEY_ACCENT }}>その他を見る →</span>
@@ -516,21 +518,21 @@ export default function MoneyPage() {
             className="block card card-hover p-5 anim-fadeInUp active:scale-[0.985]"
           >
             <div className="flex items-center justify-between mb-2.5">
-              <p className="text-sm font-medium" style={{ color: '#78716C' }}>次の貯金目標</p>
+              <p className="text-sm font-medium" style={{ color: 'var(--sub)' }}>次の貯金目標</p>
               <span className="text-[11px] font-bold" style={{ color: MONEY_ACCENT }}>ロードマップを見る →</span>
             </div>
             <div className="flex justify-between items-baseline">
-              <span className="text-[12.5px]" style={{ color: '#78716C' }}>{formatMonthLabel(goalInfo.goal.month)}</span>
+              <span className="text-[12.5px]" style={{ color: 'var(--sub)' }}>{formatMonthLabel(goalInfo.goal.month)}</span>
               <span
                 className="text-[19px] font-bold font-serif-num"
-                style={{ color: '#1C1917', fontVariantNumeric: 'tabular-nums' }}
+                style={{ color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}
               >
                 {formatMan(goalInfo.goal.amount)}
               </span>
             </div>
             <div
               className="h-2 rounded-[5px] overflow-hidden mt-[11px] mb-1.5"
-              style={{ background: '#F0EBE6' }}
+              style={{ background: 'var(--surface-2)' }}
               role="img"
               aria-label={`目標 ${formatYen(goalInfo.goal.amount)} のうち ${formatYen(goalInfo.current)} 達成`}
             >
@@ -540,10 +542,10 @@ export default function MoneyPage() {
               />
             </div>
             <div className="flex justify-between items-baseline">
-              <span className="text-[12.5px]" style={{ color: '#78716C' }}>現在 {formatYen(goalInfo.current)}</span>
+              <span className="text-[12.5px]" style={{ color: 'var(--sub)' }}>現在 {formatYen(goalInfo.current)}</span>
               <span
                 className="text-[13px] font-bold"
-                style={{ color: '#1C1917', fontVariantNumeric: 'tabular-nums' }}
+                style={{ color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}
               >
                 あと {formatYen(goalInfo.remaining)}
               </span>
@@ -555,10 +557,10 @@ export default function MoneyPage() {
         {history.length > 0 && (
           <div className="card p-5 anim-fadeInUp">
             <div className="flex items-center justify-between mb-1.5">
-              <p className="text-sm font-medium" style={{ color: '#78716C' }}>これまでの記録</p>
+              <p className="text-sm font-medium" style={{ color: 'var(--sub)' }}>これまでの記録</p>
               <span
                 className="text-[10px] font-bold px-2 py-[3px] rounded-full"
-                style={{ background: '#F0EBE6', color: '#A8A29E' }}
+                style={{ background: 'var(--surface-2)', color: 'var(--muted)' }}
               >
                 {history.length}か月分
               </span>
@@ -568,24 +570,24 @@ export default function MoneyPage() {
                 <div
                   key={r.month}
                   className="flex items-center gap-3 py-3"
-                  style={{ borderBottom: i === history.length - 1 ? 'none' : '1px solid rgba(28,18,12,0.06)' }}
+                  style={{ borderBottom: i === history.length - 1 ? 'none' : '1px solid var(--line)' }}
                 >
                   <div className="shrink-0">
-                    <p className="text-[13px] font-bold" style={{ color: '#1C1917' }}>
+                    <p className="text-[13px] font-bold" style={{ color: 'var(--ink)' }}>
                       {formatMonthLabel(r.month)}
                     </p>
-                    <p className="text-[10.5px] mt-0.5" style={{ color: '#A8A29E' }}>
+                    <p className="text-[10.5px] mt-0.5" style={{ color: 'var(--muted)' }}>
                       総資産 {formatYen(r.assets)}
                     </p>
                   </div>
                   <div className="flex-1 min-w-0 text-right">
                     <p
                       className="text-base font-bold"
-                      style={{ color: r.spendable < 0 ? MONEY_DANGER : '#1C1917', fontVariantNumeric: 'tabular-nums' }}
+                      style={{ color: r.spendable < 0 ? MONEY_DANGER : 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}
                     >
                       {formatYenSigned(r.spendable)}
                     </p>
-                    <p className="text-[10.5px] mt-0.5" style={{ color: '#A8A29E' }}>
+                    <p className="text-[10.5px] mt-0.5" style={{ color: 'var(--muted)' }}>
                       固定費 {formatYen(r.fixedCosts)}
                     </p>
                   </div>
@@ -613,9 +615,9 @@ export default function MoneyPage() {
       >
         {actualTarget && (
           <>
-            <div className="p-4 rounded-2xl" style={{ background: 'rgba(168,119,14,0.10)' }}>
-              <p className="text-sm font-medium" style={{ color: '#1C1917' }}>⚡ {actualTarget.name}</p>
-              <p className="text-xs mt-0.5" style={{ color: '#78716C' }}>
+            <div className="p-4 rounded-2xl" style={{ background: 'var(--warn-soft)' }}>
+              <p className="text-sm font-medium" style={{ color: 'var(--ink)' }}><MoneyIcon name="info" /> {actualTarget.name}</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--sub)' }}>
                 予想 {formatYen(actualTarget.amount)}・毎月{actualTarget.payDay}日
               </p>
             </div>
@@ -623,7 +625,7 @@ export default function MoneyPage() {
             <div className="mt-4">
               <label className="field-label" htmlFor="actual-amount">確定した請求額</label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#A8A29E' }}>¥</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: 'var(--muted)' }}>¥</span>
                 <input
                   id="actual-amount"
                   type="text"
@@ -635,14 +637,14 @@ export default function MoneyPage() {
                   className="input pl-8"
                 />
               </div>
-              <p className="text-[11px] mt-1.5" style={{ color: '#A8A29E' }}>{actualPreview}</p>
+              <p className="text-[11px] mt-1.5" style={{ color: 'var(--muted)' }}>{actualPreview}</p>
             </div>
 
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => saveActual(null)}
                 className="flex-1 py-3.5 rounded-2xl text-sm font-medium"
-                style={{ background: '#F0EBE6', color: '#78716C' }}
+                style={{ background: 'var(--surface-2)', color: 'var(--sub)' }}
               >
                 未確定に戻す
               </button>

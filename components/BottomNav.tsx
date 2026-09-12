@@ -54,6 +54,9 @@ const navItems = [
 export default function BottomNav() {
   const pathname = usePathname();
 
+  // やりくりの6タブと重ねず、推し活の画面では従来どおり表示する。
+  if (pathname === '/money' || pathname.startsWith('/money/')) return null;
+
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-50"

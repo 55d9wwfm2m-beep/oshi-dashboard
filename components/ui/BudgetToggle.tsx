@@ -18,7 +18,7 @@ export default function BudgetToggle({ on, onChange, accent, label }: {
     >
       <span
         className="relative w-10 h-6 rounded-full shrink-0 transition-colors duration-200"
-        style={{ background: on ? accent : '#D6D9D5' }}
+        style={{ background: on ? accent : '#3e4943' }}
         aria-hidden="true"
       >
         <span
@@ -26,7 +26,7 @@ export default function BudgetToggle({ on, onChange, accent, label }: {
           style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.2)', transform: on ? 'translateX(16px)' : 'none' }}
         />
       </span>
-      <span className="text-[11.5px] leading-snug" style={{ color: on ? '#78716C' : '#A8A29E' }}>
+      <span className="text-[11.5px] leading-snug" style={{ color: on ? 'var(--sub)' : 'var(--muted)' }}>
         {label ?? 'この口座を使っていいお金の計算に含める'}
       </span>
     </button>

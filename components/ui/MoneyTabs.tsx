@@ -2,26 +2,26 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { MONEY_ACCENT, MONEY_ACCENT_BG } from '@/lib/money';
+import MoneyIcon, { MoneyIconName } from './MoneyIcon';
 
 /**
  * やりくり電卓の画面切り替え。
- * アプリ全体の下部ナビと二重にならないよう、上部の横並びタブにしている。
+ * やりくりの6画面は独立した下部ナビで切り替える。
  */
 const TABS = [
-  { href: '/money', label: 'ホーム', emoji: '🏠' },
-  { href: '/money/balance', label: '残高', emoji: '💴' },
-  { href: '/money/budget', label: '予算', emoji: '📅' },
-  { href: '/money/roadmap', label: '目標', emoji: '🎯' },
-  { href: '/money/review', label: '振り返り', emoji: '📊' },
-  { href: '/money/settings', label: '設定', emoji: '⚙️' },
+  { href: '/money', label: 'ホーム', icon: 'home' },
+  { href: '/money/balance', label: '残高', icon: 'balance' },
+  { href: '/money/budget', label: '予算', icon: 'budget' },
+  { href: '/money/roadmap', label: '目標', icon: 'roadmap' },
+  { href: '/money/review', label: '振り返り', icon: 'review' },
+  { href: '/money/settings', label: '設定', icon: 'settings' },
 ];
 
 export default function MoneyTabs() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex gap-1.5 overflow-x-auto px-4 pb-3" aria-label="やりくり電卓のメニュー">
+    <nav className="tabbar" aria-label="やりくり電卓のメニュー">
       {TABS.map(t => {
         const active = pathname === t.href;
         return (
@@ -29,18 +29,10 @@ export default function MoneyTabs() {
             key={t.href}
             href={t.href}
             aria-current={active ? 'page' : undefined}
-            className="shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-bold transition-colors"
-            style={active
-              ? { background: MONEY_ACCENT_BG, color: MONEY_ACCENT }
-              : { background: '#F0EBE6', color: '#A8A29E' }}
+            className="tab"
           >
-            <span
-              aria-hidden="true"
-              style={{ filter: active ? 'none' : 'grayscale(1)', opacity: active ? 1 : 0.6 }}
-            >
-              {t.emoji}
-            </span>
-            {t.label}
+            <span className="tab-icon"><MoneyIcon name={t.icon as MoneyIconName} /></span>
+            <span className="tab-label">{t.label}</span>
           </Link>
         );
       })}

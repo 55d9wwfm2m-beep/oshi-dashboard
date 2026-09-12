@@ -359,6 +359,79 @@
 
   .footnote { font-size: 11px; color: var(--muted); text-align: center; margin: 20px 8px 0; }
 
+  /* ── 貯金ロードマップ ── */
+  #view-roadmap .head h1 { font-size: 21px; letter-spacing: -0.02em; }
+  .rm-hero { text-align: center; background: linear-gradient(168deg, var(--accent-soft), var(--surface) 62%); }
+  .rm-kicker { font-size: 11.5px; font-weight: 700; letter-spacing: 0.1em; color: var(--sub); margin: 0; }
+  .rm-when { font-size: 13px; font-weight: 700; color: var(--accent-ink); margin: 8px 0 0; }
+  .rm-target { font-size: 38px; font-weight: 600; line-height: 1.15; margin: 2px 0 0; letter-spacing: -0.02em; }
+  .rm-name { font-size: 12px; color: var(--muted); margin: 4px 0 0; }
+
+  .rm-bar { height: 10px; border-radius: 6px; background: var(--surface-2); overflow: hidden; margin: 16px 0 8px; }
+  .rm-bar i { display: block; height: 100%; border-radius: 6px; background: var(--accent); transition: width 0.35s ease; }
+  .rm-bar.is-done i { background: var(--accent-ink); }
+  .rm-pct { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  .rm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+  .rm-cell { background: var(--bg); border-radius: 16px; padding: 12px 10px; }
+  .rm-cell .k { font-size: 11px; color: var(--sub); margin: 0; }
+  .rm-cell .v { font-size: 18px; font-weight: 700; margin: 3px 0 0; font-variant-numeric: tabular-nums; }
+
+  .rm-pace {
+    display: inline-flex; align-items: center; gap: 7px; margin-top: 16px;
+    padding: 9px 16px; border-radius: 999px; font-size: 12.5px; font-weight: 700;
+  }
+  .rm-pace.done, .rm-pace.ahead { background: var(--accent-soft); color: var(--accent-ink); }
+  .rm-pace.close { background: var(--warn-soft); color: var(--warn); }
+  .rm-pace.behind { background: var(--danger-soft); color: var(--danger); }
+  .rm-note { font-size: 12px; color: var(--sub); margin: 8px 0 0; }
+  .rm-permonth {
+    margin: 14px 0 0; padding: 11px 14px; border-radius: 14px;
+    background: var(--surface-2); font-size: 12.5px; font-weight: 600; color: var(--ink);
+  }
+  .rm-permonth b { font-size: 15px; font-variant-numeric: tabular-nums; }
+
+  /* 縦のタイムライン */
+  .tl-row { display: flex; gap: 12px; }
+  .tl-rail { width: 22px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; }
+  .tl-dot {
+    width: 13px; height: 13px; border-radius: 50%; flex-shrink: 0; margin-top: 3px;
+    border: 2px solid var(--line); background: var(--surface);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px; color: #fff; line-height: 1;
+  }
+  .tl-line { flex: 1; width: 2px; background: var(--line); margin: 3px 0; min-height: 14px; }
+  .tl-row:last-child .tl-line { display: none; }
+  .tl-body { flex: 1; min-width: 0; padding-bottom: 16px; }
+  .tl-when { font-size: 11.5px; color: var(--muted); font-weight: 600; }
+  .tl-amount { font-size: 17px; font-weight: 700; margin-top: 1px; font-variant-numeric: tabular-nums; }
+  .tl-name { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+  .tl-row.is-done .tl-dot { background: var(--accent); border-color: var(--accent); }
+  .tl-row.is-done .tl-amount { color: var(--sub); }
+  .tl-row.is-current .tl-dot { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+  .tl-row.is-current .tl-body {
+    background: var(--accent-soft); border-radius: 14px; padding: 10px 12px; margin-bottom: 16px; padding-bottom: 10px;
+  }
+  .tl-row.is-current .tl-when { color: var(--accent-ink); }
+  .tl-row.is-future .tl-amount { color: var(--muted); font-weight: 600; }
+  .tl-row.is-event .tl-dot { border-color: var(--warn); background: var(--warn-soft); }
+  .tl-row.is-event .tl-amount { color: var(--warn); }
+  .tl-after {
+    font-size: 11.5px; color: var(--sub); margin-top: 5px;
+    padding-top: 5px; border-top: 1px dashed var(--line);
+  }
+  .tl-edit { border: none; background: none; color: var(--muted); font-size: 14px; padding: 4px 6px; margin: -4px -6px 0 0; }
+
+  /* ホームの簡易カード */
+  .rm-mini-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .rm-mini-row { display: flex; justify-content: space-between; align-items: baseline; }
+  .rm-mini-row .k { font-size: 12.5px; color: var(--sub); }
+  .rm-mini-row .v { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .rm-mini-goal { font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .rm-mini-bar { height: 8px; border-radius: 5px; background: var(--surface-2); overflow: hidden; margin: 11px 0 6px; }
+  .rm-mini-bar i { display: block; height: 100%; border-radius: 5px; background: var(--accent); }
+
   /* ── 下部メニューバー ── */
   .tabbar {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
@@ -711,6 +784,8 @@
       <div id="budget-card-body"></div>
     </div>
 
+    <div class="card anim-in" id="rm-mini" data-nav="roadmap" style="cursor:pointer;" hidden></div>
+
     <p class="footnote">データはこの端末のブラウザ内にのみ保存されます</p>
   </section>
 
@@ -831,6 +906,29 @@
         <div class="alloc-summary" id="alloc-summary"></div>
       </div>
     </div>
+  </section>
+
+  <!-- ══════════ 貯金ロードマップ ══════════ -->
+  <section id="view-roadmap" hidden>
+    <header class="head">
+      <div>
+        <p class="eyebrow">Roadmap</p>
+        <h1>30歳までのロードマップ</h1>
+      </div>
+      <button class="chipbtn" id="rm-settings">対象残高</button>
+    </header>
+
+    <div class="card rm-hero anim-in" id="rm-hero"></div>
+
+    <div class="card anim-in">
+      <div class="card-head" style="margin-bottom: 14px;">
+        <p class="card-title">目標の一覧</p>
+        <button class="textlink" id="rm-add">＋ 追加</button>
+      </div>
+      <div id="rm-timeline"></div>
+    </div>
+
+    <p class="footnote">目標はいつでも追加・変更できます</p>
   </section>
 
   <!-- ══════════ 振り返りページ ══════════ -->
@@ -973,6 +1071,9 @@
   <button class="tab" data-tab="budget">
     <span class="tab-icon" aria-hidden="true">📅</span><span class="tab-label">予算</span>
   </button>
+  <button class="tab" data-tab="roadmap">
+    <span class="tab-icon" aria-hidden="true">🎯</span><span class="tab-label">目標</span>
+  </button>
   <button class="tab" data-tab="review">
     <span class="tab-icon" aria-hidden="true">📊</span><span class="tab-label">振り返り</span>
   </button>
@@ -980,6 +1081,94 @@
     <span class="tab-icon" aria-hidden="true">⚙️</span><span class="tab-label">設定</span>
   </button>
 </nav>
+
+<!-- ── 目標の追加・編集シート ── -->
+<div class="overlay" id="sheet-rm" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="rm-form-title">
+    <div class="grip" aria-hidden="true"></div>
+    <h2 id="rm-form-title">目標を追加</h2>
+    <div class="fields">
+      <div>
+        <label class="field-label">種類</label>
+        <div class="seg" id="rm-kind" role="group" aria-label="目標の種類">
+          <button type="button" data-rmkind="goal" aria-pressed="true">貯金の目標</button>
+          <button type="button" data-rmkind="event" aria-pressed="false">大きな支出</button>
+        </div>
+        <p class="seg-hint" id="rm-kind-hint">その時点で到達したい貯金額を登録します</p>
+      </div>
+      <div>
+        <label class="field-label" for="rm-name">名前 *</label>
+        <input id="rm-name" class="input" type="text" placeholder="例：貯金 150万円・レクサス購入">
+      </div>
+      <div>
+        <label class="field-label" for="rm-month">目標の年月 *</label>
+        <input id="rm-month" class="input" type="month">
+      </div>
+      <div>
+        <label class="field-label" for="rm-amount" id="rm-amount-label">目標の貯金額 *</label>
+        <div class="money-wrap">
+          <span class="yen">¥</span>
+          <input id="rm-amount" class="input" type="text" inputmode="numeric" autocomplete="off" placeholder="150,000" style="padding-left:32px;">
+        </div>
+      </div>
+      <div id="rm-after-wrap" hidden>
+        <label class="field-label" for="rm-after">購入後に残す貯金額</label>
+        <div class="money-wrap">
+          <span class="yen">¥</span>
+          <input id="rm-after" class="input" type="text" inputmode="numeric" autocomplete="off" placeholder="1,475,000" style="padding-left:32px;">
+        </div>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn-ghost" id="rm-delete" hidden>削除</button>
+      <button class="btn-ghost" data-close="sheet-rm">キャンセル</button>
+      <button class="btn-primary" id="rm-save">追加する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── ロードマップ対象残高の設定シート ── -->
+<div class="overlay" id="sheet-rm-source" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="rm-source-title">
+    <div class="grip" aria-hidden="true"></div>
+    <h2 id="rm-source-title">ロードマップ対象残高</h2>
+    <p class="seg-hint" style="margin:0 0 12px;">どのお金を貯金として数えるかを決めます</p>
+    <div class="fields">
+      <div>
+        <div class="seg" id="rm-source-seg" role="group" aria-label="対象残高の決め方">
+          <button type="button" data-rmsrc="accounts" aria-pressed="true">口座から</button>
+          <button type="button" data-rmsrc="manual" aria-pressed="false">手入力</button>
+        </div>
+      </div>
+      <div id="rm-source-accounts">
+        <label class="field-label">対象にする口座</label>
+        <div id="rm-account-list"></div>
+      </div>
+      <div id="rm-source-manual" hidden>
+        <label class="field-label" for="rm-manual">貯金額</label>
+        <div class="money-wrap">
+          <span class="yen">¥</span>
+          <input id="rm-manual" class="input" type="text" inputmode="numeric" autocomplete="off" placeholder="71,609" style="padding-left:32px;">
+        </div>
+      </div>
+      <div>
+        <label class="field-label" for="rm-start-month">ペース判定の起点</label>
+        <input id="rm-start-month" class="input" type="month">
+        <p class="seg-hint">最初の目標に向かうペースを、この時点からの直線で見ます</p>
+      </div>
+      <div>
+        <label class="field-label" for="rm-start-amount">起点の貯金額</label>
+        <div class="money-wrap">
+          <span class="yen">¥</span>
+          <input id="rm-start-amount" class="input" type="text" inputmode="numeric" autocomplete="off" placeholder="0" style="padding-left:32px;">
+        </div>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn-primary" id="rm-source-done" style="width:100%;">閉じる</button>
+    </div>
+  </div>
+</div>
 
 <!-- ── 支出の記録シート ── -->
 <div class="overlay" id="sheet-expense" hidden>
@@ -1214,7 +1403,9 @@
     /** 過去の月予算 */
     budgetHistory: 'oshi-money-budget-history',
     /** 生活費の支出記録（全期間を1つの配列で保持） */
-    expenses: 'oshi-money-expenses'
+    expenses: 'oshi-money-expenses',
+    /** 貯金ロードマップ（目標と計画された大きな支出） */
+    roadmap: 'oshi-money-roadmap'
   };
 
   /** 「いつもより高い」の判定条件（両方を満たしたときだけ知らせる） */
@@ -1839,6 +2030,7 @@
     renderHero();
     renderAlerts();
     renderBudgetCard();
+    renderRoadmapMini();
   });
 
   function statusPillHTML(st) {
@@ -2036,6 +2228,7 @@
   function renderHome() {
     renderAlerts();
     renderBudgetCard();
+    renderRoadmapMini();
     renderPayday();
     renderHero();
   }
@@ -2439,8 +2632,10 @@
     renderHero();
     renderAlerts();
     renderBudgetCard();
+    renderRoadmapMini();
 
     if (!document.getElementById('view-budget').hidden) renderBudget();
+    else if (!document.getElementById('view-roadmap').hidden) renderRoadmap();
     else if (!document.getElementById('view-review').hidden) renderReview();
     else if (!document.getElementById('view-balance').hidden) renderBalance();
     else if (!document.getElementById('view-settings').hidden) renderSettings();
@@ -2706,6 +2901,376 @@
   });
   document.getElementById('review-log').addEventListener('click', function () { openExpense(null); });
 
+
+  /* ══════════ 貯金ロードマップ ══════════
+     「いつまでに、いくら貯めたいか」を並べるだけ。収入の予測はしない */
+
+  var DEFAULT_MILESTONES = [
+    { month: '2026-12', name: '貯金 15万円', kind: 'goal', amount: 150000 },
+    { month: '2027-06', name: '貯金 40万円', kind: 'goal', amount: 400000 },
+    { month: '2027-12', name: '貯金 70万円', kind: 'goal', amount: 700000 },
+    { month: '2028-04', name: '貯金 87.5万円', kind: 'goal', amount: 875000 },
+    { month: '2028-06', name: '貯金 107.5万円', kind: 'goal', amount: 1075000 },
+    { month: '2028-12', name: '貯金 167.5万円', kind: 'goal', amount: 1675000 },
+    { month: '2029-06', name: '貯金 227.5万円', kind: 'goal', amount: 2275000 },
+    { month: '2029-12', name: '貯金 287.5万円', kind: 'goal', amount: 2875000 },
+    { month: '2030-06', name: '貯金 347.5万円', kind: 'goal', amount: 3475000 },
+    { month: '2030-12', name: '貯金 407.5万円', kind: 'goal', amount: 4075000 },
+    { month: '2031-04', name: '貯金 447.5万円', kind: 'goal', amount: 4475000 },
+    { month: '2031-04', name: 'レクサス購入', kind: 'event', amount: 3000000, after: 1475000 },
+    { month: '2031-10', name: '貯金 190万円', kind: 'goal', amount: 1900000 }
+  ];
+
+  var PACE_TEXT = {
+    done:   { icon: '✅', label: '達成',       note: 'この目標を達成しました！' },
+    ahead:  { icon: '🟢', label: '順調',       note: '目標ペースを上回っています' },
+    close:  { icon: '🟡', label: 'あと少し',   note: 'ほぼ予定どおりのペースです' },
+    behind: { icon: '🔴', label: 'ペースアップ', note: '今のペースだと少し足りない見込みです' }
+  };
+
+  var roadmap = load(KEYS.roadmap, null);
+  if (!roadmap || typeof roadmap !== 'object' || !Array.isArray(roadmap.milestones)) {
+    roadmap = {
+      milestones: DEFAULT_MILESTONES.map(function (m) {
+        return { id: uid(), month: m.month, name: m.name, kind: m.kind, amount: m.amount, after: m.after == null ? null : m.after };
+      }),
+      source: 'accounts',
+      accountIds: [],
+      manual: '',
+      startMonth: thisMonth(),
+      // 起点は「今ある貯金」。0 にすると最初の判定が常に順調になってしまう
+      startAmount: String(accounts.filter(function (a) { return a.budget === false; })
+        .reduce(function (t, a) { return t + accAmount(a); }, 0) || '')
+    };
+    save(KEYS.roadmap, roadmap);
+  }
+  if (roadmap.source !== 'manual') roadmap.source = 'accounts';
+  if (!Array.isArray(roadmap.accountIds)) roadmap.accountIds = [];
+  if (typeof roadmap.manual !== 'string') roadmap.manual = '';
+  if (typeof roadmap.startMonth !== 'string' || !roadmap.startMonth) roadmap.startMonth = thisMonth();
+  if (typeof roadmap.startAmount !== 'string') roadmap.startAmount = '';
+
+  function thisMonth() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  }
+  function saveRoadmap() { save(KEYS.roadmap, roadmap); }
+
+  /** 目標→イベントの順で、年月の早い順に並べる */
+  function sortedMilestones() {
+    return roadmap.milestones.slice().sort(function (a, b) {
+      return a.month.localeCompare(b.month) || (a.kind === b.kind ? 0 : a.kind === 'goal' ? -1 : 1);
+    });
+  }
+
+  /** 対象になっている口座（未選択なら「計算対象外の口座」＝貯金用とみなす） */
+  function roadmapAccounts() {
+    if (roadmap.source === 'manual') return [];
+    return roadmap.accountIds.length > 0
+      ? accounts.filter(function (a) { return roadmap.accountIds.indexOf(a.id) !== -1; })
+      : accounts.filter(function (a) { return a.budget === false; });
+  }
+
+  /** ロードマップが対象にする貯金額 */
+  function roadmapBalance() {
+    if (roadmap.source === 'manual') {
+      return roadmap.manual === '' ? 0 : parseInt(roadmap.manual, 10) || 0;
+    }
+    return roadmapAccounts().reduce(function (s, a) { return s + accAmount(a); }, 0);
+  }
+
+  /** YYYY-MM どうしの差を月数で返す */
+  function monthsBetween(from, to) {
+    var f = from.split('-').map(Number), t = to.split('-').map(Number);
+    return (t[0] * 12 + t[1]) - (f[0] * 12 + f[1]);
+  }
+
+  /** 「15万円」「447.5万円」のように読みやすくする */
+  function man(amount) {
+    return (Math.round(amount / 1000) / 10).toLocaleString('ja-JP') + '万円';
+  }
+
+  /**
+   * いま向かっている目標と、その進み具合。
+   * ペースは「ひとつ前の目標（なければ起点）から次の目標まで」を直線で見て判定する
+   */
+  function nextGoalInfo() {
+    var now = thisMonth();
+    var current = roadmapBalance();
+    var goals = sortedMilestones().filter(function (m) { return m.kind === 'goal'; });
+    var goal = goals.find(function (g) { return g.month >= now; });
+    if (!goal) return null;
+
+    var before = goals.filter(function (g) { return g.month < goal.month; });
+    var prev = before.length ? before[before.length - 1] : null;
+    var startMonth = prev ? prev.month : roadmap.startMonth;
+    var startAmount = prev ? prev.amount
+      : (roadmap.startAmount === '' ? 0 : parseInt(roadmap.startAmount, 10) || 0);
+
+    var span = Math.max(1, monthsBetween(startMonth, goal.month));
+    var elapsed = Math.min(span, Math.max(0, monthsBetween(startMonth, now)));
+    var expected = Math.round(startAmount + (goal.amount - startAmount) * (elapsed / span));
+
+    var remaining = Math.max(0, goal.amount - current);
+    var monthsLeft = Math.max(1, monthsBetween(now, goal.month));
+    var pace = current >= goal.amount ? 'done'
+      : current >= expected ? 'ahead'
+        : current >= expected * 0.9 ? 'close' : 'behind';
+
+    return {
+      goal: goal, current: current, remaining: remaining,
+      ratio: goal.amount > 0 ? current / goal.amount : 1,
+      monthsLeft: monthsLeft, perMonth: Math.ceil(remaining / monthsLeft),
+      expected: expected, pace: pace
+    };
+  }
+
+  /* 達成率の表示用パーセント。あと数円という状態で「100%」と出ないよう、
+     達成前は 99.9% を上限にする */
+  function ratioPct(ratio) {
+    var p = Math.round(ratio * 1000) / 10;
+    return ratio < 1 ? Math.min(99.9, p) : p;
+  }
+
+  /* ── ロードマップ画面 ── */
+  function renderRoadmapHero() {
+    var box = document.getElementById('rm-hero');
+    var info = nextGoalInfo();
+    if (!info) {
+      box.innerHTML = '<p class="rm-kicker">次の目標</p>' +
+        '<p class="rm-note" style="margin-top:10px;">これから先の目標がありません。<br>「＋ 追加」から登録できます</p>';
+      return;
+    }
+    var pct = Math.min(100, Math.round(info.ratio * 100));
+    var t = PACE_TEXT[info.pace];
+    box.innerHTML =
+      '<p class="rm-kicker">次の目標</p>' +
+      '<p class="rm-when">' + monthLabel(info.goal.month) + 'まで</p>' +
+      '<p class="rm-target serif-num">' + yen(info.goal.amount) + '</p>' +
+      '<p class="rm-name">' + esc(info.goal.name) + '</p>' +
+      '<div class="rm-bar' + (info.pace === 'done' ? ' is-done' : '') + '" role="img" ' +
+        'aria-label="目標 ' + yen(info.goal.amount) + ' のうち ' + yen(info.current) + ' 達成">' +
+        '<i style="width:' + pct + '%;"></i></div>' +
+      '<div class="rm-pct"><span>達成率 ' + ratioPct(info.ratio) + '%</span>' +
+        '<span>残り ' + info.monthsLeft + 'か月</span></div>' +
+      '<div class="rm-grid">' +
+        '<div class="rm-cell"><p class="k">現在</p><p class="v serif-num">' + yen(info.current) + '</p></div>' +
+        '<div class="rm-cell"><p class="k">あと</p><p class="v serif-num">' + yen(info.remaining) + '</p></div>' +
+      '</div>' +
+      '<div><span class="rm-pace ' + info.pace + '">' + t.icon + ' ' + t.label + '</span></div>' +
+      '<p class="rm-note">' + t.note + '</p>' +
+      (info.remaining > 0
+        ? '<p class="rm-permonth">目標達成には、ここから月平均 <b>' + yen(info.perMonth) + '</b></p>'
+        : '');
+  }
+
+  function renderRoadmapTimeline() {
+    var box = document.getElementById('rm-timeline');
+    var list = sortedMilestones();
+    if (list.length === 0) {
+      box.innerHTML = '<p class="auto-empty">目標がまだありません</p>';
+      return;
+    }
+    var current = roadmapBalance();
+    var info = nextGoalInfo();
+    var currentId = info ? info.goal.id : null;
+
+    box.innerHTML = list.map(function (m) {
+      var isEvent = m.kind === 'event';
+      var done = !isEvent && current >= m.amount;
+      var isCurrent = m.id === currentId;
+      var cls = 'tl-row' + (isEvent ? ' is-event' : done ? ' is-done' : isCurrent ? ' is-current' : ' is-future');
+      return '<div class="' + cls + '">' +
+        '<div class="tl-rail">' +
+          '<div class="tl-dot">' + (done ? '✓' : '') + '</div>' +
+          '<div class="tl-line"></div>' +
+        '</div>' +
+        '<div class="tl-body">' +
+          '<div style="display:flex; align-items:flex-start; gap:8px;">' +
+            '<div style="flex:1; min-width:0;">' +
+              '<p class="tl-when">' + monthLabel(m.month) + (isCurrent ? '・いま向かっている目標' : '') + '</p>' +
+              '<p class="tl-amount">' + (isEvent ? '🚙 −' + yen(m.amount) : man(m.amount)) + '</p>' +
+              '<p class="tl-name">' + esc(m.name) + (done ? '・達成' : '') + '</p>' +
+            '</div>' +
+            '<button class="tl-edit" data-rm-edit="' + m.id + '" aria-label="' + esc(m.name) + 'を編集">⚙</button>' +
+          '</div>' +
+          (isEvent && typeof m.after === 'number'
+            ? '<p class="tl-after">購入後の目標残高 ' + yen(m.after) + '（計画された支出です）</p>'
+            : '') +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function renderRoadmap() {
+    renderRoadmapHero();
+    renderRoadmapTimeline();
+  }
+
+  /** ホームの小さな「次の貯金目標」カード */
+  function renderRoadmapMini() {
+    var card = document.getElementById('rm-mini');
+    var info = nextGoalInfo();
+    if (!info) { card.hidden = true; return; }
+    card.hidden = false;
+    var pct = Math.min(100, Math.round(info.ratio * 100));
+    card.innerHTML =
+      '<div class="rm-mini-head">' +
+        '<p class="card-title">次の貯金目標</p>' +
+        '<span class="bud-more">ロードマップを見る →</span>' +
+      '</div>' +
+      '<div class="rm-mini-row">' +
+        '<span class="k">' + monthLabel(info.goal.month) + '</span>' +
+        '<span class="rm-mini-goal serif-num">' + man(info.goal.amount) + '</span>' +
+      '</div>' +
+      '<div class="rm-mini-bar"><i style="width:' + pct + '%;"></i></div>' +
+      '<div class="rm-mini-row"><span class="k">現在 ' + yen(info.current) + '</span>' +
+        '<span class="v">あと ' + yen(info.remaining) + '</span></div>';
+  }
+
+  /* ── 目標の追加・編集 ── */
+  var rmEditId = null;
+  var rmKind = 'goal';
+  var rmName = document.getElementById('rm-name');
+  var rmMonth = document.getElementById('rm-month');
+  var rmAmount = document.getElementById('rm-amount');
+  var rmAfter = document.getElementById('rm-after');
+
+  function applyRmKind(kind) {
+    rmKind = kind;
+    document.querySelectorAll('#rm-kind button').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.rmkind === kind));
+    });
+    var isEvent = kind === 'event';
+    document.getElementById('rm-kind-hint').textContent = isEvent
+      ? 'レクサス購入など、あらかじめ計画された大きな支出です'
+      : 'その時点で到達したい貯金額を登録します';
+    document.getElementById('rm-amount-label').textContent = isEvent ? '支出する金額 *' : '目標の貯金額 *';
+    document.getElementById('rm-after-wrap').hidden = !isEvent;
+  }
+  document.getElementById('rm-kind').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-rmkind]');
+    if (b) applyRmKind(b.dataset.rmkind);
+  });
+
+  function openRmForm(item) {
+    rmEditId = item ? item.id : null;
+    document.getElementById('rm-form-title').textContent = item ? '目標を編集' : '目標を追加';
+    document.getElementById('rm-save').textContent = item ? '保存する' : '追加する';
+    document.getElementById('rm-delete').hidden = !item;
+    applyRmKind(item ? item.kind : 'goal');
+    rmName.value = item ? item.name : '';
+    rmMonth.value = item ? item.month : thisMonth();
+    rmAmount.value = item ? item.amount.toLocaleString('ja-JP') : '';
+    rmAfter.value = item && typeof item.after === 'number' ? item.after.toLocaleString('ja-JP') : '';
+    document.getElementById('sheet-rm').hidden = false;
+    rmName.focus();
+  }
+  [rmAmount, rmAfter].forEach(function (el) {
+    el.addEventListener('input', function () {
+      var raw = digitsOnly(el.value);
+      el.value = raw === '' ? '' : parseInt(raw, 10).toLocaleString('ja-JP');
+    });
+  });
+  document.getElementById('rm-add').addEventListener('click', function () { openRmForm(null); });
+  document.getElementById('rm-save').addEventListener('click', function () {
+    var name = rmName.value.trim();
+    var amount = parseInt(digitsOnly(rmAmount.value), 10) || 0;
+    if (!name || !rmMonth.value || amount <= 0) { toast('名前・年月・金額を入力してください'); return; }
+    var afterRaw = digitsOnly(rmAfter.value);
+    var item = {
+      id: rmEditId || uid(),
+      month: rmMonth.value,
+      name: name,
+      kind: rmKind,
+      amount: amount,
+      after: rmKind === 'event' && afterRaw !== '' ? parseInt(afterRaw, 10) || 0 : null
+    };
+    if (rmEditId) {
+      roadmap.milestones = roadmap.milestones.map(function (m) { return m.id === rmEditId ? item : m; });
+      toast('目標を更新しました');
+    } else {
+      roadmap.milestones.push(item);
+      toast('目標を追加しました');
+    }
+    saveRoadmap();
+    closeSheet('sheet-rm');
+    renderRoadmap();
+  });
+  document.getElementById('rm-delete').addEventListener('click', function () {
+    roadmap.milestones = roadmap.milestones.filter(function (m) { return m.id !== rmEditId; });
+    saveRoadmap();
+    closeSheet('sheet-rm');
+    renderRoadmap();
+    toast('目標を削除しました');
+  });
+
+  /* ── 対象残高の設定 ── */
+  function renderRmSource() {
+    document.querySelectorAll('#rm-source-seg button').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.rmsrc === roadmap.source));
+    });
+    document.getElementById('rm-source-accounts').hidden = roadmap.source !== 'accounts';
+    document.getElementById('rm-source-manual').hidden = roadmap.source !== 'manual';
+    document.getElementById('rm-manual').value =
+      roadmap.manual === '' ? '' : parseInt(roadmap.manual, 10).toLocaleString('ja-JP');
+    document.getElementById('rm-start-month').value = roadmap.startMonth;
+    document.getElementById('rm-start-amount').value =
+      roadmap.startAmount === '' ? '' : parseInt(roadmap.startAmount, 10).toLocaleString('ja-JP');
+
+    var picked = roadmapAccounts().map(function (a) { return a.id; });
+    var box = document.getElementById('rm-account-list');
+    box.innerHTML = accounts.length === 0
+      ? '<p class="auto-empty">口座が登録されていません</p>'
+      : accounts.map(function (a) {
+          var on = picked.indexOf(a.id) !== -1;
+          return '<button class="acc-toggle" data-rm-acc="' + a.id + '" role="switch" aria-checked="' + on + '">' +
+            '<span class="toggle-track" aria-hidden="true"><span class="toggle-knob"></span></span>' +
+            '<span class="toggle-label">' + esc(a.name) + '（' + yen(accAmount(a)) + '）</span>' +
+          '</button>';
+        }).join('') +
+        '<p class="seg-hint">' +
+          (roadmap.accountIds.length === 0
+            ? '未選択のあいだは「使っていいお金の計算に含めない口座」を貯金として数えます'
+            : '選んだ口座の合計 ' + yen(roadmapBalance()) + ' を貯金として数えます') +
+        '</p>';
+  }
+  document.getElementById('rm-settings').addEventListener('click', function () {
+    renderRmSource();
+    document.getElementById('sheet-rm-source').hidden = false;
+  });
+  document.getElementById('rm-source-seg').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-rmsrc]');
+    if (!b) return;
+    roadmap.source = b.dataset.rmsrc;
+    saveRoadmap();
+    renderRmSource();
+    renderRoadmap();
+  });
+  document.getElementById('rm-manual').addEventListener('input', function (e) {
+    var raw = digitsOnly(e.target.value);
+    e.target.value = raw === '' ? '' : parseInt(raw, 10).toLocaleString('ja-JP');
+    roadmap.manual = raw;
+    saveRoadmap();
+    renderRoadmap();
+  });
+  document.getElementById('rm-start-month').addEventListener('change', function (e) {
+    roadmap.startMonth = e.target.value || thisMonth();
+    saveRoadmap();
+    renderRoadmap();
+  });
+  document.getElementById('rm-start-amount').addEventListener('input', function (e) {
+    var raw = digitsOnly(e.target.value);
+    e.target.value = raw === '' ? '' : parseInt(raw, 10).toLocaleString('ja-JP');
+    roadmap.startAmount = raw;
+    saveRoadmap();
+    renderRoadmap();
+  });
+  document.getElementById('rm-source-done').addEventListener('click', function () {
+    closeSheet('sheet-rm-source');
+    renderRoadmap();
+  });
+
   /* ── ホームの月予算カード ── */
   function renderBudgetCard() {
     var b = budgetCalc();
@@ -2912,7 +3477,7 @@
   }
 
   /* ── 画面切り替え ── */
-  var VIEWS = ['home', 'balance', 'budget', 'review', 'settings'];
+  var VIEWS = ['home', 'balance', 'budget', 'roadmap', 'review', 'settings'];
 
   function show(view) {
     if (VIEWS.indexOf(view) === -1) view = 'home';
@@ -2926,6 +3491,7 @@
     if (view === 'home') renderHome();
     else if (view === 'balance') renderBalance();
     else if (view === 'budget') renderBudget();
+    else if (view === 'roadmap') renderRoadmap();
     else if (view === 'review') renderReview();
     else renderSettings();
     window.scrollTo(0, 0);
@@ -3173,8 +3739,28 @@
 
   /* ── クリック委譲 ── */
   document.addEventListener('click', function (e) {
-    var t = e.target.closest('[data-nav], [data-toggle], [data-actual], [data-edit], [data-del], [data-acc-toggle], [data-acc-toggle-settings], [data-acc-edit], [data-acc-del], [data-planned-edit], [data-cat-edit], [data-review-month], [data-expense-edit], #budget-log, [data-close], .overlay');
+    var t = e.target.closest('[data-nav], [data-toggle], [data-actual], [data-edit], [data-del], [data-acc-toggle], [data-acc-toggle-settings], [data-acc-edit], [data-acc-del], [data-planned-edit], [data-cat-edit], [data-review-month], [data-expense-edit], [data-rm-edit], [data-rm-acc], #budget-log, [data-close], .overlay');
     if (t && t.id === 'budget-log') { openExpense(null); return; }
+
+    if (t && t.dataset && t.dataset.rmEdit) {
+      var rme = roadmap.milestones.find(function (m) { return m.id === t.dataset.rmEdit; });
+      if (rme) openRmForm(rme);
+      return;
+    }
+    if (t && t.dataset && t.dataset.rmAcc) {
+      // 未選択のあいだは「計算対象外の口座」が既定なので、まずその並びを実体化する
+      var base = roadmap.accountIds.length > 0
+        ? roadmap.accountIds.slice()
+        : roadmapAccounts().map(function (a) { return a.id; });
+      var id = t.dataset.rmAcc;
+      var at = base.indexOf(id);
+      if (at === -1) base.push(id); else base.splice(at, 1);
+      roadmap.accountIds = base;
+      saveRoadmap();
+      renderRmSource();
+      renderRoadmap();
+      return;
+    }
     if (!t) return;
 
     if (t.dataset && t.dataset.reviewMonth) {
@@ -3292,6 +3878,8 @@
     closeSheet('sheet-planned');
     closeSheet('sheet-cat');
     closeSheet('sheet-expense');
+    closeSheet('sheet-rm');
+    closeSheet('sheet-rm-source');
   });
 
   document.getElementById('add-btn').addEventListener('click', function () { openForm(null); });

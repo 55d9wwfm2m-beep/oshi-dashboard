@@ -12,6 +12,7 @@ const TABS = [
   { href: '/money', label: 'ホーム', emoji: '🏠' },
   { href: '/money/balance', label: '残高', emoji: '💴' },
   { href: '/money/budget', label: '予算', emoji: '📅' },
+  { href: '/money/roadmap', label: '目標', emoji: '🎯' },
   { href: '/money/review', label: '振り返り', emoji: '📊' },
   { href: '/money/settings', label: '設定', emoji: '⚙️' },
 ];

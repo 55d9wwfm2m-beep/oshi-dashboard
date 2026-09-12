@@ -1,6 +1,7 @@
 import {
   FixedCost, MoneyAccount, MonthlyRecord,
   MonthlyBudget, BudgetCategory, PlannedExpense, LivingExpense, DEFAULT_BUDGET_CATEGORIES,
+  SavingsMilestone, SavingsRoadmap,
 } from '@/types';
 import { generateId, formatYen } from '@/lib/utils';
 
@@ -24,6 +25,8 @@ export const MONEY_KEYS = {
   budgetHistory: 'oshi-money-budget-history',
   /** 生活費の支出記録（全期間を1つの配列で保持） */
   expenses: 'oshi-money-expenses',
+  /** 貯金ロードマップ（目標と計画された大きな支出） */
+  roadmap: 'oshi-money-roadmap',
 } as const;
 
 /** 履歴に残す最大月数（古いものから捨てる） */
@@ -736,4 +739,164 @@ export function formatYenSigned(amount: number): string {
 /** 支払日の昇順（同日なら名前順）で並べた新しい配列を返す */
 export function sortByPayDay(costs: FixedCost[]): FixedCost[] {
   return [...costs].sort((a, b) => a.payDay - b.payDay || a.name.localeCompare(b.name, 'ja'));
+}
+
+// ──── 貯金ロードマップ ────
+// 「いつまでに、いくら貯めたいか」を並べるだけの機能。収入の予測はしない。
+
+/** 初期のロードマップ（30歳までの目安。あとから自由に編集できる） */
+export const DEFAULT_MILESTONES: Omit<SavingsMilestone, 'id'>[] = [
+  { month: '2026-12', name: '貯金 15万円', kind: 'goal', amount: 150000 },
+  { month: '2027-06', name: '貯金 40万円', kind: 'goal', amount: 400000 },
+  { month: '2027-12', name: '貯金 70万円', kind: 'goal', amount: 700000 },
+  { month: '2028-04', name: '貯金 87.5万円', kind: 'goal', amount: 875000 },
+  { month: '2028-06', name: '貯金 107.5万円', kind: 'goal', amount: 1075000 },
+  { month: '2028-12', name: '貯金 167.5万円', kind: 'goal', amount: 1675000 },
+  { month: '2029-06', name: '貯金 227.5万円', kind: 'goal', amount: 2275000 },
+  { month: '2029-12', name: '貯金 287.5万円', kind: 'goal', amount: 2875000 },
+  { month: '2030-06', name: '貯金 347.5万円', kind: 'goal', amount: 3475000 },
+  { month: '2030-12', name: '貯金 407.5万円', kind: 'goal', amount: 4075000 },
+  { month: '2031-04', name: '貯金 447.5万円', kind: 'goal', amount: 4475000 },
+  { month: '2031-04', name: 'レクサス購入', kind: 'event', amount: 3000000, after: 1475000 },
+  { month: '2031-10', name: '貯金 190万円', kind: 'goal', amount: 1900000 },
+];
+
+/**
+ * 未設定のときに使う初期ロードマップ。
+ * 起点の貯金額は「作った時点の残高」にする（0 だと最初の判定が常に順調になるため）
+ */
+export function createDefaultRoadmap(startMonth: string, startBalance = 0): SavingsRoadmap {
+  return {
+    milestones: DEFAULT_MILESTONES.map(m => ({ ...m, id: generateId() })),
+    source: 'accounts',
+    accountIds: [],
+    manual: '',
+    startMonth,
+    startAmount: startBalance > 0 ? String(startBalance) : '',
+  };
+}
+
+/** 目標→イベントの順で、年月の早い順に並べる */
+export function sortMilestones(list: SavingsMilestone[]): SavingsMilestone[] {
+  return [...list].sort(
+    (a, b) => a.month.localeCompare(b.month) || (a.kind === b.kind ? 0 : a.kind === 'goal' ? -1 : 1)
+  );
+}
+
+/**
+ * ロードマップが対象にする貯金額。
+ * accounts なら選んだ口座の合計、manual なら手入力した金額。
+ * 口座を1つも選んでいないときは「使っていいお金の計算に含めない口座」＝貯金用とみなす。
+ */
+export function roadmapBalance(roadmap: SavingsRoadmap, accounts: MoneyAccount[]): number {
+  if (roadmap.source === 'manual') {
+    return roadmap.manual === '' ? 0 : parseInt(roadmap.manual, 10) || 0;
+  }
+  const picked = roadmap.accountIds.length > 0
+    ? accounts.filter(a => roadmap.accountIds.includes(a.id))
+    : accounts.filter(a => !isBudgetAccount(a));
+  return picked.reduce((s, a) => s + accountAmount(a), 0);
+}
+
+/** 対象になっている口座（未選択なら計算対象外の口座） */
+export function roadmapAccounts(roadmap: SavingsRoadmap, accounts: MoneyAccount[]): MoneyAccount[] {
+  if (roadmap.source === 'manual') return [];
+  return roadmap.accountIds.length > 0
+    ? accounts.filter(a => roadmap.accountIds.includes(a.id))
+    : accounts.filter(a => !isBudgetAccount(a));
+}
+
+/** YYYY-MM どうしの差を月数で返す */
+export function monthsBetween(from: string, to: string): number {
+  const [fy, fm] = from.split('-').map(Number);
+  const [ty, tm] = to.split('-').map(Number);
+  return (ty * 12 + tm) - (fy * 12 + fm);
+}
+
+export type RoadmapPace = 'done' | 'ahead' | 'close' | 'behind';
+
+export interface NextGoalInfo {
+  goal: SavingsMilestone;
+  /** 今の貯金額 */
+  current: number;
+  /** 目標まであといくら（達成済みなら0） */
+  remaining: number;
+  /** 達成率（0〜1。上限なし） */
+  ratio: number;
+  /** 残り月数（最低1） */
+  monthsLeft: number;
+  /** 目標達成に必要な月あたりの貯金額 */
+  perMonth: number;
+  /** 今この時点で到達していたい金額 */
+  expected: number;
+  pace: RoadmapPace;
+}
+
+/**
+ * いま向かっている目標（今月以降でいちばん近い goal）と、その進み具合。
+ * ペースは「ひとつ前の目標（なければ起点）から次の目標まで」を直線で見て判定する。
+ */
+export function nextGoalInfo(
+  roadmap: SavingsRoadmap,
+  current: number,
+  today = new Date()
+): NextGoalInfo | null {
+  const nowMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  const goals = sortMilestones(roadmap.milestones).filter(m => m.kind === 'goal');
+  const goal = goals.find(g => g.month >= nowMonth);
+  if (!goal) return null;
+
+  const prev = [...goals].reverse().find(g => g.month < goal.month);
+  const startMonth = prev ? prev.month : roadmap.startMonth;
+  const startAmount = prev
+    ? prev.amount
+    : (roadmap.startAmount === '' ? 0 : parseInt(roadmap.startAmount, 10) || 0);
+
+  const span = Math.max(1, monthsBetween(startMonth, goal.month));
+  const elapsed = Math.min(span, Math.max(0, monthsBetween(startMonth, nowMonth)));
+  const expected = Math.round(startAmount + (goal.amount - startAmount) * (elapsed / span));
+
+  const remaining = Math.max(0, goal.amount - current);
+  const monthsLeft = Math.max(1, monthsBetween(nowMonth, goal.month));
+  const perMonth = Math.ceil(remaining / monthsLeft);
+  const ratio = goal.amount > 0 ? current / goal.amount : 1;
+
+  const pace: RoadmapPace =
+    current >= goal.amount ? 'done'
+      : current >= expected ? 'ahead'
+        : current >= expected * 0.9 ? 'close'
+          : 'behind';
+
+  return { goal, current, remaining, ratio, monthsLeft, perMonth, expected, pace };
+}
+
+/** ペースに応じた見出しと一言（不安を煽らない落ち着いた言い回し） */
+export const PACE_TEXT: Record<RoadmapPace, { icon: string; label: string; note: string }> = {
+  done: { icon: '✅', label: '達成', note: 'この目標を達成しました！' },
+  ahead: { icon: '🟢', label: '順調', note: '目標ペースを上回っています' },
+  close: { icon: '🟡', label: 'あと少し', note: 'ほぼ予定どおりのペースです' },
+  behind: { icon: '🔴', label: 'ペースアップ', note: '今のペースだと少し足りない見込みです' },
+};
+
+/**
+ * 達成率の表示用パーセント。
+ * まだ数円届いていないのに「100%」と出ると紛らわしいので、
+ * 達成前は 99.9% を上限にする。
+ */
+export function ratioPercent(ratio: number): number {
+  const p = Math.round(ratio * 1000) / 10;
+  return ratio < 1 ? Math.min(99.9, p) : p;
+}
+
+/** その目標を達成済みか（今の貯金額との比較） */
+export function isMilestoneDone(m: SavingsMilestone, current: number): boolean {
+  return m.kind === 'goal' && current >= m.amount;
+}
+
+/** 「15万円」「447.5万円」のように、万円単位で読みやすくする */
+export function formatMan(amount: number): string {
+  const man = amount / 10000;
+  if (!Number.isFinite(man)) return '¥0';
+  const rounded = Math.round(man * 10) / 10;
+  return `${rounded.toLocaleString('ja-JP')}万円`;
 }

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { FixedCost, MoneyAccount, MonthlyRecord, MonthlyBudget, LivingExpense } from '@/types';
+import { FixedCost, MoneyAccount, MonthlyRecord, MonthlyBudget, LivingExpense, SavingsRoadmap } from '@/types';
 import { formatYen, getCurrentMonth } from '@/lib/utils';
 import {
   MONEY_KEYS,
@@ -34,6 +34,10 @@ import {
   plannedUnpaidTotal,
   spendingAlerts,
   currentPeriod,
+  roadmapBalance,
+  nextGoalInfo,
+  formatMan,
+  createDefaultRoadmap,
 } from '@/lib/money';
 import { showToast } from '@/components/ui/Toast';
 import MoneyTabs from '@/components/ui/MoneyTabs';
@@ -62,6 +66,7 @@ export default function MoneyPage() {
   const [history, setHistory, historyLoaded] = useLocalStorage<MonthlyRecord[]>(MONEY_KEYS.history, []);
   const [budget, , budgetLoaded] = useLocalStorage<MonthlyBudget | null>(MONEY_KEYS.budget, null);
   const [expenses, , expensesLoaded] = useLocalStorage<LivingExpense[]>(MONEY_KEYS.expenses, []);
+  const [roadmap, setRoadmap, roadmapLoaded] = useLocalStorage<SavingsRoadmap | null>(MONEY_KEYS.roadmap, null);
   const [recap, setRecap] = useState<MonthlyRecord | null>(null);
   const [showResetNotice, setShowResetNotice] = useState(false);
   const [actualTarget, setActualTarget] = useState<FixedCost | null>(null);
@@ -75,6 +80,13 @@ export default function MoneyPage() {
     const seed = legacyAccountSeed();
     if (seed) setAccounts(seed);
   }, [accountsLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 貯金ロードマップの初期データ（30歳までの目安）を一度だけ用意する
+  useEffect(() => {
+    if (!roadmapLoaded || !accountsLoaded || roadmap) return;
+    const savings = accounts.filter(a => !isBudgetAccount(a)).reduce((s, a) => s + accountAmount(a), 0);
+    setRoadmap(createDefaultRoadmap(getCurrentMonth(), savings));
+  }, [roadmapLoaded, accountsLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 月が変わったら前月の記録を残し、支払い状況をすべて「未払い」に戻す
   // （固定費の登録内容はそのまま）
@@ -108,7 +120,10 @@ export default function MoneyPage() {
   }, [costsLoaded, monthLoaded, accountsLoaded, historyLoaded, paydayLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!accountsLoaded || !costsLoaded || !monthLoaded || !paydayLoaded || !historyLoaded
-      || !budgetLoaded || !expensesLoaded) return null;
+      || !budgetLoaded || !expensesLoaded || !roadmapLoaded) return null;
+
+  // 貯金ロードマップの「次の目標」。未設定ならカードを出さない
+  const goalInfo = roadmap ? nextGoalInfo(roadmap, roadmapBalance(roadmap, accounts)) : null;
 
   // 月予算（給料ベースの計画）。口座残高とは別データで、給料は残高に加算しない
   const plan = budget && budget.month === currentPeriod(payday).key ? budget : null;
@@ -493,6 +508,48 @@ export default function MoneyPage() {
             </>
           )}
         </Link>
+
+        {/* 次の貯金目標（タップでロードマップへ） */}
+        {goalInfo && (
+          <Link
+            href="/money/roadmap"
+            className="block card card-hover p-5 anim-fadeInUp active:scale-[0.985]"
+          >
+            <div className="flex items-center justify-between mb-2.5">
+              <p className="text-sm font-medium" style={{ color: '#78716C' }}>次の貯金目標</p>
+              <span className="text-[11px] font-bold" style={{ color: MONEY_ACCENT }}>ロードマップを見る →</span>
+            </div>
+            <div className="flex justify-between items-baseline">
+              <span className="text-[12.5px]" style={{ color: '#78716C' }}>{formatMonthLabel(goalInfo.goal.month)}</span>
+              <span
+                className="text-[19px] font-bold font-serif-num"
+                style={{ color: '#1C1917', fontVariantNumeric: 'tabular-nums' }}
+              >
+                {formatMan(goalInfo.goal.amount)}
+              </span>
+            </div>
+            <div
+              className="h-2 rounded-[5px] overflow-hidden mt-[11px] mb-1.5"
+              style={{ background: '#F0EBE6' }}
+              role="img"
+              aria-label={`目標 ${formatYen(goalInfo.goal.amount)} のうち ${formatYen(goalInfo.current)} 達成`}
+            >
+              <div
+                className="h-full rounded-[5px]"
+                style={{ width: `${Math.min(100, Math.round(goalInfo.ratio * 100))}%`, background: MONEY_ACCENT }}
+              />
+            </div>
+            <div className="flex justify-between items-baseline">
+              <span className="text-[12.5px]" style={{ color: '#78716C' }}>現在 {formatYen(goalInfo.current)}</span>
+              <span
+                className="text-[13px] font-bold"
+                style={{ color: '#1C1917', fontVariantNumeric: 'tabular-nums' }}
+              >
+                あと {formatYen(goalInfo.remaining)}
+              </span>
+            </div>
+          </Link>
+        )}
 
         {/* これまでの記録 */}
         {history.length > 0 && (

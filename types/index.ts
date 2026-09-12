@@ -287,6 +287,38 @@ export const DEFAULT_BUDGET_CATEGORIES: { name: string; emoji: string }[] = [
   { name: 'その他', emoji: '📦' },
 ];
 
+// ──── 貯金ロードマップ ────
+// 「いつまでに、いくら貯めたいか」を並べたもの。収入の予測はしない。
+
+/** ロードマップ上のひとつの目印 */
+export interface SavingsMilestone {
+  id: string;
+  /** 目標の年月（YYYY-MM） */
+  month: string;
+  name: string;
+  /** goal＝その時点で到達したい貯金額 / event＝計画された大きな支出 */
+  kind: 'goal' | 'event';
+  /** goal は目標残高、event は支出額 */
+  amount: number;
+  /** event のとき、支出したあとに残したい貯金額 */
+  after?: number | null;
+}
+
+/** ロードマップ全体の設定 */
+export interface SavingsRoadmap {
+  milestones: SavingsMilestone[];
+  /** 対象残高の決め方。accounts＝選んだ口座の合計 / manual＝手入力 */
+  source: 'accounts' | 'manual';
+  /** source が accounts のとき、対象にする口座 id */
+  accountIds: string[];
+  /** source が manual のとき、手入力した金額（数字のみの文字列） */
+  manual: string;
+  /** ペース判定の起点となる年月（YYYY-MM） */
+  startMonth: string;
+  /** 起点の貯金額（数字のみの文字列） */
+  startAmount: string;
+}
+
 /** 月が変わったときに自動保存される、その月の締めくくり記録 */
 export interface MonthlyRecord {
   /** YYYY-MM */

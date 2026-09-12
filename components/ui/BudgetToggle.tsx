@@ -1,10 +1,12 @@
 'use client';
 
 /** 口座を「使っていいお金」の計算に含めるかのトグル（指で押しやすい高さを確保） */
-export default function BudgetToggle({ on, onChange, accent }: {
+export default function BudgetToggle({ on, onChange, accent, label }: {
   on: boolean;
   onChange: () => void;
   accent: string;
+  /** 省略時は「使っていいお金」の説明文 */
+  label?: string;
 }) {
   return (
     <button
@@ -25,7 +27,7 @@ export default function BudgetToggle({ on, onChange, accent }: {
         />
       </span>
       <span className="text-[11.5px] leading-snug" style={{ color: on ? '#78716C' : '#A8A29E' }}>
-        この口座を使っていいお金の計算に含める
+        {label ?? 'この口座を使っていいお金の計算に含める'}
       </span>
     </button>
   );

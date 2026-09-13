@@ -6,7 +6,7 @@ import { MONEY_ACCENT, MONEY_ACCENT_BG, MONEY_DANGER } from '@/components/ui/mon
 
 import { useEffect, useState } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { MoneyAccount, SavingsMilestone, SavingsRoadmap } from '@/types';
+import { MoneyAccount, MonthlyBudget, SavingsMilestone, SavingsRoadmap } from '@/types';
 import { formatYen, generateId } from '@/lib/utils';
 import {
   MONEY_KEYS,
@@ -18,6 +18,10 @@ import {
   roadmapBalance,
   roadmapAccounts,
   nextGoalInfo,
+  plannedGoalInfo,
+  plannedMonthlySaving,
+  createEmptyBudget,
+  currentPeriod,
   isMilestoneDone,
   ratioPercent,
   isBudgetAccount,
@@ -42,6 +46,9 @@ type Form = { id: string | null; month: string; name: string; kind: 'goal' | 'ev
 export default function RoadmapPage() {
   const [roadmap, setRoadmap, roadmapLoaded] = useLocalStorage<SavingsRoadmap | null>(MONEY_KEYS.roadmap, null);
   const [accounts, , accountsLoaded] = useLocalStorage<MoneyAccount[]>(MONEY_KEYS.accounts, []);
+  const [budget, setBudget, budgetLoaded] = useLocalStorage<MonthlyBudget | null>(MONEY_KEYS.budget, null);
+  const [, setBudgetHistory, historyLoaded] = useLocalStorage<MonthlyBudget[]>(MONEY_KEYS.budgetHistory, []);
+  const [payday, , paydayLoaded] = useLocalStorage<number>(MONEY_KEYS.payday, 0);
   const [form, setForm] = useState<Form | null>(null);
   const [sourceOpen, setSourceOpen] = useState(false);
 
@@ -52,10 +59,23 @@ export default function RoadmapPage() {
     setRoadmap(createDefaultRoadmap(thisMonth(), savings));
   }, [roadmapLoaded, accountsLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!roadmapLoaded || !accountsLoaded || !roadmap) return null;
+  // 予算画面と同じ月替わり処理。過去の予算を上書きしない。
+  useEffect(() => {
+    if (!budgetLoaded || !historyLoaded || !paydayLoaded) return;
+    const now = currentPeriod(payday).key;
+    if (!budget) { setBudget(createEmptyBudget(now)); return; }
+    if (budget.month !== now) {
+      setBudgetHistory(prev => [budget, ...prev.filter(b => b.month !== budget.month)]
+        .sort((a, b) => b.month.localeCompare(a.month)).slice(0, 24));
+      setBudget(createEmptyBudget(now, budget.categories.map(c => ({ ...c, amount: 0 }))));
+    }
+  }, [budgetLoaded, historyLoaded, paydayLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!roadmapLoaded || !accountsLoaded || !budgetLoaded || !historyLoaded || !paydayLoaded || !roadmap || !budget) return null;
 
   const current = roadmapBalance(roadmap, accounts);
-  const info = nextGoalInfo(roadmap, current);
+  const monthlySaving = plannedMonthlySaving(budget);
+  const info = nextGoalInfo(roadmap, current, new Date(), monthlySaving);
   const list = sortMilestones(roadmap.milestones);
   const picked = roadmapAccounts(roadmap, accounts).map(a => a.id);
 
@@ -130,7 +150,9 @@ export default function RoadmapPage() {
     ? { background: MONEY_ACCENT_BG, color: MONEY_ACCENT }
     : info?.pace === 'close'
       ? { background: 'var(--warn-soft)', color: WARN }
-      : { background: 'var(--danger-soft)', color: MONEY_DANGER };
+      : info?.pace === 'unset'
+        ? { background: 'var(--surface-2)', color: 'var(--sub)' }
+        : { background: 'var(--danger-soft)', color: MONEY_DANGER };
 
   return (
     <div className="min-h-screen">
@@ -192,7 +214,7 @@ export default function RoadmapPage() {
               </div>
               <div className="flex justify-between text-[11.5px]" style={{ color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
                 <span>達成率 {ratioPercent(info.ratio)}%</span>
-                <span>残り {info.monthsLeft}か月</span>
+                <span>{info.monthsLeft === 0 ? '今月が期限' : `残り ${info.monthsLeft}か月`}</span>
               </div>
 
               <div className="grid grid-cols-2 gap-2.5 mt-4">
@@ -221,14 +243,26 @@ export default function RoadmapPage() {
                   className="mt-3.5 px-3.5 py-2.5 rounded-2xl text-[12.5px] font-semibold"
                   style={{ background: 'var(--surface-2)', color: 'var(--ink)' }}
                 >
-                  目標達成には、ここから月平均{' '}
+                  {info.perMonth === null ? '今月中にあと' : '目標達成には、ここから月平均'}{' '}
                   <b className="text-[15px]" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                    {formatYen(info.perMonth)}
+                    {formatYen(info.perMonth ?? info.remaining)}
                   </b>
                 </p>
               )}
+              {info.monthlySaving !== null && <p className="rm-note">現在の貯金予定　月 {formatYen(info.monthlySaving)}</p>}
+              {info.remaining > 0 && info.monthlyMargin !== null && <p className="rm-note">
+                {info.monthlyMargin >= 0 ? '余裕：+' : '必要な上乗せ：+'}{formatYen(Math.abs(info.monthlyMargin))} / 月
+              </p>}
+              {info.projected !== null && <p className="rm-note">このままなら目標時点で約 {formatYen(info.projected)}</p>}
             </>
           )}
+        </div>
+
+        <div className="card p-5">
+          <label className="field-label" htmlFor="rm-monthly-saving">毎月の貯金予定額</label>
+          {moneyField(budget.savingGoal ?? '', raw => setBudget(prev => prev ? { ...prev, savingGoal: raw } : prev), '未設定', 'rm-monthly-saving')}
+          <p className="rm-note">「予算」の貯金目標と自動連携します。ここで変更すると、予算の振り分けにも反映されます。</p>
+          <p className="rm-note">毎月同額を貯めた場合の試算です。予定支出・利息は含みません。</p>
         </div>
 
         {/* 目標の一覧（縦のタイムライン） */}
@@ -247,6 +281,7 @@ export default function RoadmapPage() {
               const isEvent = m.kind === 'event';
               const done = isMilestoneDone(m, current);
               const isCurrent = info?.goal.id === m.id;
+              const forecast = !isEvent && m.month >= thisMonth() ? plannedGoalInfo(m, current, monthlySaving) : null;
               return (
                 <div key={m.id} className="flex gap-3">
                   <div className="w-[22px] shrink-0 flex flex-col items-center">
@@ -298,6 +333,7 @@ export default function RoadmapPage() {
                         <MoneyIcon name="edit" />
                       </button>
                     </div>
+                    {forecast && <p className="rm-note">{PACE_TEXT[forecast.pace].label}{forecast.projected !== null && `・目標時点 約 ${formatYen(forecast.projected)}`}</p>}
                     {isEvent && typeof m.after === 'number' && (
                       <p
                         className="text-[11.5px] mt-1.5 pt-1.5"
@@ -469,7 +505,7 @@ export default function RoadmapPage() {
         )}
 
         <div className="mt-4">
-          <label className="field-label" htmlFor="rm-start-month">ペース判定の起点</label>
+          <label className="field-label" htmlFor="rm-start-month">貯金記録の起点</label>
           <input
             id="rm-start-month"
             type="month"
@@ -478,7 +514,7 @@ export default function RoadmapPage() {
             className="input"
           />
           <p className="text-[11px] mt-1.5" style={{ color: 'var(--muted)' }}>
-            最初の目標に向かうペースを、この時点からの直線で見ます
+            過去の記録として保持します。達成見込みは現在残高と毎月の貯金予定額で判定します
           </p>
         </div>
 

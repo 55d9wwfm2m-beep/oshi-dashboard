@@ -36,6 +36,7 @@ import {
   currentPeriod,
   roadmapBalance,
   nextGoalInfo,
+  plannedMonthlySaving,
   formatMan,
   createDefaultRoadmap,
 } from '@/lib/money';
@@ -123,7 +124,7 @@ export default function MoneyPage() {
       || !budgetLoaded || !expensesLoaded || !roadmapLoaded) return null;
 
   // 貯金ロードマップの「次の目標」。未設定ならカードを出さない
-  const goalInfo = roadmap ? nextGoalInfo(roadmap, roadmapBalance(roadmap, accounts)) : null;
+  const goalInfo = roadmap ? nextGoalInfo(roadmap, roadmapBalance(roadmap, accounts), new Date(), plannedMonthlySaving(budget)) : null;
 
   // 月予算（給料ベースの計画）。口座残高とは別データで、給料は残高に加算しない
   const plan = budget && budget.month === currentPeriod(payday).key ? budget : null;

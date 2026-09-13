@@ -1,6 +1,6 @@
 /* やりくり電卓のオフラインキャッシュ。ネットワーク優先で常に最新を取りに行き、
    圏外・機内モードのときだけキャッシュから返す */
-const CACHE = 'yarikuri-ui-v2';
+const CACHE = 'yarikuri-forecast-v3';
 const ASSETS = ['./', './index.html', './yarikuri.css', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', (e) => {

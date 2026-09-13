@@ -126,6 +126,8 @@ body:has(.money-app) [role="dialog"] :focus-visible {
 .money-app .rm-cell .k, .money-app .rm-pct, .money-app .tl-when, .money-app .tl-name, .money-app .tl-after, .money-app .rm-name { font-size: 12px; }
 .money-app .rm-cell .v { font-size: clamp(15px,4.5vw,22px); }
 .money-app .rm-pace { border-radius: 12px; }
+.money-app .rm-pace.unset { background: var(--surface-2); color: var(--sub); }
+.money-app .rm-note { font-size: 12px; color: var(--sub); margin: 8px 0 0; overflow-wrap: anywhere; }
 .money-app .tl-row.is-event .tl-dot { background: var(--surface-2); border-color: var(--muted); }
 .money-app .tl-row.is-event .tl-amount { color: var(--sub); }
 .money-app .tl-body { padding-bottom: 24px; }

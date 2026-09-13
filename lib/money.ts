@@ -813,7 +813,7 @@ export function monthsBetween(from: string, to: string): number {
   return (ty * 12 + tm) - (fy * 12 + fm);
 }
 
-export type RoadmapPace = 'done' | 'ahead' | 'close' | 'behind';
+export type RoadmapPace = 'done' | 'ahead' | 'close' | 'behind' | 'unset';
 
 export interface NextGoalInfo {
   goal: SavingsMilestone;
@@ -823,59 +823,70 @@ export interface NextGoalInfo {
   remaining: number;
   /** 達成率（0〜1。上限なし） */
   ratio: number;
-  /** 残り月数（最低1） */
+  /** 残り月数（今月・期限経過は0。架空の1か月を加算しない） */
   monthsLeft: number;
   /** 目標達成に必要な月あたりの貯金額 */
-  perMonth: number;
-  /** 今この時点で到達していたい金額 */
-  expected: number;
+  perMonth: number | null;
+  monthlySaving: number | null;
+  projected: number | null;
+  monthlyMargin: number | null;
   pace: RoadmapPace;
 }
 
 /**
  * いま向かっている目標（今月以降でいちばん近い goal）と、その進み具合。
- * ペースは「ひとつ前の目標（なければ起点）から次の目標まで」を直線で見て判定する。
+ * 次の目標の選び方は維持し、判定だけを今後の貯金予定ベースにする。
  */
 export function nextGoalInfo(
   roadmap: SavingsRoadmap,
   current: number,
-  today = new Date()
+  today = new Date(),
+  monthlySaving: number | null = null
 ): NextGoalInfo | null {
   const nowMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
   const goals = sortMilestones(roadmap.milestones).filter(m => m.kind === 'goal');
   const goal = goals.find(g => g.month >= nowMonth);
   if (!goal) return null;
 
-  const prev = [...goals].reverse().find(g => g.month < goal.month);
-  const startMonth = prev ? prev.month : roadmap.startMonth;
-  const startAmount = prev
-    ? prev.amount
-    : (roadmap.startAmount === '' ? 0 : parseInt(roadmap.startAmount, 10) || 0);
+  return plannedGoalInfo(goal, current, monthlySaving, today);
+}
 
-  const span = Math.max(1, monthsBetween(startMonth, goal.month));
-  const elapsed = Math.min(span, Math.max(0, monthsBetween(startMonth, nowMonth)));
-  const expected = Math.round(startAmount + (goal.amount - startAmount) * (elapsed / span));
+/** 未設定と「0円の予定」を区別する。貯金実績は予定として使わない。 */
+export function plannedMonthlySaving(budget: MonthlyBudget | null): number | null {
+  const raw = budget?.savingGoal;
+  if (raw == null || String(raw).trim() === '') return null;
+  const amount = Number(raw);
+  return Number.isFinite(amount) && amount >= 0 ? amount : null;
+}
 
+/** 各目標の単純積立試算。利息・予定支出は含めず、実残高を変更しない。 */
+export function plannedGoalInfo(goal: SavingsMilestone, current: number, monthlySaving: number | null, today = new Date()): NextGoalInfo {
+  const nowMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  monthlySaving = monthlySaving !== null && Number.isFinite(monthlySaving) && monthlySaving >= 0 ? monthlySaving : null;
   const remaining = Math.max(0, goal.amount - current);
-  const monthsLeft = Math.max(1, monthsBetween(nowMonth, goal.month));
-  const perMonth = Math.ceil(remaining / monthsLeft);
+  const monthsLeft = Math.max(0, monthsBetween(nowMonth, goal.month));
+  const perMonth = monthsLeft > 0 ? Math.ceil(remaining / monthsLeft) : null;
+  const projected = monthlySaving === null ? null : current + monthlySaving * monthsLeft;
+  const monthlyMargin = monthlySaving !== null && perMonth !== null ? monthlySaving - perMonth : null;
   const ratio = goal.amount > 0 ? current / goal.amount : 1;
 
   const pace: RoadmapPace =
     current >= goal.amount ? 'done'
-      : current >= expected ? 'ahead'
-        : current >= expected * 0.9 ? 'close'
+      : projected === null ? 'unset'
+      : projected >= goal.amount ? 'ahead'
+        : projected >= goal.amount * 0.9 ? 'close'
           : 'behind';
 
-  return { goal, current, remaining, ratio, monthsLeft, perMonth, expected, pace };
+  return { goal, current, remaining, ratio, monthsLeft, perMonth, monthlySaving, projected, monthlyMargin, pace };
 }
 
 /** ペースに応じた見出しと一言（不安を煽らない落ち着いた言い回し） */
 export const PACE_TEXT: Record<RoadmapPace, { icon: string; label: string; note: string }> = {
   done: { icon: '✅', label: '達成', note: 'この目標を達成しました！' },
-  ahead: { icon: '🟢', label: '順調', note: '目標ペースを上回っています' },
-  close: { icon: '🟡', label: 'あと少し', note: 'ほぼ予定どおりのペースです' },
-  behind: { icon: '🔴', label: 'ペースアップ', note: '今のペースだと少し足りない見込みです' },
+  ahead: { icon: '🟢', label: '順調', note: '今の予定なら目標達成できる見込みです' },
+  close: { icon: '🟡', label: 'あと少し', note: '今の予定では目標まであと少しです' },
+  behind: { icon: '🔴', label: 'ペースアップ', note: '今の予定では目標に届かない見込みです' },
+  unset: { icon: '', label: '予定未設定', note: '毎月の貯金予定額を設定すると見込みが分かります' },
 };
 
 /**

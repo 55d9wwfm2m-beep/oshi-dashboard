@@ -920,6 +920,13 @@
 
     <div class="card rm-hero anim-in" id="rm-hero"></div>
 
+    <div class="card">
+      <label class="field-label" for="rm-monthly-saving">毎月の貯金予定額</label>
+      <input id="rm-monthly-saving" class="input" type="text" inputmode="numeric" autocomplete="off" placeholder="未設定">
+      <p class="rm-note">「予算」の貯金目標と自動連携します。ここで変更すると、予算の振り分けにも反映されます。</p>
+      <p class="rm-note">毎月同額を貯めた場合の試算です。予定支出・利息は含みません。</p>
+    </div>
+
     <div class="card anim-in">
       <div class="card-head" style="margin-bottom: 14px;">
         <p class="card-title">目標の一覧</p>
@@ -1152,9 +1159,9 @@
         </div>
       </div>
       <div>
-        <label class="field-label" for="rm-start-month">ペース判定の起点</label>
+        <label class="field-label" for="rm-start-month">貯金記録の起点</label>
         <input id="rm-start-month" class="input" type="month">
-        <p class="seg-hint">最初の目標に向かうペースを、この時点からの直線で見ます</p>
+        <p class="seg-hint">過去の記録として保持します。達成見込みは現在残高と毎月の貯金予定額で判定します</p>
       </div>
       <div>
         <label class="field-label" for="rm-start-amount">起点の貯金額</label>
@@ -2932,9 +2939,10 @@
 
   var PACE_TEXT = {
     done:   { icon: '✅', label: '達成',       note: 'この目標を達成しました！' },
-    ahead:  { icon: '🟢', label: '順調',       note: '目標ペースを上回っています' },
-    close:  { icon: '🟡', label: 'あと少し',   note: 'ほぼ予定どおりのペースです' },
-    behind: { icon: '🔴', label: 'ペースアップ', note: '今のペースだと少し足りない見込みです' }
+    ahead:  { icon: '🟢', label: '順調',       note: '今の予定なら目標達成できる見込みです' },
+    close:  { icon: '🟡', label: 'あと少し',   note: '今の予定では目標まであと少しです' },
+    behind: { icon: '🔴', label: 'ペースアップ', note: '今の予定では目標に届かない見込みです' },
+    unset:  { icon: '', label: '予定未設定', note: '毎月の貯金予定額を設定すると見込みが分かります' }
   };
 
   var roadmap = load(KEYS.roadmap, null);
@@ -2947,7 +2955,7 @@
       accountIds: [],
       manual: '',
       startMonth: thisMonth(),
-      // 起点は「今ある貯金」。0 にすると最初の判定が常に順調になってしまう
+      // 過去の起点を記録として維持する。予定ベースの判定には使わない
       startAmount: String(accounts.filter(function (a) { return a.budget === false; })
         .reduce(function (t, a) { return t + accAmount(a); }, 0) || '')
     };
@@ -3001,7 +3009,7 @@
 
   /**
    * いま向かっている目標と、その進み具合。
-   * ペースは「ひとつ前の目標（なければ起点）から次の目標まで」を直線で見て判定する
+   * 次の目標の選び方は維持し、判定だけを今後の貯金予定ベースにする
    */
   function nextGoalInfo() {
     var now = thisMonth();
@@ -3010,27 +3018,34 @@
     var goal = goals.find(function (g) { return g.month >= now; });
     if (!goal) return null;
 
-    var before = goals.filter(function (g) { return g.month < goal.month; });
-    var prev = before.length ? before[before.length - 1] : null;
-    var startMonth = prev ? prev.month : roadmap.startMonth;
-    var startAmount = prev ? prev.amount
-      : (roadmap.startAmount === '' ? 0 : parseInt(roadmap.startAmount, 10) || 0);
+    return plannedGoalInfo(goal, current, plannedMonthlySaving(), now);
+  }
 
-    var span = Math.max(1, monthsBetween(startMonth, goal.month));
-    var elapsed = Math.min(span, Math.max(0, monthsBetween(startMonth, now)));
-    var expected = Math.round(startAmount + (goal.amount - startAmount) * (elapsed / span));
+  function plannedMonthlySaving() {
+    var raw = budget && budget.savingGoal;
+    if (raw == null || String(raw).trim() === '') return null;
+    var amount = Number(raw);
+    return Number.isFinite(amount) && amount >= 0 ? amount : null;
+  }
 
+  /* 利息・予定支出を含めない単純積立試算。実残高・達成率には加算しない。 */
+  function plannedGoalInfo(goal, current, monthlySaving, now) {
+    monthlySaving = monthlySaving !== null && Number.isFinite(monthlySaving) && monthlySaving >= 0 ? monthlySaving : null;
     var remaining = Math.max(0, goal.amount - current);
-    var monthsLeft = Math.max(1, monthsBetween(now, goal.month));
+    var monthsLeft = Math.max(0, monthsBetween(now, goal.month));
+    var perMonth = monthsLeft > 0 ? Math.ceil(remaining / monthsLeft) : null;
+    var projected = monthlySaving === null ? null : current + monthlySaving * monthsLeft;
+    var monthlyMargin = monthlySaving !== null && perMonth !== null ? monthlySaving - perMonth : null;
     var pace = current >= goal.amount ? 'done'
-      : current >= expected ? 'ahead'
-        : current >= expected * 0.9 ? 'close' : 'behind';
+      : projected === null ? 'unset'
+      : projected >= goal.amount ? 'ahead'
+        : projected >= goal.amount * 0.9 ? 'close' : 'behind';
 
     return {
       goal: goal, current: current, remaining: remaining,
       ratio: goal.amount > 0 ? current / goal.amount : 1,
-      monthsLeft: monthsLeft, perMonth: Math.ceil(remaining / monthsLeft),
-      expected: expected, pace: pace
+      monthsLeft: monthsLeft, perMonth: perMonth,
+      monthlySaving: monthlySaving, projected: projected, monthlyMargin: monthlyMargin, pace: pace
     };
   }
 
@@ -3061,7 +3076,7 @@
         'aria-label="目標 ' + yen(info.goal.amount) + ' のうち ' + yen(info.current) + ' 達成">' +
         '<i style="width:' + pct + '%;"></i></div>' +
       '<div class="rm-pct"><span>達成率 ' + ratioPct(info.ratio) + '%</span>' +
-        '<span>残り ' + info.monthsLeft + 'か月</span></div>' +
+        '<span>' + (info.monthsLeft === 0 ? '今月が期限' : '残り ' + info.monthsLeft + 'か月') + '</span></div>' +
       '<div class="rm-grid">' +
         '<div class="rm-cell"><p class="k">現在</p><p class="v serif-num">' + yen(info.current) + '</p></div>' +
         '<div class="rm-cell"><p class="k">あと</p><p class="v serif-num">' + yen(info.remaining) + '</p></div>' +
@@ -3069,8 +3084,12 @@
       '<div><span class="rm-pace ' + info.pace + '">' + moneyIconHTML(info.pace === 'done' ? 'check' : 'roadmap') + ' ' + t.label + '</span></div>' +
       '<p class="rm-note">' + t.note + '</p>' +
       (info.remaining > 0
-        ? '<p class="rm-permonth">目標達成には、ここから月平均 <b>' + yen(info.perMonth) + '</b></p>'
-        : '');
+        ? '<p class="rm-permonth">' + (info.perMonth === null ? '今月中にあと <b>' + yen(info.remaining) : '目標達成には、ここから月平均 <b>' + yen(info.perMonth)) + '</b></p>'
+        : '') +
+      (info.monthlySaving !== null ? '<p class="rm-note">現在の貯金予定　月 ' + yen(info.monthlySaving) + '</p>' : '') +
+      (info.remaining > 0 && info.monthlyMargin !== null
+        ? '<p class="rm-note">' + (info.monthlyMargin >= 0 ? '余裕：+' : '必要な上乗せ：+') + yen(Math.abs(info.monthlyMargin)) + ' / 月</p>' : '') +
+      (info.projected !== null ? '<p class="rm-note">このままなら目標時点で約 ' + yen(info.projected) + '</p>' : '');
   }
 
   function renderRoadmapTimeline() {
@@ -3088,6 +3107,7 @@
       var isEvent = m.kind === 'event';
       var done = !isEvent && current >= m.amount;
       var isCurrent = m.id === currentId;
+      var forecast = !isEvent && m.month >= thisMonth() ? plannedGoalInfo(m, current, plannedMonthlySaving(), thisMonth()) : null;
       var cls = 'tl-row' + (isEvent ? ' is-event' : done ? ' is-done' : isCurrent ? ' is-current' : ' is-future');
       return '<div class="' + cls + '">' +
         '<div class="tl-rail">' +
@@ -3103,6 +3123,7 @@
             '</div>' +
             '<button class="tl-edit" data-rm-edit="' + m.id + '" aria-label="' + esc(m.name) + 'を編集">' + moneyIconHTML('edit') + '</button>' +
           '</div>' +
+          (forecast ? '<p class="rm-note">' + PACE_TEXT[forecast.pace].label + (forecast.projected !== null ? '・目標時点 約 ' + yen(forecast.projected) : '') + '</p>' : '') +
           (isEvent && typeof m.after === 'number'
             ? '<p class="tl-after">購入後の目標残高 ' + yen(m.after) + '（計画された支出です）</p>'
             : '') +
@@ -3112,9 +3133,22 @@
   }
 
   function renderRoadmap() {
+    var amount = plannedMonthlySaving();
+    document.getElementById('rm-monthly-saving').value = amount === null ? '' : amount.toLocaleString('ja-JP');
     renderRoadmapHero();
     renderRoadmapTimeline();
   }
+
+  document.getElementById('rm-monthly-saving').addEventListener('input', function (e) {
+    var raw = digitsOnly(e.target.value);
+    e.target.value = raw === '' ? '' : Number(raw).toLocaleString('ja-JP');
+    budget.savingGoal = raw;
+    saveBudget();
+    refreshBudgetTotals();
+    renderBudgetCard();
+    renderRoadmapHero();
+    renderRoadmapTimeline();
+  });
 
   /** ホームの小さな「次の貯金目標」カード */
   function renderRoadmapMini() {

@@ -1037,6 +1037,18 @@
     <h2 id="form-title">固定費を追加</h2>
     <div class="fields">
       <div>
+        <label class="field-label" for="f-payment-type">支払いタイプ</label>
+        <select id="f-payment-type" class="input"><option value="normal">通常の固定費</option><option value="installment">分割払い / ローン</option></select>
+      </div>
+      <div id="f-installments" class="installment-fields" hidden>
+        <label class="field-label" for="f-total">支払い回数 *</label>
+        <input id="f-total" class="input" inputmode="numeric" placeholder="36">
+        <label class="field-label" for="f-remaining">現在の残り回数</label>
+        <input id="f-remaining" class="input" inputmode="numeric" placeholder="支払い回数と同じ">
+        <p class="installment-help">新規契約は空欄でOK。途中からは残り回数を入力（0回は完済）。1〜9,999回、残りは全回数以下。</p>
+        <p class="installment-help">支払済みをチェックすると1回減ります。完済予定は毎期間1回の支払いを続けた場合の目安です。</p>
+      </div>
+      <div id="f-normal-kind">
         <label class="field-label">種類</label>
         <div class="seg" id="f-kind" role="group" aria-label="固定費の種類">
           <button type="button" data-kind="fixed" aria-pressed="true">固定</button>
@@ -1096,6 +1108,18 @@
     <h2 id="rm-form-title">目標を追加</h2>
     <div class="fields">
       <div>
+        <label class="field-label" for="f-payment-type">支払いタイプ</label>
+        <select id="f-payment-type" class="input"><option value="normal">通常の固定費</option><option value="installment">分割払い / ローン</option></select>
+      </div>
+      <div id="f-installments" class="installment-fields" hidden>
+        <label class="field-label" for="f-total">支払い回数 *</label>
+        <input id="f-total" class="input" inputmode="numeric" placeholder="36">
+        <label class="field-label" for="f-remaining">現在の残り回数</label>
+        <input id="f-remaining" class="input" inputmode="numeric" placeholder="支払い回数と同じ">
+        <p class="installment-help">新規契約は空欄でOK。途中からは残り回数を入力（0回は完済）。1〜9,999回、残りは全回数以下。</p>
+        <p class="installment-help">支払済みをチェックすると1回減ります。完済予定は毎期間1回の支払いを続けた場合の目安です。</p>
+      </div>
+      <div id="f-normal-kind">
         <label class="field-label">種類</label>
         <div class="seg" id="rm-kind" role="group" aria-label="目標の種類">
           <button type="button" data-rmkind="goal" aria-pressed="true">貯金の目標</button>
@@ -1531,7 +1555,7 @@
   if (!Array.isArray(costs)) costs = [];
   costs = costs.map(function (c) {
     c = c || {};
-    return {
+    return Object.assign({}, c, {
       id: c.id || uid(),
       name: typeof c.name === 'string' ? c.name : '固定費',
       amount: typeof c.amount === 'number' ? c.amount : parseInt(c.amount, 10) || 0,
@@ -1539,7 +1563,7 @@
       paid: c.paid === true,
       variable: c.variable === true,          // 既存データは「固定」扱い
       actual: typeof c.actual === 'number' ? c.actual : null
-    };
+    });
   });
 
   /* ── utils ── */
@@ -1636,7 +1660,7 @@
   }
   function sorted() {
     return costs.slice().sort(function (a, b) {
-      return a.payDay - b.payDay || a.name.localeCompare(b.name, 'ja');
+      return Number(isInstallmentComplete(a)) - Number(isInstallmentComplete(b)) || a.payDay - b.payDay || a.name.localeCompare(b.name, 'ja');
     });
   }
   /** 今月の請求額が確定しているか */
@@ -1647,7 +1671,31 @@
   function hasActual(c) { return typeof c.actual === 'number'; }
 
   /** 計算に使う金額。変動費は確定額があればそれ、なければ予想額 */
-  function effAmount(c) { return hasActual(c) ? c.actual : c.amount; }
+  function effAmount(c) { return isInstallmentComplete(c) ? 0 : hasActual(c) ? c.actual : c.amount; }
+  function isInstallment(c) { return c.paymentType === 'installment'; }
+  function isInstallmentComplete(c) { return isInstallment(c) && c.installmentRemaining === 0; }
+  function setFixedPaid(c, paid, period) {
+    if (c.paid === paid) return c;
+    if (!isInstallment(c)) return Object.assign({}, c, { paid: paid });
+    var remaining = c.installmentRemaining;
+    if (remaining === undefined) return c;
+    if (paid) {
+      if (remaining <= 0) return c;
+      return Object.assign({}, c, { paid: paid, installmentRemaining: remaining - (c.installmentPaidPeriod === period ? 0 : 1), installmentPaidPeriod: period });
+    }
+    return Object.assign({}, c, { paid: paid, installmentRemaining: Math.min(c.installmentTotal == null ? remaining + 1 : c.installmentTotal, remaining + (c.installmentPaidPeriod === period ? 1 : 0)), installmentPaidPeriod: undefined });
+  }
+  function paidCostAmount(c) { return c.paid ? (hasActual(c) ? c.actual : c.amount) : 0; }
+  function installmentLabel(c) {
+    if (!isInstallment(c)) return '';
+    if (isInstallmentComplete(c)) return '完済済み';
+    if (c.installmentRemaining === undefined) return '残り回数を設定してください';
+    var parts = periodOfDate(new Date(), payday).start.split('-').map(Number);
+    var dueDay = Math.min(c.payDay, new Date(parts[0], parts[1], 0).getDate());
+    var end = new Date(parts[0], parts[1] - 1 + (dueDay < parts[2] ? 1 : 0) + c.installmentRemaining - 1 + (c.paid ? 1 : 0), 1);
+    return 'あと' + c.installmentRemaining + '回 · 全' + c.installmentTotal + '回 · ' + end.getFullYear() + '年' + (end.getMonth() + 1) + '月 完済予定';
+  }
+  function installmentHTML(c) { return isInstallment(c) ? '<span class="installment-note">' + esc(installmentLabel(c)) + '</span>' : ''; }
 
   /** 確定額 − 予想額。未確定なら null */
   function actualDiff(c) { return hasActual(c) ? c.actual - c.amount : null; }
@@ -1831,7 +1879,7 @@
         month: savedMonth,
         spendable: budgetBalance() - unpaidTotal(),
         assets: totalBalance(),
-        fixedCosts: costs.reduce(function (s, c) { return s + effAmount(c); }, 0),
+        fixedCosts: costs.reduce(function (s, c) { return s + (isInstallmentComplete(c) ? paidCostAmount(c) : effAmount(c)); }, 0),
         savedAt: new Date().toISOString()
       };
       history = [recapRecord]
@@ -1845,10 +1893,7 @@
     // （項目名・予想額・支払日・変動費の設定はそのまま翌月へ引き継ぐ）
     if (savedMonth && costs.some(function (c) { return c.paid || hasActual(c); })) {
       costs = costs.map(function (c) {
-        return {
-          id: c.id, name: c.name, amount: c.amount, payDay: c.payDay,
-          paid: false, variable: c.variable, actual: null
-        };
+        return Object.assign({}, c, { paid: false, actual: null });
       });
       save(KEYS.costs, costs);
       document.getElementById('reset-banner').hidden = false;
@@ -2133,16 +2178,16 @@
       var diffClass = (fixedNow && diff !== 0) ? (diff < 0 ? ' cheap' : ' over') : '';
 
       return '<li><div class="cost-row-wrap">' +
-        '<button class="cost-row" data-toggle="' + c.id + '" aria-pressed="' + c.paid + '" ' +
+        '<button class="cost-row" ' + (isInstallmentComplete(c) && !c.paid ? 'disabled ' : '') + 'data-toggle="' + c.id + '" aria-pressed="' + c.paid + '" ' +
           'aria-label="' + esc(c.name) + ' を' + (c.paid ? '未払い' : '支払い済み') + 'にする">' +
           '<span class="checkmark">' + check + '</span>' +
           '<span class="cost-main">' +
             '<span class="cost-name">' + (variable ? moneyIconHTML('info') + ' ' : '') + esc(c.name) + tag + '</span>' +
-            '<span class="cost-day' + diffClass + '">' + sub + '</span>' +
+            '<span class="cost-day' + diffClass + '">' + sub + '</span>' + installmentHTML(c) +
           '</span>' +
           '<span class="cost-side">' +
-            '<span class="cost-amount">' + yen(effAmount(c)) + '</span>' +
-            '<span class="cost-status">' + (c.paid ? '支払い済み' : '未払い') + '</span>' +
+            '<span class="cost-amount">' + yen(isInstallmentComplete(c) ? c.amount : effAmount(c)) + '</span>' +
+            '<span class="cost-status">' + (isInstallmentComplete(c) ? '完済' : c.paid ? '支払い済み' : '未払い') + '</span>' +
           '</span>' +
         '</button>' +
         // 割り勘などで金額が変わることがあるので、固定費でも実額を入れられるようにする
@@ -2156,7 +2201,7 @@
       '</div></li>';
     }).join('');
 
-    var paidTotal = costs.reduce(function (s, c) { return s + (c.paid ? effAmount(c) : 0); }, 0);
+    var paidTotal = costs.reduce(function (s, c) { return s + paidCostAmount(c); }, 0);
     var totals =
       '<div class="totals">' +
         '<div class="totals-row"><span class="k">未払いの合計</span><span class="v serif-num">' + yen(unpaidTotal()) + '</span></div>' +
@@ -2300,7 +2345,7 @@
       box.innerHTML = '<p class="auto-empty">固定費が登録されていません</p>';
       return;
     }
-    var rows = sorted().map(function (c) {
+    var rows = sorted().filter(function (c) { return !isInstallmentComplete(c); }).map(function (c) {
       var label = (c.variable ? '⚡ ' : '') + esc(c.name) +
         (c.variable ? (hasActual(c) ? '（確定）' : '（予想）') : '');
       return '<div class="auto-row"><span class="k">' + label + '</span>' +
@@ -3522,9 +3567,9 @@
           '<p class="setting-name">' + (variable ? moneyIconHTML('info') + ' ' : '') + esc(c.name) +
             (variable ? '<span class="cost-tag ' + (hasActual(c) ? 'tag-fixed">確定' : 'tag-pending">未確定') + '</span>' : '') +
           '</p>' +
-          '<p class="setting-sub">' + sub + '</p>' +
+          '<p class="setting-sub">' + sub + '</p>' + installmentHTML(c) +
         '</div>' +
-        '<div class="setting-side"><p class="setting-amount">' + yen(effAmount(c)) + '</p>' +
+        '<div class="setting-side"><p class="setting-amount">' + yen(isInstallmentComplete(c) ? c.amount : effAmount(c)) + (isInstallment(c) ? ' / 月' : '') + '</p>' +
         '<button class="rowbtn edit" data-edit="' + c.id + '" aria-label="' + esc(c.name) + 'を編集">編集</button>' +
         '<button class="rowbtn del" data-del="' + c.id + '" aria-label="' + esc(c.name) + 'を削除">削除</button></div>' +
         '</div>';
@@ -3576,6 +3621,38 @@
   var amountInput = document.getElementById('f-amount');
   var saveBtn = document.getElementById('form-save');
   var formVariable = false;
+  var typeInput = document.getElementById('f-payment-type');
+  var totalInput = document.getElementById('f-total');
+  var remainingInput = document.getElementById('f-remaining');
+  function formInstallment() { return typeInput.value === 'installment'; }
+  function totalCount() { return Number(totalInput.value); }
+  function remainingCount() { return remainingInput.value === '' ? totalCount() : Number(remainingInput.value); }
+  function validCounts() {
+    return /^\d+$/.test(totalInput.value) && totalCount() > 0 && totalCount() <= 9999 &&
+      (remainingInput.value === '' || /^\d+$/.test(remainingInput.value)) && remainingCount() >= 0 && remainingCount() <= totalCount();
+  }
+  function applyPaymentType() {
+    document.getElementById('f-installments').hidden = !formInstallment();
+    document.getElementById('f-normal-kind').hidden = formInstallment();
+    document.getElementById('f-amount-label').textContent = formInstallment() ? '毎月の支払額 *' : formVariable ? '予想額 *' : '金額 *';
+    validateForm();
+  }
+  typeInput.addEventListener('change', applyPaymentType);
+  [totalInput, remainingInput].forEach(function (input) {
+    input.addEventListener('input', function () {
+      input.value = input.value.normalize('NFKC');
+      remainingInput.placeholder = totalInput.value || '支払い回数と同じ';
+      validateForm();
+    });
+  });
+  function installmentFields(c) {
+    return {
+      paymentType: formInstallment() ? 'installment' : 'normal',
+      installmentTotal: formInstallment() ? totalCount() : undefined,
+      installmentRemaining: formInstallment() ? remainingCount() : undefined,
+      installmentPaidPeriod: formInstallment() && c && c.installmentRemaining === remainingCount() ? c.installmentPaidPeriod : undefined
+    };
+  }
 
   var KIND_HINT = {
     fixed: '毎月ほぼ同じ金額の支出（家賃・サブスク・保険など）',
@@ -3589,7 +3666,7 @@
       b.setAttribute('aria-pressed', String((b.dataset.kind === 'variable') === variable));
     });
     document.getElementById('f-kind-hint').textContent = KIND_HINT[variable ? 'variable' : 'fixed'];
-    document.getElementById('f-amount-label').textContent = variable ? '予想額 *' : '金額 *';
+    document.getElementById('f-amount-label').textContent = formInstallment() ? '毎月の支払額 *' : variable ? '予想額 *' : '金額 *';
     amountInput.placeholder = variable ? '8,000' : '45,000';
   }
 
@@ -3605,6 +3682,11 @@
     nameInput.value = cost ? cost.name : '';
     amountInput.value = cost ? cost.amount.toLocaleString('ja-JP') : '';
     daySelect.value = cost ? String(cost.payDay) : '1';
+    typeInput.value = cost && isInstallment(cost) ? 'installment' : 'normal';
+    totalInput.value = cost && cost.installmentTotal != null ? String(cost.installmentTotal) : '';
+    remainingInput.value = cost && cost.installmentRemaining != null ? String(cost.installmentRemaining) : '';
+    remainingInput.placeholder = totalInput.value || '支払い回数と同じ';
+    applyPaymentType();
     applyKind(cost ? cost.variable === true : false);
     validateForm();
     document.getElementById('sheet-form').hidden = false;
@@ -3617,7 +3699,7 @@
     return raw === '' ? 0 : parseInt(raw, 10) || 0;
   }
   function validateForm() {
-    saveBtn.disabled = nameInput.value.trim() === '' || amountValue() <= 0;
+    saveBtn.disabled = nameInput.value.trim() === '' || amountValue() <= 0 || (formInstallment() && !validCounts());
   }
   nameInput.addEventListener('input', validateForm);
   amountInput.addEventListener('input', function () {
@@ -3629,29 +3711,29 @@
   saveBtn.addEventListener('click', function () {
     var name = nameInput.value.trim();
     var amount = amountValue();
-    if (!name || amount <= 0) return;
+    if (!name || amount <= 0 || (formInstallment() && !validCounts())) return;
     var payDay = Math.min(Math.max(parseInt(daySelect.value, 10) || 1, 1), 31);
     if (editId) {
       costs = costs.map(function (c) {
         // 「変動」から「固定」に変えたときは、残っている確定額を捨てる
         return c.id === editId
-          ? {
-              id: c.id, name: name, amount: amount, payDay: payDay, paid: c.paid,
-              variable: formVariable, actual: c.actual != null ? c.actual : null
-            }
+          ? Object.assign({}, c, installmentFields(c), {
+              name: name, amount: amount, payDay: payDay,
+              variable: formInstallment() ? false : formVariable, actual: c.actual != null ? c.actual : null
+            })
           : c;
       });
       toast('固定費を更新しました');
     } else {
-      costs.push({
+      costs.push(Object.assign(installmentFields(null), {
         id: uid(), name: name, amount: amount, payDay: payDay,
-        paid: false, variable: formVariable, actual: null
-      });
+        paid: false, variable: formInstallment() ? false : formVariable, actual: null
+      }));
       toast('固定費を追加しました');
     }
     save(KEYS.costs, costs);
     closeSheet('sheet-form');
-    renderSettings();
+    rerenderCurrentView();
   });
 
   /* ── 請求額（確定額）の入力 ── */
@@ -3701,8 +3783,7 @@
   function setActual(value) {
     costs = costs.map(function (c) {
       return c.id === actualId
-        ? { id: c.id, name: c.name, amount: c.amount, payDay: c.payDay,
-            paid: c.paid, variable: c.variable, actual: value }
+        ? Object.assign({}, c, { actual: value })
         : c;
     });
     save(KEYS.costs, costs);
@@ -3897,10 +3978,7 @@
       costs = costs.map(function (c) {
         // 他のフィールド（variable / actual）を落とさないよう、paid だけ差し替える
         return c.id === t.dataset.toggle
-          ? {
-              id: c.id, name: c.name, amount: c.amount, payDay: c.payDay,
-              paid: !c.paid, variable: c.variable, actual: c.actual
-            }
+          ? setFixedPaid(c, !c.paid, currentMonth())
           : c;
       });
       save(KEYS.costs, costs);

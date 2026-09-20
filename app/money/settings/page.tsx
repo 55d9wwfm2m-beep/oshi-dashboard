@@ -10,7 +10,7 @@ import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { FixedCost, MoneyAccount } from '@/types';
 import { formatYen, generateId } from '@/lib/utils';
 import {
-  MONEY_KEYS,
+  MONEY_KEYS, isInstallment, isInstallmentComplete, installmentLabel,
   digitsOnly,
   sortByPayDay,
   nextPaydayInfo,
@@ -51,6 +51,9 @@ export default function MoneySettingsPage() {
   const [amountRaw, setAmountRaw] = useState('');
   const [dayInput, setDayInput] = useState('1');
   const [formVariable, setFormVariable] = useState(false);
+  const [formInstallment, setFormInstallment] = useState(false);
+  const [totalRaw, setTotalRaw] = useState('');
+  const [remainingRaw, setRemainingRaw] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<FixedCost | null>(null);
 
   if (!loaded || !paydayLoaded || !accountsLoaded) return null;
@@ -82,7 +85,16 @@ export default function MoneySettingsPage() {
   const total = costs.reduce((s, c) => s + effectiveAmount(c), 0);
 
   const amount = amountRaw === '' ? 0 : parseInt(amountRaw, 10) || 0;
-  const canSave = nameInput.trim().length > 0 && amount > 0;
+  const totalCount = Number(totalRaw);
+  const remainingCount = remainingRaw === '' ? totalCount : Number(remainingRaw);
+  const validCounts = /^\d+$/.test(totalRaw) && totalCount > 0 && totalCount <= 9999 &&
+    (remainingRaw === '' || /^\d+$/.test(remainingRaw)) && remainingCount >= 0 && remainingCount <= totalCount;
+  const canSave = nameInput.trim().length > 0 && amount > 0 && (!formInstallment || validCounts);
+  const installmentFields = {
+    paymentType: formInstallment ? 'installment' as const : 'normal' as const,
+    installmentTotal: formInstallment ? totalCount : undefined,
+    installmentRemaining: formInstallment ? remainingCount : undefined,
+  };
 
   const openAdd = () => {
     setEditId(null);
@@ -90,6 +102,7 @@ export default function MoneySettingsPage() {
     setAmountRaw('');
     setDayInput('1');
     setFormVariable(false);
+    setFormInstallment(false); setTotalRaw(''); setRemainingRaw('');
     setShowForm(true);
   };
 
@@ -99,6 +112,9 @@ export default function MoneySettingsPage() {
     setAmountRaw(String(cost.amount));
     setDayInput(String(cost.payDay));
     setFormVariable(isVariable(cost));
+    setFormInstallment(isInstallment(cost));
+    setTotalRaw(String(cost.installmentTotal ?? ''));
+    setRemainingRaw(String(cost.installmentRemaining ?? ''));
     setShowForm(true);
   };
 
@@ -111,10 +127,11 @@ export default function MoneySettingsPage() {
         prev.map(c =>
           c.id === editId
             ? {
-                ...c, name, amount, payDay,
-                variable: formVariable,
+                ...c, name, amount, payDay, ...installmentFields,
+                installmentPaidPeriod: formInstallment && c.installmentRemaining === remainingCount ? c.installmentPaidPeriod : undefined,
+                variable: formInstallment ? false : formVariable,
                 // 「変動」から「固定」に変えたときは、残っている確定額を捨てる
-                actual: formVariable ? (c.actual ?? null) : null,
+                actual: formInstallment || formVariable ? (c.actual ?? null) : null,
               }
             : c
         )
@@ -123,7 +140,7 @@ export default function MoneySettingsPage() {
     } else {
       setCosts(prev => [
         ...prev,
-        { id: generateId(), name, amount, payDay, paid: false, variable: formVariable, actual: null },
+        { id: generateId(), name, amount, payDay, ...installmentFields, paid: false, variable: formInstallment ? false : formVariable, actual: null },
       ]);
       showToast('固定費を追加しました');
     }
@@ -395,9 +412,10 @@ export default function MoneySettingsPage() {
                         ? `確定 ${formatYen(cost.actual as number)}（予想 ${formatYen(cost.amount)}）`
                         : `予想 ${formatYen(cost.amount)}・${cost.payDay}日 支払い予定`}
                   </p>
+                  {isInstallment(cost) && <p className="installment-note">{installmentLabel(cost, payday)}</p>}
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="font-semibold text-sm" style={{ color: 'var(--ink)' }}>{formatYen(effectiveAmount(cost))}</p>
+                  <p className="font-semibold text-sm" style={{ color: 'var(--ink)' }}>{formatYen(isInstallmentComplete(cost) ? cost.amount : effectiveAmount(cost))}{isInstallment(cost) ? ' / 月' : ''}</p>
                   <button
                     onClick={() => openEdit(cost)}
                     className="text-[11px] mt-0.5 px-2 py-1.5 -my-1 rounded-lg"
@@ -524,6 +542,20 @@ export default function MoneySettingsPage() {
       >
         <div className="space-y-4">
           <div>
+            <label className="field-label" htmlFor="payment-type">支払いタイプ</label>
+            <select id="payment-type" className="input" value={formInstallment ? 'installment' : 'normal'} onChange={e => setFormInstallment(e.target.value === 'installment')}>
+              <option value="normal">通常の固定費</option><option value="installment">分割払い / ローン</option>
+            </select>
+          </div>
+          {formInstallment && <div className="installment-fields">
+            <label className="field-label" htmlFor="installment-total">支払い回数 *</label>
+            <input id="installment-total" className="input" inputMode="numeric" value={totalRaw} onChange={e => setTotalRaw(e.target.value.normalize('NFKC'))} placeholder="36" />
+            <label className="field-label" htmlFor="installment-remaining">現在の残り回数</label>
+            <input id="installment-remaining" className="input" inputMode="numeric" value={remainingRaw} onChange={e => setRemainingRaw(e.target.value.normalize('NFKC'))} placeholder={totalRaw || '支払い回数と同じ'} />
+            <p className="installment-help">新規契約は空欄でOK。途中からは残り回数を入力（0回は完済）。1〜9,999回、残りは全回数以下。</p>
+            <p className="installment-help">支払済みをチェックすると1回減ります。完済予定は毎期間1回の支払いを続けた場合の目安です。</p>
+          </div>}
+          <div hidden={formInstallment}>
             <label className="field-label">種類</label>
             <div className="flex gap-1.5 p-1 rounded-2xl" style={{ background: 'var(--surface-2)' }} role="group" aria-label="固定費の種類">
               {([
@@ -566,7 +598,7 @@ export default function MoneySettingsPage() {
           </div>
 
           <div>
-            <label className="field-label" htmlFor="fixed-cost-amount">{formVariable ? '予想額 *' : '金額 *'}</label>
+            <label className="field-label" htmlFor="fixed-cost-amount">{formInstallment ? '毎月の支払額 *' : formVariable ? '予想額 *' : '金額 *'}</label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: 'var(--muted)' }}>¥</span>
               <input

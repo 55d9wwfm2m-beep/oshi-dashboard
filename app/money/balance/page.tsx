@@ -10,7 +10,8 @@ import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { FixedCost, MoneyAccount, MonthlyBudget } from '@/types';
 import { formatYen, getCurrentMonth } from '@/lib/utils';
 import {
-  MONEY_KEYS,
+  currentPeriod,
+  MONEY_KEYS, setFixedPaid, sortByPayDay, paidCostAmount, isInstallmentComplete, installmentLabel,
   digitsOnly,
   unpaidTotal,
   accountAmount,
@@ -33,18 +34,19 @@ export default function BalancePage() {
   const [accounts, setAccounts, accountsLoaded] = useLocalStorage<MoneyAccount[]>(MONEY_KEYS.accounts, []);
   const [costs, setCosts, costsLoaded] = useLocalStorage<FixedCost[]>(MONEY_KEYS.fixedCosts, []);
   const [budget, , budgetLoaded] = useLocalStorage<MonthlyBudget | null>(MONEY_KEYS.budget, null);
+  const [payday, , paydayLoaded] = useLocalStorage<number>(MONEY_KEYS.payday, 0);
   const [actualTarget, setActualTarget] = useState<FixedCost | null>(null);
   const [actualRaw, setActualRaw] = useState('');
 
-  if (!accountsLoaded || !costsLoaded || !budgetLoaded) return null;
+  if (!accountsLoaded || !costsLoaded || !budgetLoaded || !paydayLoaded) return null;
 
   const hasExcluded = accounts.some(a => !isBudgetAccount(a));
   const unpaid = unpaidTotal(costs);
-  const paidTotal = costs.filter(c => c.paid).reduce((s, c) => s + effectiveAmount(c), 0);
-  const sorted = [...costs].sort((a, b) => a.payDay - b.payDay || a.name.localeCompare(b.name, 'ja'));
+  const paidTotal = costs.reduce((s, c) => s + paidCostAmount(c), 0);
+  const sorted = sortByPayDay(costs);
 
   const togglePaid = (id: string) =>
-    setCosts(prev => prev.map(c => (c.id === id ? { ...c, paid: !c.paid } : c)));
+    setCosts(prev => prev.map(c => (c.id === id ? setFixedPaid(c, !c.paid, currentPeriod(payday).key) : c)));
 
   // 請求額（確定額）の入力
   const openActual = (cost: FixedCost) => {
@@ -273,6 +275,7 @@ export default function BalancePage() {
                   return (
                     <li key={cost.id} style={{ borderBottom: '1px solid var(--line)' }}>
                       <button
+                        disabled={isInstallmentComplete(cost) && !cost.paid}
                         onClick={() => togglePaid(cost.id)}
                         aria-pressed={cost.paid}
                         aria-label={`${cost.name} を${cost.paid ? '未払い' : '支払い済み'}にする`}
@@ -320,6 +323,7 @@ export default function BalancePage() {
                           >
                             {sub}
                           </span>
+                          <span className="installment-note">{installmentLabel(cost, payday)}</span>
                         </span>
                         <span className="text-right shrink-0">
                           <span
@@ -330,13 +334,13 @@ export default function BalancePage() {
                                 : { color: 'var(--ink)' }
                             }
                           >
-                            {formatYen(effectiveAmount(cost))}
+                            {formatYen(isInstallmentComplete(cost) ? cost.amount : effectiveAmount(cost))}
                           </span>
                           <span
                             className="block text-[11px] mt-0.5 font-medium"
                             style={{ color: cost.paid ? MONEY_ACCENT : 'var(--muted)' }}
                           >
-                            {cost.paid ? '支払い済み' : '未払い'}
+                            {isInstallmentComplete(cost) ? '完済' : cost.paid ? '支払い済み' : '未払い'}
                           </span>
                         </span>
                       </button>

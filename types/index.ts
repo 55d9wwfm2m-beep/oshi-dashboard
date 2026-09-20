@@ -192,6 +192,13 @@ export interface MoneyAccount {
 }
 
 export interface FixedCost {
+  /** 未指定の既存データは通常固定費 */
+  paymentType?: 'normal' | 'installment';
+  installmentTotal?: number;
+  /** これから支払う回数（0は完済） */
+  installmentRemaining?: number;
+  /** 支払チェックで回数を減らした期間。取消時の復元にも使用 */
+  installmentPaidPeriod?: string;
   id: string;
   name: string;
   /**

@@ -320,7 +320,45 @@ export function hasActual(c: FixedCost): boolean {
  * 実際に払った額が入っていればそれ、なければ登録金額（変動費は予想額）。
  */
 export function effectiveAmount(c: FixedCost): number {
+  if (isInstallmentComplete(c)) return 0;
   return hasActual(c) ? (c.actual as number) : c.amount;
+}
+
+export function isInstallment(c: FixedCost): boolean {
+  return c.paymentType === 'installment';
+}
+
+export function isInstallmentComplete(c: FixedCost): boolean {
+  return isInstallment(c) && c.installmentRemaining === 0;
+}
+
+/** 二重実行は無視。支払取消では、この期間に減らした1回だけを戻す。 */
+export function setFixedPaid(c: FixedCost, paid: boolean, period: string): FixedCost {
+  if (c.paid === paid) return c;
+  if (!isInstallment(c)) return { ...c, paid };
+  const remaining = c.installmentRemaining;
+  if (remaining === undefined) return c;
+  if (paid) {
+    if (remaining <= 0) return c;
+    return { ...c, paid, installmentRemaining: remaining - (c.installmentPaidPeriod === period ? 0 : 1), installmentPaidPeriod: period };
+  }
+  return { ...c, paid, installmentRemaining: Math.min(c.installmentTotal ?? remaining + 1, remaining + (c.installmentPaidPeriod === period ? 1 : 0)), installmentPaidPeriod: undefined };
+}
+
+/** 支払済み実績は最後の1回も保持。将来の固定費確保額とは分ける。 */
+export function paidCostAmount(c: FixedCost): number {
+  return c.paid ? (hasActual(c) ? c.actual as number : c.amount) : 0;
+}
+
+export function installmentLabel(c: FixedCost, payday: number): string {
+  if (!isInstallment(c)) return '';
+  if (isInstallmentComplete(c)) return '完済済み';
+  if (c.installmentRemaining === undefined) return '残り回数を設定してください';
+  const period = currentPeriod(payday);
+  const [y, m, day] = period.start.split('-').map(Number);
+  const dueDay = Math.min(c.payDay, new Date(y, m, 0).getDate());
+  const end = new Date(y, m - 1 + (dueDay < day ? 1 : 0) + c.installmentRemaining - 1 + (c.paid ? 1 : 0), 1);
+  return `あと${c.installmentRemaining}回 · 全${c.installmentTotal}回 · ${end.getFullYear()}年${end.getMonth() + 1}月 完済予定`;
 }
 
 /** 実際に払った額 − 登録金額。未入力なら null */
@@ -738,7 +776,7 @@ export function formatYenSigned(amount: number): string {
 
 /** 支払日の昇順（同日なら名前順）で並べた新しい配列を返す */
 export function sortByPayDay(costs: FixedCost[]): FixedCost[] {
-  return [...costs].sort((a, b) => a.payDay - b.payDay || a.name.localeCompare(b.name, 'ja'));
+  return [...costs].sort((a, b) => Number(isInstallmentComplete(a)) - Number(isInstallmentComplete(b)) || a.payDay - b.payDay || a.name.localeCompare(b.name, 'ja'));
 }
 
 // ──── 貯金ロードマップ ────

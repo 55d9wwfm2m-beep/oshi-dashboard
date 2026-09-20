@@ -10,7 +10,7 @@ import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { FixedCost, MonthlyBudget, PlannedExpense, BudgetCategory, LivingExpense } from '@/types';
 import { formatYen, getCurrentMonth, generateId, formatDateShort } from '@/lib/utils';
 import {
-  MONEY_KEYS,
+  MONEY_KEYS, isInstallmentComplete,
   digitsOnly,
   formatYenSigned,
   formatMonthLabel,
@@ -106,7 +106,7 @@ export default function BudgetPage() {
   // 貯金は目標（計画）ではなく、入力された実績で判定する
   const saving = savingResult(budget);
   const spentByCat = totalsByCategory(expensesInMonth(expenses, budget.month, payday));
-  const sortedCosts = [...costs].sort((a, c) => a.payDay - c.payDay || a.name.localeCompare(c.name, 'ja'));
+  const sortedCosts = costs.filter(c => !isInstallmentComplete(c)).sort((a, c) => a.payDay - c.payDay || a.name.localeCompare(c.name, 'ja'));
   const sortedPlanned = [...budget.planned].sort((x, y) => (x.date || '9999').localeCompare(y.date || '9999'));
 
   const update = (patch: Partial<MonthlyBudget>) => setBudget(prev => (prev ? { ...prev, ...patch } : prev));

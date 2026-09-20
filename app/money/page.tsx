@@ -11,7 +11,7 @@ import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { FixedCost, MoneyAccount, MonthlyRecord, MonthlyBudget, LivingExpense, SavingsRoadmap } from '@/types';
 import { formatYen, getCurrentMonth } from '@/lib/utils';
 import {
-  MONEY_KEYS,
+  MONEY_KEYS, setFixedPaid, sortByPayDay, paidCostAmount, isInstallmentComplete,
   statusOf,
   digitsOnly,
   unpaidTotal,
@@ -103,7 +103,7 @@ export default function MoneyPage() {
         month,
         spendable: budgetTotal(accounts) - unpaidTotal(costs),
         assets: accountsTotal(accounts),
-        fixedCosts: costs.reduce((s, c) => s + effectiveAmount(c), 0),
+        fixedCosts: costs.reduce((s, c) => s + (isInstallmentComplete(c) ? paidCostAmount(c) : effectiveAmount(c)), 0),
         savedAt: new Date().toISOString(),
       };
       setHistory(prev => addMonthlyRecord(prev, record));
@@ -142,7 +142,7 @@ export default function MoneyPage() {
   const balance = balanceEmpty ? 0 : budgetTotal(accounts);
   const hasExcluded = accounts.some(a => !isBudgetAccount(a));
   const unpaid = unpaidTotal(costs);
-  const paidTotal = costs.filter(c => c.paid).reduce((s, c) => s + effectiveAmount(c), 0);
+  const paidTotal = costs.reduce((s, c) => s + paidCostAmount(c), 0);
   // 所持金が未入力のときは結果を 0 円として扱う
   const spendable = balanceEmpty ? 0 : balance - unpaid - unpaidPlanned;
   const isShort = !balanceEmpty && spendable < 0;
@@ -162,10 +162,10 @@ export default function MoneyPage() {
           ? `買うと残り ${formatYen(simAfter)}。少し注意です`
           : `買うと残り ${formatYen(simAfter)}。節約モードになります`;
 
-  const sorted = [...costs].sort((a, b) => a.payDay - b.payDay || a.name.localeCompare(b.name, 'ja'));
+  const sorted = sortByPayDay(costs);
 
   const togglePaid = (id: string) =>
-    setCosts(prev => prev.map(c => (c.id === id ? { ...c, paid: !c.paid } : c)));
+    setCosts(prev => prev.map(c => (c.id === id ? setFixedPaid(c, !c.paid, currentPeriod(payday).key) : c)));
 
   // 請求額（確定額）の入力
   const openActual = (cost: FixedCost) => {

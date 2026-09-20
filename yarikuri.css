@@ -207,3 +207,9 @@ body:has(.money-app) .money-overlay { font-family: var(--money-font); }
 }
 @media (prefers-reduced-transparency: reduce) { .money-app .tabbar { background: #202823; backdrop-filter: none; -webkit-backdrop-filter: none; } }
 @media (prefers-contrast: more) { .money-app { --line: rgba(255,255,255,.32); --muted: #c0ccc4; } }
+
+/* 分割回数は既存行の中で表示し、狭い画面では自然に折り返す。 */
+.installment-note { display: block; color: var(--accent); font-size: 12px; line-height: 1.65; margin-top: 5px; overflow-wrap: anywhere; }
+.installment-note:empty { display: none; }
+.installment-fields:not([hidden]) { display: grid; gap: 8px; }
+.installment-help { color: var(--sub); font-size: 12px; line-height: 1.65; margin: 0; }

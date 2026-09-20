@@ -129,7 +129,7 @@ export default function MoneySettingsPage() {
             ? {
                 ...c, name, amount, payDay, ...installmentFields,
                 installmentPaidPeriod: formInstallment && c.installmentRemaining === remainingCount ? c.installmentPaidPeriod : undefined,
-                variable: formInstallment ? false : formVariable,
+                variable: formVariable,
                 // 「変動」から「固定」に変えたときは、残っている確定額を捨てる
                 actual: formInstallment || formVariable ? (c.actual ?? null) : null,
               }
@@ -140,7 +140,7 @@ export default function MoneySettingsPage() {
     } else {
       setCosts(prev => [
         ...prev,
-        { id: generateId(), name, amount, payDay, ...installmentFields, paid: false, variable: formInstallment ? false : formVariable, actual: null },
+        { id: generateId(), name, amount, payDay, ...installmentFields, paid: false, variable: formVariable, actual: null },
       ]);
       showToast('固定費を追加しました');
     }
@@ -548,14 +548,14 @@ export default function MoneySettingsPage() {
             </select>
           </div>
           {formInstallment && <div className="installment-fields">
-            <label className="field-label" htmlFor="installment-total">支払い回数 *</label>
+            <label className="field-label" htmlFor="installment-total">全支払い回数 *</label>
             <input id="installment-total" className="input" inputMode="numeric" value={totalRaw} onChange={e => setTotalRaw(e.target.value.normalize('NFKC'))} placeholder="36" />
             <label className="field-label" htmlFor="installment-remaining">現在の残り回数</label>
             <input id="installment-remaining" className="input" inputMode="numeric" value={remainingRaw} onChange={e => setRemainingRaw(e.target.value.normalize('NFKC'))} placeholder={totalRaw || '支払い回数と同じ'} />
             <p className="installment-help">新規契約は空欄でOK。途中からは残り回数を入力（0回は完済）。1〜9,999回、残りは全回数以下。</p>
             <p className="installment-help">支払済みをチェックすると1回減ります。完済予定は毎期間1回の支払いを続けた場合の目安です。</p>
           </div>}
-          <div hidden={formInstallment}>
+          <div>
             <label className="field-label">種類</label>
             <div className="flex gap-1.5 p-1 rounded-2xl" style={{ background: 'var(--surface-2)' }} role="group" aria-label="固定費の種類">
               {([

@@ -1,6 +1,6 @@
 /* やりくり電卓のオフラインキャッシュ。ネットワーク優先で常に最新を取りに行き、
    圏外・機内モードのときだけキャッシュから返す */
-const CACHE = 'yarikuri-installments-v5';
+const CACHE = 'yarikuri-installments-ui-v6';
 const ASSETS = ['./', './index.html', './yarikuri.css', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', (e) => {
@@ -18,7 +18,7 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request, e.request.mode === 'navigate' ? { cache: 'no-cache' } : {})
       .then((res) => {
         const copy = res.clone();
         caches.open(CACHE).then((c) => c.put(e.request, copy));

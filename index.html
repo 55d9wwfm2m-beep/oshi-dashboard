@@ -1041,7 +1041,7 @@
         <select id="f-payment-type" class="input"><option value="normal">通常の固定費</option><option value="installment">分割払い / ローン</option></select>
       </div>
       <div id="f-installments" class="installment-fields" hidden>
-        <label class="field-label" for="f-total">支払い回数 *</label>
+        <label class="field-label" for="f-total">全支払い回数 *</label>
         <input id="f-total" class="input" inputmode="numeric" placeholder="36">
         <label class="field-label" for="f-remaining">現在の残り回数</label>
         <input id="f-remaining" class="input" inputmode="numeric" placeholder="支払い回数と同じ">
@@ -1108,18 +1108,6 @@
     <h2 id="rm-form-title">目標を追加</h2>
     <div class="fields">
       <div>
-        <label class="field-label" for="f-payment-type">支払いタイプ</label>
-        <select id="f-payment-type" class="input"><option value="normal">通常の固定費</option><option value="installment">分割払い / ローン</option></select>
-      </div>
-      <div id="f-installments" class="installment-fields" hidden>
-        <label class="field-label" for="f-total">支払い回数 *</label>
-        <input id="f-total" class="input" inputmode="numeric" placeholder="36">
-        <label class="field-label" for="f-remaining">現在の残り回数</label>
-        <input id="f-remaining" class="input" inputmode="numeric" placeholder="支払い回数と同じ">
-        <p class="installment-help">新規契約は空欄でOK。途中からは残り回数を入力（0回は完済）。1〜9,999回、残りは全回数以下。</p>
-        <p class="installment-help">支払済みをチェックすると1回減ります。完済予定は毎期間1回の支払いを続けた場合の目安です。</p>
-      </div>
-      <div id="f-normal-kind">
         <label class="field-label">種類</label>
         <div class="seg" id="rm-kind" role="group" aria-label="目標の種類">
           <button type="button" data-rmkind="goal" aria-pressed="true">貯金の目標</button>
@@ -3633,7 +3621,6 @@
   }
   function applyPaymentType() {
     document.getElementById('f-installments').hidden = !formInstallment();
-    document.getElementById('f-normal-kind').hidden = formInstallment();
     document.getElementById('f-amount-label').textContent = formInstallment() ? '毎月の支払額 *' : formVariable ? '予想額 *' : '金額 *';
     validateForm();
   }
@@ -3719,7 +3706,7 @@
         return c.id === editId
           ? Object.assign({}, c, installmentFields(c), {
               name: name, amount: amount, payDay: payDay,
-              variable: formInstallment() ? false : formVariable, actual: c.actual != null ? c.actual : null
+              variable: formVariable, actual: c.actual != null ? c.actual : null
             })
           : c;
       });
@@ -3727,7 +3714,7 @@
     } else {
       costs.push(Object.assign(installmentFields(null), {
         id: uid(), name: name, amount: amount, payDay: payDay,
-        paid: false, variable: formInstallment() ? false : formVariable, actual: null
+        paid: false, variable: formVariable, actual: null
       }));
       toast('固定費を追加しました');
     }

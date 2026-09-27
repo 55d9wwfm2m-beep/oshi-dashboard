@@ -3175,7 +3175,7 @@ window.YarikuriCloud.ready.then(function () {
       (info.monthlySaving !== null ? '<p class="rm-note">現在の貯金予定　月 ' + yen(info.monthlySaving) + '</p>' : '') +
       (info.remaining > 0 && info.monthlyMargin !== null
         ? '<p class="rm-note">' + (info.monthlyMargin >= 0 ? '余裕：+' : '必要な上乗せ：+') + yen(Math.abs(info.monthlyMargin)) + ' / 月</p>' : '') +
-      (info.projected !== null ? '<p class="rm-note">このままなら目標時点で約 ' + yen(info.projected) + '</p>' : '');
+      (info.projected !== null ? '<p class="rm-note">このままなら目標時点の予想残高：約 ' + yen(info.projected) + '</p>' : '');
   }
 
   function renderRoadmapTimeline() {
@@ -3204,13 +3204,13 @@ window.YarikuriCloud.ready.then(function () {
           '<div style="display:flex; align-items:flex-start; gap:8px;">' +
             '<div style="flex:1; min-width:0;">' +
               '<p class="tl-when">' + monthLabel(m.month) + (isCurrent ? '・いま向かっている目標' : '') + '</p>' +
-              '<p class="tl-amount">' + (isEvent ? '−' + yen(m.amount) : man(m.amount)) + '</p>' +
+              '<p class="tl-amount">' + (isEvent ? '予定支出 ' + yen(m.amount) : (m.sharedKey === 'lexus-nx' ? '最終目標額 ' + yen(m.amount) : man(m.amount))) + '</p>' +
               '<p class="tl-name">' + esc(m.name) + (done ? '・達成' : '') + '</p>' +
               (m.sharedKey === 'lexus-nx' ? '<p class="rm-note">Astraと共有するLEXUS資金目標</p>' : '') +
             '</div>' +
             '<button class="tl-edit" data-rm-edit="' + m.id + '" aria-label="' + esc(m.name) + 'を編集">' + moneyIconHTML('edit') + '</button>' +
           '</div>' +
-          (forecast ? '<p class="rm-note">' + PACE_TEXT[forecast.pace].label + (forecast.projected !== null ? '・目標時点 約 ' + yen(forecast.projected) : '') + '</p>' : '') +
+          (forecast ? '<p class="rm-note">' + PACE_TEXT[forecast.pace].label + (forecast.projected !== null ? '・目標時点の予想残高：約 ' + yen(forecast.projected) : '') + '</p>' : '') +
           (isEvent && typeof m.after === 'number'
             ? '<p class="tl-after">購入後の目標残高 ' + yen(m.after) + '（計画された支出です）</p>'
             : '') +

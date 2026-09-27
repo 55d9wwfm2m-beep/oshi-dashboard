@@ -1,5 +1,5 @@
 import {createClient} from '@supabase/supabase-js';
-import {KEYS,clone,equal,validDocument,mergeDocuments,observeBalances,mergeObservations} from './cloud-core.mjs';
+import {KEYS,clone,equal,validDocument,mergeDocuments,observeBalances,mergeObservations,migrateLexusRoadmap,savingsSelection} from './cloud-core.mjs';
 
 // Build-time public configuration. Never use a secret/service-role key here.
 const client=createClient(process.env.YARIKURI_PUBLIC_SUPABASE_URL,process.env.YARIKURI_PUBLIC_SUPABASE_KEY,{
@@ -27,6 +27,8 @@ function savePending(){
 }
 function queue(){clearTimeout(timer);timer=setTimeout(flush,700);}
 window.YarikuriCloud={ready,
+  prepareRoadmap:migrateLexusRoadmap,
+  targetBalance(roadmap,accounts){return savingsSelection({'oshi-money-roadmap':roadmap,'oshi-money-accounts':accounts}).amount;},
   read(key,fallback){return working && working.values[key]!==undefined?clone(working.values[key]):fallback;},
   write(key,value){
     if(!running||!userId||!KEYS.includes(key)) throw new Error('ログインを確認してください');
@@ -67,6 +69,7 @@ async function refresh(){
   }catch(e){say('最新データを確認できませんでした。表示中の情報は前回取得分です。');retry.hidden=false;}
 }
 function start(row){base=clone(row.payload);working=clone(base);revision=Number(row.revision);running=true;unlock();resolveReady();say('Astraと同期済み');
+  if(!working.observations?.goalTargetBalance){savePending();queue();}
   client.channel('yarikuri:'+userId).on('postgres_changes',{event:'*',schema:'public',table:'yarikuri_documents',filter:'user_id=eq.'+userId},()=>refresh()).subscribe();
   setInterval(()=>{flush();refresh();},15000);
 }

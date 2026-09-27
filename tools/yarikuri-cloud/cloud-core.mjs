@@ -1,6 +1,29 @@
 export const KEYS = ['accounts','balance','fixedcosts','month','payday','history','budget','budget-history','expenses','roadmap'].map(k => 'oshi-money-' + k);
 export const clone = value => JSON.parse(JSON.stringify(value));
 export const equal = (a,b) => JSON.stringify(a) === JSON.stringify(b);
+export function migrateLexusRoadmap(roadmap,at=new Date().toISOString()) {
+  if(!roadmap||!Array.isArray(roadmap.milestones))return {roadmap,changed:false};
+  const result=clone(roadmap), migrationKey='lexusSharedGoalV1';
+  if(result.migrations?.[migrationKey])return {roadmap:result,changed:false};
+  const linked=result.milestones.filter(m=>m?.sharedKey==='lexus-nx');
+  if(linked.length>1)return {roadmap:result,changed:false,needsReview:true};
+  if(linked.length===1){result.migrations={...result.migrations,[migrationKey]:{at,sharedGoalId:linked[0].id,archivedMilestones:[]}};return {roadmap:result,changed:true};}
+  // Prefer the user's already-edited 800万円 NX goal, preserving id/title/date.
+  const existing=result.milestones.filter(m=>m&&m.kind==='goal'&&m.amount===8000000&&/(?:lexus|レクサス).*nx/i.test(m.name||''));
+  if(existing.length>1)return {roadmap:result,changed:false,needsReview:true};
+  let shared, archived=[];
+  if(existing.length===1){shared=existing[0];shared.sharedKey='lexus-nx';}
+  else {
+    const legacy=result.milestones.filter(m=>m&&m.kind==='event'&&m.month==='2031-04'&&m.name==='レクサス購入'&&m.amount===3000000&&m.after===1475000);
+    if(legacy.length>1)return {roadmap:result,changed:false,needsReview:true};
+    shared={id:legacy[0]?.id||'lexus-nx-shared-goal-v1',sharedKey:'lexus-nx',name:'新型LEXUS NX購入資金',kind:'goal',amount:8000000,month:'2029-10',after:null};
+    if(legacy.length===1){archived=[clone(legacy[0])];result.milestones=result.milestones.map(m=>m.id===legacy[0].id?shared:m);}
+    else if(result.milestones.some(m=>m.id===shared.id))return {roadmap:result,changed:false,needsReview:true};
+    else result.milestones.push(shared);
+  }
+  result.migrations={...result.migrations,[migrationKey]:{at,sharedGoalId:shared.id,archivedMilestones:archived}};
+  return {roadmap:result,changed:true};
+}
 export function validDocument(doc) {
   if (!doc || doc.version !== 1 || !doc.values || Array.isArray(doc.values) || typeof doc.values !== 'object') return false;
   if (Object.keys(doc.values).some(k => !KEYS.includes(k))) return false;
@@ -20,7 +43,9 @@ function validPoint(point) {
   return point && Number.isSafeInteger(point.current) && point.current>=0 && Number.isSafeInteger(point.highest) && point.highest>=point.current && typeof point.highestAt==='string' && Number.isFinite(Date.parse(point.highestAt)) && typeof point.observedAt==='string' && Number.isFinite(Date.parse(point.observedAt));
 }
 export function validObservations(o) {
-  return !!o && o.version===1 && (o.activeSavingsScope===null||typeof o.activeSavingsScope==='string') && ['accounts','savings'].every(k=>o[k]&&typeof o[k]==='object'&&!Array.isArray(o[k])&&Object.values(o[k]).every(validPoint));
+  const pointer=o?.goalTargetBalance;
+  const validPointer=pointer===undefined||(pointer&&(pointer.scope===null||typeof pointer.scope==='string')&&['ready','missing'].includes(pointer.state)&&typeof pointer.observedAt==='string'&&Number.isFinite(Date.parse(pointer.observedAt)));
+  return !!o && o.version===1 && validPointer && (o.activeSavingsScope===null||typeof o.activeSavingsScope==='string') && ['accounts','savings'].every(k=>o[k]&&typeof o[k]==='object'&&!Array.isArray(o[k])&&Object.values(o[k]).every(validPoint));
 }
 function numericAmount(raw) {
   if (typeof raw!=='string'||!/^\d+$/.test(raw)) return null;
@@ -48,6 +73,7 @@ export function mergeObservations(...items) {
   for(const item of items){
     if(!validObservations(item))continue;
     out.activeSavingsScope=item.activeSavingsScope;
+    if(item.goalTargetBalance&&(!out.goalTargetBalance||Date.parse(item.goalTargetBalance.observedAt)>=Date.parse(out.goalTargetBalance.observedAt)))out.goalTargetBalance=clone(item.goalTargetBalance);
     for(const group of ['accounts','savings']) for(const [key,value] of Object.entries(item[group])) {
       const previous=Object.hasOwn(out[group],key)?out[group][key]:null;
       let merged=clone(value);
@@ -75,6 +101,7 @@ export function observeBalances(doc,at=new Date().toISOString()) {
   for(const account of doc.values['oshi-money-accounts']||[]){if(account&&typeof account.id==='string')record('accounts',account.id,numericAmount(account.amount));}
   const savings=savingsSelection(doc.values);o.activeSavingsScope=savings.scope;
   if(savings.scope)record('savings',savings.scope,savings.amount);
+  o.goalTargetBalance={scope:savings.scope,state:savings.scope!==null&&savings.amount!==null?'ready':'missing',observedAt:at};
   result.observations=o;return result;
 }
 // Merge only disjoint top-level original keys; overlapping changes need explicit review.

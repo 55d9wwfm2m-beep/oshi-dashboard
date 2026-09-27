@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
-import {KEYS,clone,equal,validDocument,mergeDocuments,observeBalances,mergeObservations,savingsSelection} from './cloud-core.mjs';
+import {KEYS,clone,equal,validDocument,mergeDocuments,observeBalances,mergeObservations,savingsSelection,migrateLexusRoadmap} from './cloud-core.mjs';
 import {periodOfDate,periodByKey,periodKeyOf} from './period.mjs';
 const doc=values=>({version:1,values});
 const siteURL=file=>new URL((new URL('.',import.meta.url).pathname.endsWith('/tools/yarikuri-cloud/')?'../../site/':'./site/')+file,import.meta.url);
@@ -28,7 +28,7 @@ function harness({user={id:'test-user'},remote=null,legacy={},outbox=null,withWo
   if(outbox)storage.set('yarikuri-pending-v1:'+user.id,JSON.stringify(outbox));
   const element=id=>{if(!elems.has(id))elems.set(id,{hidden:true,textContent:'',value:'',disabled:false,tagName:'DIV',addEventListener(type,fn){this[type]=fn;},querySelector(){return element(id+'-button');}});return elems.get(id);};
   const classes=new Set(['cloud-locked']);
-  const context={KEYS,clone,equal,validDocument,mergeDocuments,observeBalances,mergeObservations,console,Promise,JSON,Number,Date,Array,Object,Error,Set,process:{env:{YARIKURI_PUBLIC_SUPABASE_URL:'https://test.invalid',YARIKURI_PUBLIC_SUPABASE_KEY:'test-only'}},
+  const context={KEYS,clone,equal,validDocument,mergeDocuments,observeBalances,mergeObservations,savingsSelection,migrateLexusRoadmap,console,Promise,JSON,Number,Date,Array,Object,Error,Set,process:{env:{YARIKURI_PUBLIC_SUPABASE_URL:'https://test.invalid',YARIKURI_PUBLIC_SUPABASE_KEY:'test-only'}},
     createClient:()=>({auth:{getUser:async()=>{authReads++;if(withWorker)assert.equal(workerAcknowledged,true);return{data:{user},error:null};},onAuthStateChange:fn=>{authChange=fn;},signInWithPassword:async()=>({error:null}),signOut:async()=>{authChange('SIGNED_OUT',null);return{error:null};}},
       from:()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:clone(db),error:null})})})}),
       rpc:async(name,args)=>{if(args.expected_revision!==(db?.revision||0))return{data:null,error:{code:'40001'}};db={payload:clone(args.document),revision:(db?.revision||0)+1};return{data:clone(db),error:null};},
@@ -109,4 +109,20 @@ test('existing inline application remains syntactically valid and is bootstrappe
   assert.match(scripts[0],/window\.YarikuriCloud\.ready\.then\(function/);
   assert.doesNotMatch(scripts[0],/localStorage\.(?:getItem|setItem)/);
   const ids=[...html.matchAll(/\bid="([^"]+)"/g)].map(match=>match[1]);assert.equal(new Set(ids).size,ids.length);
+});
+test('adopts existing 800万円 NX goal without changing 2032-04, id, or unrelated goals',()=>{
+  const input={source:'accounts',accountIds:['a'],milestones:[{id:'legacy-current',name:'新型レクサスNX 購入',kind:'goal',amount:8000000,month:'2032-04',after:null},{id:'other',name:'貯金190万円',kind:'goal',amount:1900000,month:'2031-10'}]};
+  const before=clone(input);const {roadmap,changed}=migrateLexusRoadmap(input,'2026-09-30T00:00:00Z');assert.equal(changed,true);assert.deepEqual(input,before);assert.equal(roadmap.milestones.length,2);
+  assert.deepEqual(roadmap.milestones[0],{...input.milestones[0],sharedKey:'lexus-nx'});assert.deepEqual(roadmap.milestones[1],input.milestones[1]);assert.equal(migrateLexusRoadmap(roadmap).changed,false);
+  roadmap.milestones[0].amount=9000000;assert.equal(migrateLexusRoadmap(roadmap).roadmap.milestones[0].amount,9000000);
+});
+test('only exact old default purchase event is archived and replaced; custom event preserved',()=>{
+  const old={id:'old',month:'2031-04',name:'レクサス購入',kind:'event',amount:3000000,after:1475000};
+  const migrated=migrateLexusRoadmap({milestones:[old]}).roadmap;assert.equal(migrated.milestones.length,1);assert.equal(migrated.milestones[0].amount,8000000);assert.equal(migrated.milestones[0].kind,'goal');assert.deepEqual(migrated.migrations.lexusSharedGoalV1.archivedMilestones,[old]);
+  const custom={...old,month:'2033-04'};const preserved=migrateLexusRoadmap({milestones:[custom]}).roadmap;assert.deepEqual(preserved.milestones[0],custom);assert.equal(preserved.milestones.length,2);
+});
+test('canonical target-balance pointer resolves to exact saved savings point and missing never reuses old amount',()=>{
+  const original=doc({'oshi-money-accounts':[{id:'selected',amount:'99825',budget:true},{id:'ignored',amount:'7000000',budget:false}],'oshi-money-roadmap':{source:'accounts',accountIds:['selected']}});
+  const saved=observeBalances(original,'2026-09-30T00:00:00Z');const pointer=saved.observations.goalTargetBalance;assert.equal(pointer.state,'ready');assert.equal(saved.observations.savings[pointer.scope].current,99825);assert.equal(saved.observations.savings[pointer.scope].observedAt,pointer.observedAt);
+  saved.values['oshi-money-accounts'][0].amount='';const next=observeBalances(saved,'2026-10-01T00:00:00Z');assert.equal(next.observations.goalTargetBalance.state,'missing');assert.equal(next.observations.savings[pointer.scope].current,99825);assert.notEqual(next.observations.goalTargetBalance.observedAt,next.observations.savings[pointer.scope].observedAt);
 });
